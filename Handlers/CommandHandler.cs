@@ -30,6 +30,8 @@ public class CommandHandler
                 break;
             case string s when s.StartsWith("tutup"):
                 await audioService.DestroyVoiceChannelAsync(voiceChannel!);
+                PlaylistService.playlist.Clear();
+                PlaylistService.previousPlaylistLength = 0;
                 break;
             case string s when s.StartsWith("pasang"):
                 {

@@ -46,7 +46,7 @@ public class InteractionsService
                     }
 
                     await component.FollowupAsync(
-                            text: componentData.CustomId.Contains("FM") ? $"Masang Radio {componentData.CustomId}" : "Masang lagu..", // Text content of the follow-up message
+                            text: componentData.CustomId.Contains("FM") ? $@"Masang Radio {componentData.CustomId}" : "Added to playlist. If Radio is playing. Trigger '\\next' command to start the playlist song.", // Text content of the follow-up message
                             isTTS: false,           // Whether the message is text-to-speech
                                                     // embeds: new[] { embed }, // Embed(s) to include in the message
                             allowedMentions: null,  // Allowed mentions (e.g., roles, users)
