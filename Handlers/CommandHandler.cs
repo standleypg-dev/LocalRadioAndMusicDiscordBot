@@ -1,5 +1,7 @@
 
 using System.ComponentModel;
+using System.Linq;
+using System.Text.Json;
 using Discord;
 using Discord.WebSocket;
 using radio_discord_bot.Helpers;
@@ -8,9 +10,16 @@ using YoutubeExplode.Common;
 
 namespace radio_discord_bot.Handlers;
 
-public static class CommandHandler
+public class CommandHandler
 {
-    public static async Task HandleCommand(string command, YoutubeClient youtubeClient, AudioService audioService, SocketTextChannel? channel = null, SocketUserMessage? message = null, IVoiceChannel? voiceChannel = null)
+    private readonly AudioService _audioService;
+
+    public CommandHandler(AudioService audioService)
+    {
+        _audioService = audioService;
+    }
+
+    public async Task HandleCommand(string command, YoutubeClient youtubeClient, AudioService audioService, SocketTextChannel? channel = null, SocketUserMessage? message = null, IVoiceChannel? voiceChannel = null)
     {
         System.Console.WriteLine($"command: {command}");
         switch (command)
@@ -39,11 +48,28 @@ public static class CommandHandler
                     else
                     {
                         var videos = await youtubeClient.Search.GetVideosAsync(commandQuery).CollectAsync(5); // Adjust the number of results we want
-
+                        // System.Console.WriteLine($"videos: {JsonSerializer.Serialize(videos.Select(x => x.Url))}");
                         var components = MessageComponentGenerator.GenerateComponents(videos.ToList());
 
                         await message.ReplyAsync("Click the button:", components: components);
                     }
+                }
+                break;
+            case string s when s.StartsWith("next"):
+                {
+                    await audioService.NextSongAsync();
+                    await _audioService.OnPlaylistChangedAsync();
+                }
+                break;
+            case string s when s.StartsWith("playlist"):
+                {
+                    var playlist = PlaylistService.playlist;
+                    if (playlist.Count == 0)
+                    {
+                        await channel!.SendMessageAsync("Playlist puang");
+                        return;
+                    }
+                    await message!.ReplyAsync("Playlist:\n" + string.Join('\n', playlist.Select(song => song.url)));
                 }
                 break;
         }

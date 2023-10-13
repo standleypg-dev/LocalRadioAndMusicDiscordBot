@@ -15,12 +15,12 @@ public static class Constants
     };
 
     public static string GET_HELP_MESSAGE = "Hello kaban! Enti ka ngena bot tu, titih ka aja command ba baruh nya:\n" +
-               "1. `/pasang-waifm` - Start masang radio waifm ba voice channel alai nuan.\n" +
-               "2. `/tutup-waifm` - Stop masang radio waifm sereta bot deka ninggal ka voice channel alai nuan.\n" +
-               "3. `/pasang-traxxfm` - Start masang radio waifm ba voice channel alai nuan.\n" +
-               "4. `/tutup-traxxfm` - Stop masang radio waifm sereta bot deka ninggal ka voice channel alai nuan.\n" +
-               "5. `/pasang-hitzfm` - Start masang radio waifm ba voice channel alai nuan.\n" +
-               "6. `/tutup-hitzfm` - Stop masang radio waifm sereta bot deka ninggal ka voice channel alai nuan.";
+               "1. `/pasang radio` - Start masang radio ba voice channel alai nuan.\n" +
+               "2. `/pasang tajuk_lagu` - Start masang lagu ba voice channel alai nuan.\n" +
+               "3. `/pasang url` - Start masang url ba voice channel alai nuan.\n" +
+               "4. `/next` - Skip lagu ti benung dipasang.\n" +
+               "5. `/playlist` - Meda playlist nuan.\n" +
+               "6. `/tutup` - Badu masang. Bot pansut.";
 
 }
 

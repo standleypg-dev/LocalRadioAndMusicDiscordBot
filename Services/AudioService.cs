@@ -1,24 +1,25 @@
 using Discord;
 using Discord.Audio;
+using radio_discord_bot;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
-public class AudioService
+public class AudioService : PlaylistService
 {
     private readonly ConcurrentDictionary<ulong, IAudioClient> _connectedChannels;
     private readonly YoutubeClient _youtubeClient;
 
-    public AudioService()
+    public AudioService(YoutubeClient youtubeClient, PlaylistService playlistService)
     {
-        _youtubeClient = new YoutubeClient();
         _connectedChannels = new ConcurrentDictionary<ulong, IAudioClient>();
+        _youtubeClient = youtubeClient;
     }
 
     public async Task InitiateVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl)
     {
-  
+
         try
         {
             var channel = await voiceChannel.ConnectAsync();
@@ -47,6 +48,18 @@ public class AudioService
             var discordStream = channel.CreatePCMStream(AudioApplication.Music);
             await audioOutStream.CopyToAsync(discordStream);
             await discordStream.FlushAsync();
+            if (ffmpeg.ExitCode == 0)
+            {
+                Console.WriteLine("Command executed successfully.");
+            }
+            else
+            {
+                Console.WriteLine($"Command failed with exit code: {ffmpeg.ExitCode}");
+            }
+
+            await NextSongAsync();
+            await OnPlaylistChangedAsync();
+
         }
         catch (Exception ex)
         {
@@ -80,6 +93,28 @@ public class AudioService
         };
         return Process.Start(ffmpeg);
 
+    }
+
+    public async Task OnPlaylistChangedAsync()
+    {
+        await Task.CompletedTask;
+        int currentPlaylistLength = playlist.Count;
+        Console.WriteLine($"current: {currentPlaylistLength}, previous: {previousPlaylistLength}");
+        if (currentPlaylistLength < previousPlaylistLength || currentPlaylistLength == 1)
+        {
+            var currentSong = playlist[0];
+            await InitiateVoiceChannelAsyncYt(currentSong.voiceChannel, currentSong.url);
+
+        }
+
+        previousPlaylistLength = currentPlaylistLength;
+    }
+
+    public async Task NextSongAsync()
+    {
+        await Task.CompletedTask;
+        if (playlist.Count > 0)
+            playlist.RemoveAt(0);
     }
 
 }

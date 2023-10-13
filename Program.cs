@@ -1,117 +1,74 @@
-﻿using System.Net.WebSockets;
-using System.Reflection.Metadata;
-using Discord;
-using Discord.Addons.Interactive;
-using Discord.Commands;
-using Discord.Interactions;
+﻿using Discord;
 using Discord.WebSocket;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using radio_discord_bot;
 using radio_discord_bot.Handlers;
+using radio_discord_bot.Services;
 using YoutubeExplode;
-using YoutubeExplode.Common;
 
 public class Program
 {
-    private const string Token = "MTA0MjY4NzQ4OTMyNTk0MDc4Ng.GnELXy.LFH092CTYy9jVgebs9KTPKckmi6pzx7ABXEdT4";
-    private readonly DiscordSocketClient _client;
-    private readonly AudioService _audioService;
-    private readonly YoutubeClient _youtubeClient;
+    private readonly string _token;
 
+    private readonly IServiceProvider _serviceProvider;
     public static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
 
     public Program()
     {
-        _youtubeClient = new YoutubeClient();
+        _serviceProvider = CreateProvider();
+        
+        IConfiguration configuration = new ConfigurationBuilder()
+           .SetBasePath(Directory.GetCurrentDirectory())
+           .AddJsonFile("appsettings.json")
+           .Build();
 
+        _token = configuration.GetSection("BotToken").Value!;
+    }
+
+    static IServiceProvider CreateProvider()
+    {
         var config = new DiscordSocketConfig
         {
             GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.GuildVoiceStates | GatewayIntents.GuildMembers | GatewayIntents.MessageContent | GatewayIntents.DirectMessages
         };
-        _client = new DiscordSocketClient(config);
 
-        _audioService = new AudioService();
+        var collection = new ServiceCollection()
+        .AddSingleton(config)
+        .AddSingleton<DiscordSocketClient>()
+        .AddScoped<AudioService>()
+        .AddScoped<YoutubeClient>()
+        .AddSingleton<PlaylistService>()
+        .AddScoped<CommandHandler>()
+        .AddScoped<MessageService>()
+        .AddScoped<InteractionsService>();
+
+        //...
+        return collection.BuildServiceProvider();
     }
 
     public async Task RunBotAsync()
     {
+        var _messageService = _serviceProvider.GetRequiredService<MessageService>();
+        var _interactionsService = _serviceProvider.GetRequiredService<InteractionsService>();
+        var _client = _serviceProvider.GetRequiredService<DiscordSocketClient>();
+
         _client.Log += LogAsync;
         _client.Ready += ReadyAsync;
-        _client.MessageReceived += TextChannelMessageReceivedAsync;
+        _client.MessageReceived += _messageService.TextChannelMessageReceivedAsync;
 
-        await _client.LoginAsync(TokenType.Bot, Token);
+        await _client.LoginAsync(TokenType.Bot, _token);
         await _client.StartAsync();
 
-        _client.InteractionCreated += OnInteractionCreated;
+        _client.InteractionCreated += _interactionsService.OnInteractionCreated;
 
         await Task.Delay(-1);
     }
 
-    public async Task TextChannelMessageReceivedAsync(SocketMessage arg)
-    {
-        await Task.CompletedTask;
-        _ = Task.Run(async () =>
-        {
-            var message = arg as SocketUserMessage;
-            if (message.Author.IsBot) return;
-            var channel = message.Channel as SocketTextChannel;
-            System.Console.WriteLine(message.Author as IGuildUser);
-            if (message.ToString().StartsWith("/"))
-            {
-                var voiceChannel = (message.Author as IGuildUser)?.VoiceChannel;
-
-                if (voiceChannel == null)
-                {
-                    await channel.SendMessageAsync("Nuan mesti ba dalam voice channel enti ka masang ngena command tu.");
-                    return;
-                }
-
-                var command = message.ToString().Substring(1).Trim();
-                System.Console.WriteLine($"command: {command}");
-
-                await CommandHandler.HandleCommand(command, _youtubeClient, _audioService, channel, message, voiceChannel);
-            }
-        });
-    }
-
-
-    private async Task OnInteractionCreated(SocketInteraction interaction)
-    {
-        _ = Task.Run(async () =>
-        {
-            if (interaction is SocketMessageComponent component)
-            {
-                if (component.Data is SocketMessageComponentData buttonData)
-                {
-
-                    // buttonData.CustomId
-                    await component.DeferAsync(); // Acknowledge the interaction
-
-                    // var embed = new EmbedBuilder()
-                    //     .WithTitle("Lagu dipilih nuan:")
-                    //     .WithDescription(buttonData.Value)
-                    //     .WithColor(Color.Green)
-                    //     .Build();
-
-                    if (buttonData.CustomId.Contains("FM"))
-                        await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, Constants.radios.Find(x => x.Title == buttonData.CustomId).Url);
-                    else
-                        await _audioService.InitiateVoiceChannelAsyncYt((interaction.User as SocketGuildUser)?.VoiceChannel, buttonData.CustomId);
-
-                    await component.FollowupAsync(
-                            text: buttonData.CustomId.Contains("FM") ? $"Masang Radio {buttonData.CustomId}" : "Masang lagu..", // Text content of the follow-up message
-                            isTTS: false,           // Whether the message is text-to-speech
-                                                    // embeds: new[] { embed }, // Embed(s) to include in the message
-                            allowedMentions: null,  // Allowed mentions (e.g., roles, users)
-                            options: null  // Message component options (e.g., buttons)
-                            );
-                }
-            }
-        });
-    }
-
     public async Task ReadyAsync()
     {
+        var _client = _serviceProvider.GetRequiredService<DiscordSocketClient>();
+
         await Task.CompletedTask;
         Console.WriteLine($"Logged in as {_client.CurrentUser.Username}");
     }
