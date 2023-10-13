@@ -14,11 +14,13 @@ FROM mcr.microsoft.com/dotnet/aspnet:7.0
 
 WORKDIR /app
 
-RUN apt update && apt install -y wget make tar gcc automake libtool pkg-config libopus0 opus-tools ffmpeg && wget https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.4.tar.gz && tar -zxvf opus-1.4.tar.gz
+RUN apt update && apt upgrade
+
+RUN apt install -y wget make tar gcc automake libtool pkg-config libopus0 opus-tools ffmpeg && wget https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.4.tar.gz && tar -zxvf opus-1.4.tar.gz && wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.18.tar.gz && tar -zxvf libsodium-1.0.18.tar.gz
 
 COPY --from=build-env /app/out .
 
-RUN ./opus-1.4/configure --prefix=/usr/local && make && make install && cp /usr/local/lib/libopus.so /app
+RUN cd opus-1.4 && ./configure --prefix=/usr/local && make && make install && cp /usr/local/lib/libopus.so /app && cd ../libsodium-1.0.18 && ./configure --prefix=/usr/local && make && make install
 
 EXPOSE 8002
 

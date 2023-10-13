@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Discord;
 using YoutubeExplode.Search;
 
@@ -11,6 +12,7 @@ public static class MessageComponentGenerator
         int idx = 0;
         foreach (var item in elem)
         {
+            // System.Console.WriteLine($"item: {item}");
             idx++;
             var button = new ButtonBuilder()
                 .WithStyle(ButtonStyle.Primary);
@@ -20,11 +22,14 @@ public static class MessageComponentGenerator
                 button.WithLabel($"{idx}. {radio.Title}")
                       .WithCustomId($"{radio.Title}");
             }
-            else if (item is VideoSearchResult playlist)
+            else if (item is VideoSearchResult ytVideo)
             {
-                System.Console.WriteLine($"playlist: {playlist.Title} {playlist.Url}");
-                button.WithLabel($"{idx}. {playlist.Title}")
-                      .WithCustomId($"{playlist.Url}");
+                button.WithLabel($"{idx}. {(ytVideo.Title.Length > 70 ? ytVideo.Title.Substring(0, 70)  : ytVideo.Title)}")
+                      .WithCustomId($"{ytVideo.Url}");
+            }
+            else if(item is Song playlist){
+                button.WithLabel($"{idx}. {(playlist.url.Length > 70 ? playlist.url.Substring(0, 70)  : playlist.url)}")
+                      .WithCustomId($"{playlist.url}");
             }
             // add more else if blocks for other types of items as needed
 
