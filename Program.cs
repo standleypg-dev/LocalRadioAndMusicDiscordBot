@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System.Text.Json;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +18,7 @@ public class Program
     public Program()
     {
         _serviceProvider = CreateProvider();
-        
+
         IConfiguration configuration = new ConfigurationBuilder()
            .SetBasePath(Directory.GetCurrentDirectory())
            .AddJsonFile("appsettings.json")
@@ -36,12 +37,12 @@ public class Program
         var collection = new ServiceCollection()
         .AddSingleton(config)
         .AddSingleton<DiscordSocketClient>()
-        .AddScoped<AudioService>()
-        .AddScoped<YoutubeClient>()
+        .AddTransient<AudioService>()
+        .AddTransient<YoutubeClient>()
         .AddSingleton<PlaylistService>()
-        .AddScoped<CommandHandler>()
-        .AddScoped<MessageService>()
-        .AddScoped<InteractionsService>();
+        .AddTransient<CommandHandler>()
+        .AddTransient<MessageService>()
+        .AddTransient<InteractionsService>();
 
         //...
         return collection.BuildServiceProvider();
@@ -56,6 +57,7 @@ public class Program
         _client.Log += LogAsync;
         _client.Ready += ReadyAsync;
         _client.MessageReceived += _messageService.TextChannelMessageReceivedAsync;
+        _client.UserVoiceStateUpdated += UserVoiceStateUpdatedAsync;
 
         await _client.LoginAsync(TokenType.Bot, _token);
         await _client.StartAsync();
@@ -77,5 +79,10 @@ public class Program
     {
         await Task.CompletedTask;
         Console.WriteLine(log);
+    }
+
+    private async Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState oldState, SocketVoiceState newState)
+    {
+        //TODO - disconnect bot if only bot is in voice channel
     }
 }

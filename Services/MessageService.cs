@@ -12,14 +12,10 @@ namespace radio_discord_bot.Services;
 public class MessageService
 {
     private readonly CommandHandler _commandHandler;
-    private readonly YoutubeClient _youtubeClient;
-    private readonly AudioService _audioService;
 
-    public MessageService(CommandHandler commandHandler, YoutubeClient youtubeClient, AudioService audioService)
+    public MessageService(CommandHandler commandHandler)
     {
         _commandHandler = commandHandler;
-        _youtubeClient = youtubeClient;
-        _audioService = audioService;
     }
 
     public async Task TextChannelMessageReceivedAsync(SocketMessage arg)
@@ -44,7 +40,7 @@ public class MessageService
                 var command = message.ToString().Substring(1).Trim();
                 System.Console.WriteLine($"command: {command}");
 
-                await _commandHandler.HandleCommand(command, _youtubeClient, _audioService, channel, message, voiceChannel);
+                await _commandHandler.HandleCommand(command, channel, message, voiceChannel);
             }
         });
     }

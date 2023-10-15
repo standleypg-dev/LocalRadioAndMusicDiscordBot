@@ -28,8 +28,8 @@ public static class MessageComponentGenerator
                       .WithCustomId($"{ytVideo.Url}");
             }
             else if(item is Song playlist){
-                button.WithLabel($"{idx}. {(playlist.url.Length > 70 ? playlist.url.Substring(0, 70)  : playlist.url)}")
-                      .WithCustomId($"{playlist.url}");
+                button.WithLabel($"{idx}. {(playlist.Url.Length > 70 ? playlist.Url.Substring(0, 70)  : playlist.Url)}")
+                      .WithCustomId($"{playlist.Url}");
             }
             // add more else if blocks for other types of items as needed
 
