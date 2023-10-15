@@ -4,8 +4,8 @@ namespace radio_discord_bot;
 
 public class Song
 {
-    public string url { get; set; }
-    public IVoiceChannel voiceChannel { get; set; }
+    public string Url { get; set; }
+    public IVoiceChannel VoiceChannel { get; set; }
 }
 public class PlaylistService
 {

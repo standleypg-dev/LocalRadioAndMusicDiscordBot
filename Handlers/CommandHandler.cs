@@ -13,13 +13,15 @@ namespace radio_discord_bot.Handlers;
 public class CommandHandler
 {
     private readonly AudioService _audioService;
+    private readonly YoutubeClient _youtubeClient;
 
-    public CommandHandler(AudioService audioService)
+    public CommandHandler(AudioService audioService, YoutubeClient youtubeClient)
     {
         _audioService = audioService;
+        _youtubeClient = youtubeClient;
     }
 
-    public async Task HandleCommand(string command, YoutubeClient youtubeClient, AudioService audioService, SocketTextChannel? channel = null, SocketUserMessage? message = null, IVoiceChannel? voiceChannel = null)
+    public async Task HandleCommand(string command, SocketTextChannel? channel = null, SocketUserMessage? message = null, IVoiceChannel? voiceChannel = null)
     {
         System.Console.WriteLine($"command: {command}");
         switch (command)
@@ -29,7 +31,7 @@ public class CommandHandler
                 await channel!.SendMessageAsync(Constants.GET_HELP_MESSAGE);
                 break;
             case string s when s.StartsWith("tutup"):
-                await audioService.DestroyVoiceChannelAsync(voiceChannel!);
+                await _audioService.DestroyVoiceChannelAsync(voiceChannel!);
                 PlaylistService.playlist.Clear();
                 PlaylistService.previousPlaylistLength = 0;
                 break;
@@ -45,11 +47,11 @@ public class CommandHandler
                     }
                     else if (Uri.TryCreate(commandQuery, UriKind.Absolute, out var uri))
                     {
-                        await audioService.InitiateVoiceChannelAsyncYt(voiceChannel, uri.ToString());
+                        await _audioService.InitiateVoiceChannelAsyncYt(voiceChannel, uri.ToString());
                     }
                     else
                     {
-                        var videos = await youtubeClient.Search.GetVideosAsync(commandQuery).CollectAsync(5); // Adjust the number of results we want
+                        var videos = await _youtubeClient.Search.GetVideosAsync(commandQuery).CollectAsync(5); // Adjust the number of results we want
                         // System.Console.WriteLine($"videos: {JsonSerializer.Serialize(videos.Select(x => x.Url))}");
                         var components = MessageComponentGenerator.GenerateComponents(videos.ToList());
 
@@ -59,7 +61,7 @@ public class CommandHandler
                 break;
             case string s when s.StartsWith("next"):
                 {
-                    await audioService.NextSongAsync();
+                    await _audioService.NextSongAsync();
                     await _audioService.OnPlaylistChangedAsync();
                 }
                 break;
@@ -71,7 +73,7 @@ public class CommandHandler
                         await channel!.SendMessageAsync("Playlist puang");
                         return;
                     }
-                    await message!.ReplyAsync("Playlist:\n" + string.Join('\n', playlist.Select(song => song.url)));
+                    await message!.ReplyAsync("Playlist:\n" + string.Join('\n', playlist.Select(song => song.Url)));
                 }
                 break;
         }

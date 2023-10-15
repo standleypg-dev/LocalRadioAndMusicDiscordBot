@@ -3,6 +3,7 @@ using Discord.Audio;
 using radio_discord_bot;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Victoria.Player.Args;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
@@ -32,6 +33,7 @@ public class AudioService : PlaylistService
         catch (Exception ex)
         {
             Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex}");
+            playlist.Clear();
         }
 
     }
@@ -47,15 +49,12 @@ public class AudioService : PlaylistService
             var audioOutStream = ffmpeg.StandardOutput.BaseStream;
             var discordStream = channel.CreatePCMStream(AudioApplication.Music);
             await audioOutStream.CopyToAsync(discordStream);
-            await discordStream.FlushAsync();
-            if (ffmpeg.ExitCode == 0)
+            if (audioOutStream.CanRead)
             {
-                Console.WriteLine("Command executed successfully.");
+                await discordStream.FlushAsync();
+                await DestroyVoiceChannelAsync(voiceChannel);
             }
-            else
-            {
-                Console.WriteLine($"Command failed with exit code: {ffmpeg.ExitCode}");
-            }
+
 
             await NextSongAsync();
             await OnPlaylistChangedAsync();
@@ -64,6 +63,7 @@ public class AudioService : PlaylistService
         catch (Exception ex)
         {
             Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex}");
+            playlist.Clear();
         }
 
     }
@@ -99,14 +99,13 @@ public class AudioService : PlaylistService
     {
         await Task.CompletedTask;
         int currentPlaylistLength = playlist.Count;
-        Console.WriteLine($"current: {currentPlaylistLength}, previous: {previousPlaylistLength}");
+
         if (currentPlaylistLength < previousPlaylistLength || currentPlaylistLength == 1)
         {
             var currentSong = playlist[0];
-            await InitiateVoiceChannelAsyncYt(currentSong.voiceChannel, currentSong.url);
-
+            await InitiateVoiceChannelAsyncYt(currentSong.VoiceChannel, currentSong.Url);
         }
-
+        
         previousPlaylistLength = currentPlaylistLength;
     }
 
