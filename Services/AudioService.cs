@@ -32,7 +32,7 @@ public class AudioService : PlaylistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex}");
+            Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex.Message}");
             playlist.Clear();
         }
 
@@ -62,7 +62,7 @@ public class AudioService : PlaylistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex}");
+            Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex.Message}");
             playlist.Clear();
         }
 

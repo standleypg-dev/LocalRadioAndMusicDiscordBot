@@ -1,5 +1,4 @@
-﻿using System.Text.Json;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -83,6 +82,17 @@ public class Program
 
     private async Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState oldState, SocketVoiceState newState)
     {
-        //TODO - disconnect bot if only bot is in voice channel
+        var isOnlyBotLeft = oldState.VoiceChannel?.Users.Where(x => x.Id != user.Id).All(x => x.IsBot);
+        if (isOnlyBotLeft == true)
+        {
+            try
+            {
+                await oldState.VoiceChannel.DisconnectAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
