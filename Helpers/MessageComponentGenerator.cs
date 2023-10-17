@@ -19,8 +19,8 @@ public static class MessageComponentGenerator
 
             if (item is Radio radio)
             {
-                button.WithLabel($"{idx}. {radio.Title}")
-                      .WithCustomId($"{radio.Title}");
+                button.WithLabel($"{idx}. {radio.Name}")
+                      .WithCustomId($"{radio.Name}");
             }
             else if (item is VideoSearchResult ytVideo)
             {

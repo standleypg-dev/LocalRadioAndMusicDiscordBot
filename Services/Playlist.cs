@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Discord;
 
 namespace radio_discord_bot;
@@ -11,4 +12,5 @@ public class PlaylistService
 {
     public static List<Song> playlist = new List<Song>();
     public static int previousPlaylistLength = playlist.Count;
+    public static List<Radio> RadioList = new List<Radio>();
 }

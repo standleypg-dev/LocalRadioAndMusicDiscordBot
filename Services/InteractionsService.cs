@@ -46,7 +46,7 @@ public class InteractionsService
                                 allowedMentions: null,  // Allowed mentions (e.g., roles, users)
                                 options: null  // Message component options (e.g., buttons)
                                 );
-                        await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, Constants.radios.Find(x => x.Title == componentData.CustomId).Url);
+                        await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, PlaylistService.RadioList.Find(x => x.Name == componentData.CustomId).Url);
                     }
                     else
                     {
