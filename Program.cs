@@ -1,4 +1,6 @@
-﻿using Discord;
+﻿using System.Text.Json;
+using AngleSharp.Common;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +12,6 @@ using YoutubeExplode;
 public class Program
 {
     private readonly string _token;
-
     private readonly IServiceProvider _serviceProvider;
     public static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
 
@@ -24,6 +25,8 @@ public class Program
            .Build();
 
         _token = configuration.GetSection("BotToken").Value!;
+        var radioList = configuration.GetSection("RadioList").Get<List<Radio>>();
+        PlaylistService.RadioList.AddRange(radioList!);
     }
 
     static IServiceProvider CreateProvider()
@@ -83,6 +86,7 @@ public class Program
     private async Task UserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState oldState, SocketVoiceState newState)
     {
         var isOnlyBotLeft = oldState.VoiceChannel?.Users.Where(x => x.Id != user.Id).All(x => x.IsBot);
+        System.Console.WriteLine($"isOnlyBotLeft: {isOnlyBotLeft}");
         if (isOnlyBotLeft == true)
         {
             try

@@ -40,7 +40,7 @@ public class CommandHandler
                     string commandQuery = command.Substring(7);
                     if (commandQuery.Equals("radio"))
                     {
-                        var components = MessageComponentGenerator.GenerateComponents(Constants.radios);
+                        var components = MessageComponentGenerator.GenerateComponents(PlaylistService.RadioList);
 
                         await message.ReplyAsync("Click the button:", components: components);
                         return;
