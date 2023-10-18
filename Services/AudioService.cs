@@ -1,79 +1,75 @@
-using Discord;
-using Discord.Audio;
-using radio_discord_bot;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Text;
-using Victoria.Player.Args;
+using Discord;
+using Discord.Audio;
+using radio_discord_bot.Models;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
-public class AudioService : PlaylistService
-{
-    private readonly ConcurrentDictionary<ulong, IAudioClient> _connectedChannels;
-    private readonly YoutubeClient _youtubeClient;
+namespace radio_discord_bot.Services;
 
-    public AudioService(YoutubeClient youtubeClient, PlaylistService playlistService)
+public class AudioService : IAudioService
+{
+    private readonly YoutubeClient _youtubeClient;
+    private IVoiceChannel _currentVoiceChannel;
+    private IAudioClient _audioClient;
+    private bool isPlaying = false;
+    private bool isRadioPlaying = false;
+
+
+    public AudioService(YoutubeClient youtubeClient)
     {
-        _connectedChannels = new ConcurrentDictionary<ulong, IAudioClient>();
         _youtubeClient = youtubeClient;
     }
 
-    public async Task InitiateVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl)
+    public async Task InitiateVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl, bool isYt = false)
     {
-
+        if (_currentVoiceChannel != null)
+            await DestroyVoiceChannelAsync();
         try
         {
-            playlist.Clear();
-            var channel = await voiceChannel.ConnectAsync();
-            var ffmpeg = CreateStream(audioUrl);
-            var audioOutStream = ffmpeg.StandardOutput.BaseStream;
-            var discordStream = channel.CreatePCMStream(AudioApplication.Music);
-            await audioOutStream.CopyToAsync(discordStream);
-            await discordStream.FlushAsync();
+            isPlaying = true;
+            isRadioPlaying = !isYt;
+            dynamic outputUrl = isYt ? (await _youtubeClient.Videos.Streams.GetManifestAsync(audioUrl)).GetAudioOnlyStreams().GetWithHighestBitrate().Url : audioUrl;
+
+            await ConnectToVoiceChannelAsync(voiceChannel, outputUrl);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex.Message}");
+            Console.WriteLine($"Error on InitiateVoiceChannelAsync: {ex.Message}");
+            isPlaying = false;
+            isRadioPlaying = false;
         }
-
     }
 
-    public async Task InitiateVoiceChannelAsyncYt(IVoiceChannel voiceChannel, string videoId)
+    private async Task ConnectToVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl)
     {
-        try
-        {
-            var channel = await voiceChannel.ConnectAsync();
-            var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(videoId);
-            var audioStreamInfo = streamManifest.GetAudioOnlyStreams().GetWithHighestBitrate();
-            var ffmpeg = CreateStream(audioStreamInfo.Url);
-            var audioOutStream = ffmpeg.StandardOutput.BaseStream;
-            var discordStream = channel.CreatePCMStream(AudioApplication.Music);
-            await audioOutStream.CopyToAsync(discordStream);
-            if (!discordStream.CanRead)
-            {
-                await discordStream.FlushAsync();
-                await DestroyVoiceChannelAsync(voiceChannel);
-            }
+        var ffmpeg = CreateStream(audioUrl);
+        var audioOutStream = ffmpeg.StandardOutput.BaseStream;
+        _audioClient = await voiceChannel.ConnectAsync();
+        var discordStream = _audioClient.CreatePCMStream(AudioApplication.Music);
 
+        // Store the current voice channel
+        _currentVoiceChannel = voiceChannel;
 
+        await audioOutStream.CopyToAsync(discordStream);
+        await discordStream.FlushAsync();
+
+        if (songs.Count > 0)
             await NextSongAsync();
-            await OnPlaylistChangedAsync();
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"error on InitiateVoiceChannelAsyncYt: {ex.Message}");
-        }
-
+        
+        await DestroyVoiceChannelAsync();
     }
 
-    public async Task DestroyVoiceChannelAsync(IVoiceChannel voiceChannel)
+    public async Task DestroyVoiceChannelAsync()
     {
 
         try
         {
-            await voiceChannel.DisconnectAsync();
+            await _currentVoiceChannel.DisconnectAsync();
+            _currentVoiceChannel = null;
+            isPlaying = false;
+            isRadioPlaying = false;
         }
         catch (Exception ex)
         {
@@ -95,30 +91,46 @@ public class AudioService : PlaylistService
 
     }
 
-    public async Task OnPlaylistChangedAsync(bool isStartMusic=false)
-    {
-        await Task.CompletedTask;
-        int currentPlaylistLength = playlist.Count;
-        System.Console.WriteLine(currentPlaylistLength);
-        System.Console.WriteLine(previousPlaylistLength);
-        if (isStartMusic)
-        {
-            var currentSong = playlist[0];
-            await InitiateVoiceChannelAsyncYt(currentSong.VoiceChannel, currentSong.Url);
-        }
-    }
 
     public async Task NextSongAsync()
     {
-        await Task.CompletedTask;
-        if (playlist.Count > 0)
+        RemoveFirstSong();
+        if (songs.Count > 0)
         {
-            playlist.RemoveAt(0);
-            previousPlaylistLength = playlist.Count;
-            var currentSong = playlist[0];
-            await InitiateVoiceChannelAsyncYt(currentSong.VoiceChannel, currentSong.Url);
+            var song = songs[0];
+            await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
         }
-
     }
 
+    private List<Song> songs = new();
+
+
+    public void AddSong(Song song)
+    {
+        songs.Add(song);
+    }
+
+    public List<Song> GetSongs()
+    {
+        return songs;
+    }
+
+    public void RemoveFirstSong()
+    {
+        songs.RemoveAt(0);
+    }
+
+    public async Task OnPlaylistChanged()
+    {
+        var song = songs[0];
+        if (songs.Count > 0)
+        {
+            if (!isPlaying || isRadioPlaying)
+                await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+        }
+        else
+        {
+            await DestroyVoiceChannelAsync();
+        }
+    }
 }
