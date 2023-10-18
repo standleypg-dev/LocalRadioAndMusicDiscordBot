@@ -70,7 +70,7 @@ public class CommandHandler
                     var playlist = PlaylistService.playlist;
                     if (playlist.Count == 0)
                     {
-                        await channel!.SendMessageAsync("Playlist puang");
+                        await message!.ReplyAsync("Playlist puang");
                         return;
                     }
                     await message!.ReplyAsync("Playlist:\n" + string.Join('\n', playlist.Select(song => song.Url)));

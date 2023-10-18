@@ -50,6 +50,7 @@ public class InteractionsService
                     }
                     else
                     {
+                        PlaylistService.previousPlaylistLength = PlaylistService.playlist.Count;
                         PlaylistService.playlist.Add(new Song
                         {
                             Url = componentData.CustomId,
@@ -62,7 +63,7 @@ public class InteractionsService
                                 allowedMentions: null,  // Allowed mentions (e.g., roles, users)
                                 options: null  // Message component options (e.g., buttons)
                                 );
-                        await _audioService.OnPlaylistChangedAsync();
+                        await _audioService.OnPlaylistChangedAsync(isStartMusic: PlaylistService.previousPlaylistLength == 0 ? true : false);
                     }
 
                 }

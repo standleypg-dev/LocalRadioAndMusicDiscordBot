@@ -3,6 +3,7 @@ using Discord.Audio;
 using radio_discord_bot;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text;
 using Victoria.Player.Args;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
@@ -23,6 +24,7 @@ public class AudioService : PlaylistService
 
         try
         {
+            playlist.Clear();
             var channel = await voiceChannel.ConnectAsync();
             var ffmpeg = CreateStream(audioUrl);
             var audioOutStream = ffmpeg.StandardOutput.BaseStream;
@@ -33,7 +35,6 @@ public class AudioService : PlaylistService
         catch (Exception ex)
         {
             Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex.Message}");
-            playlist.Clear();
         }
 
     }
@@ -49,7 +50,7 @@ public class AudioService : PlaylistService
             var audioOutStream = ffmpeg.StandardOutput.BaseStream;
             var discordStream = channel.CreatePCMStream(AudioApplication.Music);
             await audioOutStream.CopyToAsync(discordStream);
-            if (audioOutStream.CanRead)
+            if (!discordStream.CanRead)
             {
                 await discordStream.FlushAsync();
                 await DestroyVoiceChannelAsync(voiceChannel);
@@ -62,8 +63,7 @@ public class AudioService : PlaylistService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"error on InitiateVoiceChannelAsync: {ex.Message}");
-            playlist.Clear();
+            Console.WriteLine($"error on InitiateVoiceChannelAsyncYt: {ex.Message}");
         }
 
     }
@@ -95,25 +95,30 @@ public class AudioService : PlaylistService
 
     }
 
-    public async Task OnPlaylistChangedAsync()
+    public async Task OnPlaylistChangedAsync(bool isStartMusic=false)
     {
         await Task.CompletedTask;
         int currentPlaylistLength = playlist.Count;
-
-        if (currentPlaylistLength < previousPlaylistLength || currentPlaylistLength == 1)
+        System.Console.WriteLine(currentPlaylistLength);
+        System.Console.WriteLine(previousPlaylistLength);
+        if (isStartMusic)
         {
             var currentSong = playlist[0];
             await InitiateVoiceChannelAsyncYt(currentSong.VoiceChannel, currentSong.Url);
         }
-        
-        previousPlaylistLength = currentPlaylistLength;
     }
 
     public async Task NextSongAsync()
     {
         await Task.CompletedTask;
         if (playlist.Count > 0)
+        {
             playlist.RemoveAt(0);
+            previousPlaylistLength = playlist.Count;
+            var currentSong = playlist[0];
+            await InitiateVoiceChannelAsyncYt(currentSong.VoiceChannel, currentSong.Url);
+        }
+
     }
 
 }
