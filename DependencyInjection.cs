@@ -25,6 +25,7 @@ public static class DependencyInjection
         .AddScoped<YoutubeClient>()
         .AddSingleton<RadioCommand>()
         .AddScoped<IAudioService, AudioService>()
+        .AddSingleton<IJokeService, JokeService>()
         .AddSingleton<IInteractionService, InteractionService>();
 
         return collection.BuildServiceProvider();

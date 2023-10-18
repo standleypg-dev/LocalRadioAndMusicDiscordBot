@@ -16,11 +16,13 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
 {
     private readonly YoutubeClient _youtubeClient;
     private readonly IAudioService _audioService;
+    private readonly IJokeService _jokeService;
 
-    public RadioCommand(IAudioService audioService, YoutubeClient youtubeClient)
+    public RadioCommand(IAudioService audioService, YoutubeClient youtubeClient, IJokeService jokeService)
     {
         _audioService = audioService;
         _youtubeClient = youtubeClient;
+        _jokeService = jokeService;
     }
 
     [Command("play")]
@@ -97,6 +99,26 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         var songs = _audioService.GetSongs();
 
         await ReplyAsync("Queues: \n" + string.Join("\n", songs.Select((song, index) => $"{index + 1}. {song.Url}")));
+    }
+
+    [Command("enable")]
+    public async Task EnableCommand([Remainder] string command)
+    {
+        if (command.Equals("joke"))
+        {
+            await ReplyAsync("Enabling joke..");
+            await _jokeService.EnableJoke();
+        }
+    }
+
+    [Command("disable")]
+    public async Task DisableCommand([Remainder] string command)
+    {
+        if (command.Equals("joke"))
+        {
+            await ReplyAsync("Disabling joke..");
+            await _jokeService.DisableJoke();
+        }
     }
 
     // [Command("gpt")]
