@@ -11,6 +11,6 @@ public class Song
 public class PlaylistService
 {
     public static List<Song> playlist = new List<Song>();
-    public static int previousPlaylistLength = playlist.Count;
+    public static int previousPlaylistLength = 0;
     public static List<Radio> RadioList = new List<Radio>();
 }
