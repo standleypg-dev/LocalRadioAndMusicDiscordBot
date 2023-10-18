@@ -49,9 +49,11 @@ public class Startup
                 var context = new SocketCommandContext(_client, msg);
                 int argPos = 0;
 
-                if (msg.HasStringPrefix("/", ref argPos))
+                var isHelpDM = context.IsPrivate && msg.ToString().Equals("help");
+
+                if (msg.HasStringPrefix("/", ref argPos) || isHelpDM)
                 {
-                    var result = await _commands.ExecuteAsync(context, argPos, _serviceProvider);
+                    var result = await _commands.ExecuteAsync(context, isHelpDM ? 0 : argPos, _serviceProvider);
 
                     if (!result.IsSuccess)
                     {

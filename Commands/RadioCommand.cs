@@ -1,6 +1,8 @@
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
+using OpenAI;
+using OpenAI.Chat;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
 using radio_discord_bot.Services;
@@ -57,7 +59,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
 
     }
 
-    [Command("tulung")]
+    [Command("help")]
     public async Task HelpCommand()
     {
         var helpMessage = Configuration.GetConfiguration<HelpMessage>("HelpMessage");
@@ -89,12 +91,27 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         }
     }
 
-    [Command("q")]
+    [Command("playlist")]
     public async Task QueueCommand()
     {
         var songs = _audioService.GetSongs();
 
         await ReplyAsync("Queues: \n" + string.Join("\n", songs.Select((song, index) => $"{index + 1}. {song.Url}")));
     }
+
+    // [Command("gpt")]
+    // public async Task GptCommand([Remainder] string command)
+    // {
+    //     var api = new OpenAIClient(Configuration.GetConfiguration<string>("OpenAIKey"));
+    //     var messages = new List<Message>
+    //     {
+    //         new Message(Role.User, "Who won the world series in 2020?"),
+    //     };
+    //     var chatRequest = new ChatRequest(messages);
+    //     var result = await api.ChatEndpoint.GetCompletionAsync(chatRequest);
+    //     Console.WriteLine($"{result.FirstChoice.Message.Role}: {result.FirstChoice.Message.Content}");
+    //     //     var response = await gpt.GetResponse(command);
+    //     await ReplyAsync("Not implemented yet.");
+    // }
 }
 
