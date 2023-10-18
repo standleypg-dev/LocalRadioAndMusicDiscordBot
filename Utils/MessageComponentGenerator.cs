@@ -48,16 +48,4 @@ public static class MessageComponentGenerator
 
         return new ComponentBuilder().WithRows(rows: rows).Build();
     }
-    public static MessageComponent GenerateComponent()
-    {
-        var rows = new List<ActionRowBuilder>();
-
-        var button = new ButtonBuilder()
-            .WithStyle(ButtonStyle.Primary)
-            .WithLabel($"{1}. test")
-            .WithCustomId($"test");
-
-        rows.Add(new ActionRowBuilder().AddComponent(button.Build()));
-        return new ComponentBuilder().WithRows(rows: rows).Build();
-    }
 }
