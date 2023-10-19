@@ -7,7 +7,5 @@ namespace radio_discord_bot.Services;
 
 public interface IJokeService
 {
-    Task Start();
-    Task EnableJoke();
-    Task DisableJoke();
+    Task<string> GetJokeAsync();
 }

@@ -30,7 +30,6 @@ public class Program
     {
         await _appStartup.SetupLoggingAndReadyEvents();
         await _appStartup.SetupCommandHandling();
-        await _jokeService.Start();
 
         _client.InteractionCreated += _interactionService.OnInteractionCreated;
 

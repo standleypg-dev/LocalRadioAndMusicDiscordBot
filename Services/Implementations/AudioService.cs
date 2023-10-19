@@ -15,6 +15,7 @@ public class AudioService : IAudioService
     private IAudioClient _audioClient;
     private bool isPlaying = false;
     private bool isRadioPlaying = false;
+    private List<Song> songs = new();
 
 
     public AudioService(YoutubeClient youtubeClient)
@@ -44,6 +45,7 @@ public class AudioService : IAudioService
 
     private async Task ConnectToVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl)
     {
+        List<Task> tasks = new();
         var ffmpeg = CreateStream(audioUrl);
         var audioOutStream = ffmpeg.StandardOutput.BaseStream;
         _audioClient = await voiceChannel.ConnectAsync();
@@ -52,12 +54,16 @@ public class AudioService : IAudioService
         // Store the current voice channel
         _currentVoiceChannel = voiceChannel;
 
-        await audioOutStream.CopyToAsync(discordStream);
-        await discordStream.FlushAsync();
+        tasks.Add(audioOutStream.CopyToAsync(discordStream));
+        tasks.Add(discordStream.FlushAsync());
+
+        await Task.WhenAll(tasks);
+
+        await Task.Delay(TimeSpan.FromSeconds(5));
 
         if (songs.Count > 0)
             await NextSongAsync();
-        
+
         await DestroyVoiceChannelAsync();
     }
 
@@ -102,8 +108,11 @@ public class AudioService : IAudioService
         }
     }
 
-    private List<Song> songs = new();
-
+    public async Task EmptyPlaylist()
+    {
+        await Task.CompletedTask;
+        songs.Clear();
+    }
 
     public void AddSong(Song song)
     {
