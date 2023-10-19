@@ -15,6 +15,7 @@ public class AudioService : IAudioService
     private IAudioClient _audioClient;
     private bool isPlaying = false;
     private bool isRadioPlaying = false;
+    private List<Song> songs = new();
 
 
     public AudioService(YoutubeClient youtubeClient)
@@ -44,20 +45,27 @@ public class AudioService : IAudioService
 
     private async Task ConnectToVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl)
     {
+        List<Task> tasks = new();
         var ffmpeg = CreateStream(audioUrl);
+        
         var audioOutStream = ffmpeg.StandardOutput.BaseStream;
         _audioClient = await voiceChannel.ConnectAsync();
         var discordStream = _audioClient.CreatePCMStream(AudioApplication.Music);
 
+        //increase the buffer size to prevent the song ending early
+        var bufferedStream = new BufferedStream(discordStream, 16348);
+
         // Store the current voice channel
         _currentVoiceChannel = voiceChannel;
 
-        await audioOutStream.CopyToAsync(discordStream);
-        await discordStream.FlushAsync();
+        tasks.Add(audioOutStream.CopyToAsync(bufferedStream));
+        tasks.Add(bufferedStream.FlushAsync());
+
+        await Task.WhenAll(tasks);
 
         if (songs.Count > 0)
             await NextSongAsync();
-        
+
         await DestroyVoiceChannelAsync();
     }
 
@@ -82,13 +90,13 @@ public class AudioService : IAudioService
         var ffmpeg = new ProcessStartInfo
         {
             FileName = "/usr/bin/ffmpeg",
-            Arguments = $"-i {audioUrl} -f s16le -ar 48000 -ac 2 pipe:1",
+            Arguments = $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i {audioUrl} -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
         return Process.Start(ffmpeg);
-
     }
 
 
@@ -102,8 +110,11 @@ public class AudioService : IAudioService
         }
     }
 
-    private List<Song> songs = new();
-
+    public async Task EmptyPlaylist()
+    {
+        await Task.CompletedTask;
+        songs.Clear();
+    }
 
     public void AddSong(Song song)
     {

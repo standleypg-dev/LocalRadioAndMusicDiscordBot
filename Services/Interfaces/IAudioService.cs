@@ -17,4 +17,5 @@ public interface IAudioService
     List<Song> GetSongs();
     void RemoveFirstSong();
     Task OnPlaylistChanged();
+    Task EmptyPlaylist();
 }

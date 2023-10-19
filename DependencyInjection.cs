@@ -4,6 +4,8 @@ using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using radio_discord_bot.Commands;
 using radio_discord_bot.Services;
+using radio_discord_bot.Services.Implementations;
+using radio_discord_bot.Services.Interfaces;
 using YoutubeExplode;
 
 namespace radio_discord_bot;
@@ -25,6 +27,9 @@ public static class DependencyInjection
         .AddScoped<YoutubeClient>()
         .AddSingleton<RadioCommand>()
         .AddScoped<IAudioService, AudioService>()
+        .AddSingleton<IJokeService, JokeService>()
+        .AddSingleton<IQuoteService, QuoteService>()
+        .AddSingleton<IHttpRequestService, HttpRequestService>()
         .AddSingleton<IInteractionService, InteractionService>();
 
         return collection.BuildServiceProvider();
