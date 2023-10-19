@@ -51,15 +51,16 @@ public class AudioService : IAudioService
         _audioClient = await voiceChannel.ConnectAsync();
         var discordStream = _audioClient.CreatePCMStream(AudioApplication.Music);
 
+        //increase the buffer size to prevent the song ending early
+        var bufferedStream = new BufferedStream(discordStream, 8192);
+
         // Store the current voice channel
         _currentVoiceChannel = voiceChannel;
 
-        tasks.Add(audioOutStream.CopyToAsync(discordStream));
-        tasks.Add(discordStream.FlushAsync());
+        tasks.Add(audioOutStream.CopyToAsync(bufferedStream));
+        tasks.Add(bufferedStream.FlushAsync());
 
         await Task.WhenAll(tasks);
-
-        await Task.Delay(TimeSpan.FromSeconds(5));
 
         if (songs.Count > 0)
             await NextSongAsync();
