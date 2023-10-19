@@ -6,6 +6,7 @@ using OpenAI.Chat;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
 using radio_discord_bot.Services;
+using radio_discord_bot.Services.Interfaces;
 using radio_discord_bot.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Common;
@@ -16,11 +17,15 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
 {
     private readonly YoutubeClient _youtubeClient;
     private readonly IAudioService _audioService;
+    private readonly IJokeService _jokeService;
+    private readonly IQuoteService _quoteService;
 
-    public RadioCommand(IAudioService audioService, YoutubeClient youtubeClient)
+    public RadioCommand(IAudioService audioService, YoutubeClient youtubeClient, IJokeService jokeService, IQuoteService quoteService)
     {
         _audioService = audioService;
         _youtubeClient = youtubeClient;
+        _jokeService = jokeService;
+        _quoteService = quoteService;
     }
 
     [Command("play")]
@@ -76,6 +81,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
     {
         await ReplyAsync("Stopping radio..");
         await _audioService.DestroyVoiceChannelAsync();
+        await _audioService.EmptyPlaylist();
 
     }
 
@@ -97,6 +103,24 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         var songs = _audioService.GetSongs();
 
         await ReplyAsync("Queues: \n" + string.Join("\n", songs.Select((song, index) => $"{index + 1}. {song.Url}")));
+    }
+
+    [Command("tell")]
+    public async Task TellJoke([Remainder] string command)
+    {
+        if (command.Equals("joke"))
+        {
+            await ReplyAsync(await _jokeService.GetJokeAsync(), isTTS: true);
+        }
+    }
+
+    [Command("motivate")]
+    public async Task TellQuote([Remainder] string command)
+    {
+        if (command.Equals("me"))
+        {
+            await ReplyAsync(await _quoteService.GetQuoteAsync(), isTTS: true);
+        }
     }
 
     // [Command("gpt")]
