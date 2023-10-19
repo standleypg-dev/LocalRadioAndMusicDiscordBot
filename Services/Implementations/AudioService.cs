@@ -47,12 +47,13 @@ public class AudioService : IAudioService
     {
         List<Task> tasks = new();
         var ffmpeg = CreateStream(audioUrl);
+        
         var audioOutStream = ffmpeg.StandardOutput.BaseStream;
         _audioClient = await voiceChannel.ConnectAsync();
         var discordStream = _audioClient.CreatePCMStream(AudioApplication.Music);
 
         //increase the buffer size to prevent the song ending early
-        var bufferedStream = new BufferedStream(discordStream, 8192);
+        var bufferedStream = new BufferedStream(discordStream, 16348);
 
         // Store the current voice channel
         _currentVoiceChannel = voiceChannel;
@@ -89,13 +90,13 @@ public class AudioService : IAudioService
         var ffmpeg = new ProcessStartInfo
         {
             FileName = "/usr/bin/ffmpeg",
-            Arguments = $"-i {audioUrl} -f s16le -ar 48000 -ac 2 pipe:1",
+            Arguments = $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i {audioUrl} -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
             RedirectStandardOutput = true,
+            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
         return Process.Start(ffmpeg);
-
     }
 
 
