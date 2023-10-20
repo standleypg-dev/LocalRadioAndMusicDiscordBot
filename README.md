@@ -1,4 +1,4 @@
-# Malaysia Local Radio and Music Discord Bot Player
+# Local Radio and Music Bot Player for Discord
 
 **_Disclaimer_**: _This code is meant for educational purposes only. Please do not use this code for malicious purposes or to violate the [Discord](https://discord.com), [Youtube](https://www.youtube.com), [Radio Televisyen Malaysia (RTM)](https://www.rtm.gov.my) and [Astro](https://www.astro.com.my) Terms of Service._
 
