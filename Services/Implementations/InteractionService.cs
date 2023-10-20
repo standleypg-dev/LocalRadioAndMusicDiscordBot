@@ -8,10 +8,14 @@ namespace radio_discord_bot.Services;
 public class InteractionService : IInteractionService
 {
     private readonly IAudioService _audioService;
+    private readonly DiscordSocketClient _client;
+    
+    Dictionary<ulong, HashSet<ulong>> usersInVoiceChannels = new Dictionary<ulong, HashSet<ulong>>();
 
-    public InteractionService(IAudioService audioService)
+    public InteractionService(IAudioService audioService, DiscordSocketClient client)
     {
         _audioService = audioService;
+        _client = client;
     }
 
     public async Task OnInteractionCreated(SocketInteraction interaction)
@@ -49,5 +53,45 @@ public class InteractionService : IInteractionService
             allowedMentions: null,  // Allowed mentions (e.g., roles, users)
             options: null  // Message component options (e.g., buttons)
         );
+    }
+
+    public async Task OnUserVoiceStateUpdated(SocketUser user, SocketVoiceState oldState, SocketVoiceState newState)
+    {
+        await Task.CompletedTask;
+            _ = Task.Run(async () =>
+            {
+                if (user.IsBot) return; // Skip bot users
+
+                var bot = _client.CurrentUser;
+
+                if (bot != null)
+                {
+                    var botVoiceChannel = _audioService.GetBotCurrentVoiceChannel();
+                    var guild = botVoiceChannel.Guild;
+
+                    // Update the user presence in the dictionary
+                    if (!usersInVoiceChannels.ContainsKey(guild.Id))
+                    {
+                        usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
+                    }
+
+                    if (oldState.VoiceChannel != null)
+                    {
+                        usersInVoiceChannels[guild.Id].Remove(user.Id);
+                    }
+
+                    if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
+                    {
+                        usersInVoiceChannels[guild.Id].Add(user.Id);
+                    }
+
+                    var membersInBotChannel = usersInVoiceChannels[guild.Id];
+
+                    if (membersInBotChannel.Count == 0)
+                    {
+                        await _audioService.DestroyVoiceChannelAsync();
+                    }
+                }
+            });
     }
 }

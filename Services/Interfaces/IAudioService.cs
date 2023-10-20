@@ -18,4 +18,5 @@ public interface IAudioService
     void RemoveFirstSong();
     Task OnPlaylistChanged();
     Task EmptyPlaylist();
+    IVoiceChannel GetBotCurrentVoiceChannel();
 }
