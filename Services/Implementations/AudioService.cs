@@ -17,7 +17,6 @@ public class AudioService : IAudioService
     private bool isRadioPlaying = false;
     private List<Song> songs = new();
 
-
     public AudioService(YoutubeClient youtubeClient)
     {
         _youtubeClient = youtubeClient;
@@ -56,7 +55,7 @@ public class AudioService : IAudioService
         var bufferedStream = new BufferedStream(discordStream, 16348);
 
         // Store the current voice channel
-        _currentVoiceChannel = voiceChannel;
+        SetBotCurrentVoiceChannel(voiceChannel);
 
         tasks.Add(audioOutStream.CopyToAsync(bufferedStream));
         tasks.Add(bufferedStream.FlushAsync());
@@ -92,7 +91,6 @@ public class AudioService : IAudioService
             FileName = "/usr/bin/ffmpeg",
             Arguments = $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i {audioUrl} -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
             RedirectStandardOutput = true,
-            RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
@@ -143,5 +141,15 @@ public class AudioService : IAudioService
         {
             await DestroyVoiceChannelAsync();
         }
+    }
+
+    private void SetBotCurrentVoiceChannel(IVoiceChannel voiceChannel)
+    {
+        _currentVoiceChannel = voiceChannel;
+    }
+
+    public IVoiceChannel GetBotCurrentVoiceChannel()
+    {
+        return _currentVoiceChannel;
     }
 }
