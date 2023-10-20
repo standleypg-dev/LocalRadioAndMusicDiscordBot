@@ -12,8 +12,6 @@ public class Program
     private readonly DiscordSocketClient _client;
     private readonly IInteractionService _interactionService;
     private readonly Startup _appStartup;
-    private readonly IJokeService _jokeService;
-
 
     public static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
 
@@ -23,7 +21,6 @@ public class Program
         _client = _serviceProvider.GetRequiredService<DiscordSocketClient>();
         _interactionService = _serviceProvider.GetRequiredService<IInteractionService>();
         _appStartup = _serviceProvider.GetRequiredService<Startup>();
-        _jokeService = _serviceProvider.GetRequiredService<IJokeService>();
     }
 
     public async Task RunBotAsync()
@@ -32,6 +29,7 @@ public class Program
         await _appStartup.SetupCommandHandling();
 
         _client.InteractionCreated += _interactionService.OnInteractionCreated;
+        _client.UserVoiceStateUpdated += _interactionService.OnUserVoiceStateUpdated;
 
         await _client.LoginAsync(TokenType.Bot, Configuration.GetConfiguration<string>("BotToken"));
         await _client.StartAsync();
