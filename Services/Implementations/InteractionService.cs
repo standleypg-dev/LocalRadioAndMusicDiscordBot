@@ -9,7 +9,7 @@ public class InteractionService : IInteractionService
 {
     private readonly IAudioService _audioService;
     private readonly DiscordSocketClient _client;
-    
+
     Dictionary<ulong, HashSet<ulong>> usersInVoiceChannels = new Dictionary<ulong, HashSet<ulong>>();
 
     public InteractionService(IAudioService audioService, DiscordSocketClient client)
@@ -28,16 +28,24 @@ public class InteractionService : IInteractionService
                 if (component.Data is SocketMessageComponentData componentData)
                 {
                     await component.DeferAsync();
-                    if (componentData.CustomId.Contains("FM"))
+                    var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
+                    if (userVoiceChannel != null)
                     {
-                        await FollowupAsync(component, "Playing radio..");
-                        await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, Configuration.GetConfiguration<List<Radio>>("Radios").Find(x => x.Name == componentData.CustomId).Url);
+                        if (componentData.CustomId.Contains("FM"))
+                        {
+                            await FollowupAsync(component, "Playing radio..");
+                            await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, Configuration.GetConfiguration<List<Radio>>("Radios").Find(x => x.Name == componentData.CustomId).Url);
+                        }
+                        else
+                        {
+                            await FollowupAsync(component, $"Added to queue. Total songs in a queue is {_audioService.GetSongs().Count}");
+                            _audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
+                            await _audioService.OnPlaylistChanged();
+                        }
                     }
                     else
                     {
-                        await FollowupAsync(component, _audioService.GetSongs().Count() > 0 ? $"Added to queue. Total songs in a queue is {_audioService.GetSongs().Count()}" : "Playing song..");
-                        _audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel });
-                        await _audioService.OnPlaylistChanged();
+                        await FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
                     }
                 }
             }
@@ -58,40 +66,40 @@ public class InteractionService : IInteractionService
     public async Task OnUserVoiceStateUpdated(SocketUser user, SocketVoiceState oldState, SocketVoiceState newState)
     {
         await Task.CompletedTask;
-            _ = Task.Run(async () =>
+        _ = Task.Run(async () =>
+        {
+            if (user.IsBot) return; // Skip bot users
+
+            var bot = _client.CurrentUser;
+
+            if (bot != null)
             {
-                if (user.IsBot) return; // Skip bot users
+                var botVoiceChannel = _audioService.GetBotCurrentVoiceChannel();
+                var guild = botVoiceChannel.Guild;
 
-                var bot = _client.CurrentUser;
-
-                if (bot != null)
+                // Update the user presence in the dictionary
+                if (!usersInVoiceChannels.ContainsKey(guild.Id))
                 {
-                    var botVoiceChannel = _audioService.GetBotCurrentVoiceChannel();
-                    var guild = botVoiceChannel.Guild;
-
-                    // Update the user presence in the dictionary
-                    if (!usersInVoiceChannels.ContainsKey(guild.Id))
-                    {
-                        usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
-                    }
-
-                    if (oldState.VoiceChannel != null)
-                    {
-                        usersInVoiceChannels[guild.Id].Remove(user.Id);
-                    }
-
-                    if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
-                    {
-                        usersInVoiceChannels[guild.Id].Add(user.Id);
-                    }
-
-                    var membersInBotChannel = usersInVoiceChannels[guild.Id];
-
-                    if (membersInBotChannel.Count == 0)
-                    {
-                        await _audioService.DestroyVoiceChannelAsync();
-                    }
+                    usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
                 }
-            });
+
+                if (oldState.VoiceChannel != null)
+                {
+                    usersInVoiceChannels[guild.Id].Remove(user.Id);
+                }
+
+                if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
+                {
+                    usersInVoiceChannels[guild.Id].Add(user.Id);
+                }
+
+                var membersInBotChannel = usersInVoiceChannels[guild.Id];
+
+                if (membersInBotChannel.Count == 0)
+                {
+                    await _audioService.DestroyVoiceChannelAsync();
+                }
+            }
+        });
     }
 }
