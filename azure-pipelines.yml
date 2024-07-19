@@ -89,12 +89,12 @@ stages:
               cd $(System.ArtifactsDirectory)/$(build.buildnumber)
               echo "List the files in the directory"
               ls -la
-              # cp $(Agent.BuildDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip /home/stand/applications
-              # echo "CD to the home directory"
-              # cd /home/stand/applications
-              # echo "Unzipping the file"
-              # unzip $(Build.BuildId).zip
-              # echo "Removing the zip file"
-              # # rm $(Build.BuildId).zip
-              # ls -la
+              cp $(Agent.BuildDirectory)/$(Build.buildnumber)/s.zip /home/stand/applications
+              echo "CD to the home directory"
+              cd /home/stand/applications
+              echo "Unzipping the file"
+              unzip s.zip
+              echo "Removing the zip file"
+              rm s.zip
+              ls -la
             displayName: 'List Files'
