@@ -88,7 +88,7 @@ stages:
             displayName: "Stop the service and remove the old files"
 
           - script: |
-              cd /home/stand/applications && mkdir discord-bot
+              cd /home/stand/applications/discord-bot
               cp $(System.ArtifactsDirectory)/$(build.buildnumber)/s.zip /home/stand/applications/discord-bot
               cd /home/stand/applications/discord-bot
               unzip s.zip
@@ -114,10 +114,22 @@ stages:
       #       displayName: "Install required linux libraries"
 
       #     - script: |
-      #         sudo cp /home/stand/applications/discord-bot/radio-discord-bot.service /etc/systemd/system
-      #         sudo systemctl daemon-reload
-      #         sudo systemctl enable radio-discord-bot.service
-      #         sudo systemctl start radio-discord-bot.service
+      #         cd /home/stand/applications/discord-bot
+      #         echo "[Unit]
+      #         Description=cmdb service
+      #         After=network-online.target
+
+      #         [Service]
+      #         ExecStart=/home/staging/DotnetService/cmdb/cmdb_ws
+      #         Type=simple
+      #         Restart=always
+      #         RestartSec=1
+      #         WorkingDirectory=/home/staging/DotnetService/cmdb
+      #         KillMode=process
+      #         User=your-username #need to specify the user here if not in root (because some application you can run it as root)
+
+      #         [Install]
+      #         WantedBy=default.target" > testHere
       #       displayName: "Install and start the service"
       #       condition: eq(variables['isFirstDeployment'], 'true')
         
