@@ -108,7 +108,6 @@ stages:
     dependsOn: Deploy
     jobs:
       - job: InstallService
-        dependsOn: Deploy
         steps:
           - script: |
               cd /home/stand/applications/discord-bot
