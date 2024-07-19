@@ -77,16 +77,16 @@ stages:
               buildType: 'current'
               downloadType: 'single'
               artifactName: '$(Build.buildnumber)'
-              downloadPath: '$(Agent.BuildDirectory)'
+              downloadPath: '$(System.ArtifactsDirectory)'
             displayName: 'Download Build Artifacts'
 
           - script: |
-              echo "CD to the $(Agent.BuildDirectory)"
-              cd $(Agent.BuildDirectory)
+              echo "CD to the $(System.ArtifactsDirectory)"
+              cd $(System.ArtifactsDirectory))
               echo "List the files in the directory"
               ls -la
-              echo  "CD to the $(Agent.BuildDirectory)/$(Build.buildnumber)"
-              cd $(Agent.BuildDirectory)/$(Build.buildnumber)
+              echo  "CD to the $(System.ArtifactsDirectory)/$(build.buildnumber)"
+              cd $(System.ArtifactsDirectory)/$(build.buildnumber)
               echo "List the files in the directory"
               ls -la
               # cp $(Agent.BuildDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip /home/stand/applications
