@@ -68,6 +68,16 @@ stages:
             replaceExistingArchive: true
           displayName: 'Archive Files'
 
+        - script: |
+            cd $(Build.ArtifactStagingDirectory)
+            echo "listing the directory"
+            ls -la
+            echo "CD to the $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)"
+            cd $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)
+            echo "listing the directory"
+            ls -la
+          displayName: 'List Files'
+
         - task: PublishBuildArtifacts@1
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip'
@@ -97,6 +107,6 @@ stages:
               echo "Unzipping the file"
               unzip $(Build.BuildId).zip
               echo "Removing the zip file"
-              rm $(Build.BuildId).zip
+              # rm $(Build.BuildId).zip
               ls -la
             displayName: 'List Files'
