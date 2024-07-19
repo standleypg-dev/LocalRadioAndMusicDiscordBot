@@ -69,6 +69,7 @@ stages:
           displayName: 'Archive Files'
 
         - script: |
+            echo "CD to the $(Build.ArtifactStagingDirectory)"
             cd $(Build.ArtifactStagingDirectory)
             echo "listing the directory"
             ls -la
