@@ -8,14 +8,10 @@ pool:
   demands:
     - agent.name -equals raspberrypi
 
-# The 'isFirstDeployment' variable is used to determine if this is the first deployment or not
-# If it is set to 'true', it will create and install the necessary dependencies and service for the first time
-# If it is set to 'false', it will only update the service with the new code
 variables:
   - group: "personal_website"
-  - group: "pi_server"
   - name: isFirstDeployment
-    value: "true" # In azure pipeline, boolean variables are not supported. So, we use 'true' and 'false' as strings
+    value: "false" # In azure pipeline, boolean variables are not supported. So, we use 'true' and 'false' as strings
   - name: dotnetVersion
     value: "8.x"
   - name: project
@@ -81,15 +77,6 @@ stages:
               downloadPath: "$(System.ArtifactsDirectory)"
             displayName: "Download Build Artifacts"
 
-          - script: |
-              sudo apt update && sudo apt upgrade
-              sudo apt install jq zip unzip
-              sudo systemctl stop radio-discord-bot.service
-              sudo rm -rf /home/stand/applications/discord-bot/*
-              sudo systemctl start radio-discord-bot.service
-            condition: eq(variables['isFirstDeployment'], 'false')
-            displayName: "Stop the service and remove the old files"
-
             # -o to overwrite the files if they already exist, otherwise it will error out
           - script: |
               cp $(System.ArtifactsDirectory)/$(build.buildnumber)/s.zip /home/stand/applications/discord-bot
@@ -102,40 +89,8 @@ stages:
               cd /home/stand/applications/discord-bot
               jq -s '.[0] + .[1]' appsettings.json ../discord-bot-token.json > temp.json && mv temp.json appsettings.json
             displayName: "Appending token to the appsetting.json file"
-
-  - stage: InstallService
-    displayName: "Install Service"
-    condition: eq(variables['isFirstDeployment'], 'true')
-    dependsOn: Deploy
-    jobs:
-      - job: InstallService
-        steps:
+          
           - script: |
-              cd /home/stand/applications/discord-bot
-              sudo apt install -y wget make tar gcc automake libtool pkg-config libopus0 opus-tools ffmpeg 
-              wget https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz && tar -zxvf opus-1.5.2.tar.gz
-              wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.20-stable.tar.gz && tar -zxvf libsodium-1.0.20-stable.tar.gz
-              cd opus-1.5.2 && ./configure --prefix=/usr/local && make && sudo make install
-              cp /usr/local/lib/libopus.so /home/stand/applications/discord-bot 
-              cd ../libsodium-stable && ./configure --prefix=/usr/local && make && sudo make install
-            displayName: "Install required linux libraries"
-
-      #     - script: |
-      #         cd /home/stand/applications/discord-bot
-      #         echo "[Unit]
-      #         Description=cmdb service
-      #         After=network-online.target
-
-      #         [Service]
-      #         ExecStart=/home/staging/DotnetService/cmdb/cmdb_ws
-      #         Type=simple
-      #         Restart=always
-      #         RestartSec=1
-      #         WorkingDirectory=/home/staging/DotnetService/cmdb
-      #         KillMode=process
-      #         User=your-username #need to specify the user here if not in root (because some application you can run it as root)
-
-      #         [Install]
-      #         WantedBy=default.target" > testHere
-      #       displayName: "Install and start the service"
-      #       condition: eq(variables['isFirstDeployment'], 'true')
+              sudo systemctl restart radio-discord-bot.service
+            condition: eq(variables['isFirstDeployment'], 'false')
+            displayName: "Start the service after deployment"
