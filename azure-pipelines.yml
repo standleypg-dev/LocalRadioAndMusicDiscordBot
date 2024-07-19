@@ -90,9 +90,3 @@ stages:
               cd /home/stand/applications/discord-bot
               jq -s '.[0] + .[1]' appsettings.json ../discord-bot-token.json > temp.json && mv temp.json appsettings.json
             displayName: "Appending token to the appsetting.json file"
-          
-          - script: |
-              echo $(sudo_password)
-              echo "$(sudo_password)" | sudo systemctl restart radio-discord-bot.service
-            condition: eq(variables['isFirstDeployment'], 'false')
-            displayName: "Start the service after deployment"
