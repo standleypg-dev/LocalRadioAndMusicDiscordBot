@@ -64,7 +64,7 @@ stages:
             rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
             includeRootFolder: false
             archiveType: 'zip'
-            archiveFile: '$(Build.buildnumber)/$(Build.BuildId).zip'
+            archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip'
             replaceExistingArchive: true
           displayName: 'Archive Files'
 
@@ -81,13 +81,14 @@ stages:
     jobs:
       - job: Deploy
         steps:
-          - task: DownloadBuildArtifacts@0
-            inputs:
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: '$(Build.buildnumber)'
-              downloadPath: '$(Agent.BuildDirectory)'
-            displayName: 'Download Build Artifacts'
+          # skip the download artifacts since we are at the same machine
+          # - task: DownloadBuildArtifacts@0
+          #   inputs:
+          #     buildType: 'current'
+          #     downloadType: 'single'
+          #     artifactName: '$(Build.buildnumber)'
+          #     downloadPath: '$(Agent.BuildDirectory)'
+          #   displayName: 'Download Build Artifacts'
 
           - script: |
               pwd
