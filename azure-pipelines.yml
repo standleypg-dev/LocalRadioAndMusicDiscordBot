@@ -14,11 +14,11 @@ pool:
 variables:
   - group: "personal_website"
   - name: isFirstDeployment
-    value: 'true' # In azure pipeline, boolean variables are not supported. So, we use 'true' and 'false' as strings
+    value: "true" # In azure pipeline, boolean variables are not supported. So, we use 'true' and 'false' as strings
   - name: dotnetVersion
-    value: '8.x'
+    value: "8.x"
   - name: project
-    value: '**/radio-discord-bot.csproj'
+    value: "**/radio-discord-bot.csproj"
 
 parameters:
   - name: buildConfiguration
@@ -32,38 +32,38 @@ stages:
     jobs:
       - job: BuildApplication
         steps:
-        - task: UseDotNet@2
-          inputs:
-            version: '$(dotnetVersion)'
-            includePreviewVersions: true
-          displayName: 'Use .NET 8.x'
-        
-        - task: DotNetCoreCLI@2
-          inputs:
-            command: 'restore'
-            projects: '$(project)'
-          displayName: 'Restore NuGet Packages'
-        
-        - task: DotNetCoreCLI@2
-          inputs:
-            command: 'build'
-            projects: '$(project)'
-            arguments: '--configuration $(buildConfiguration)'
-          displayName: 'Build the application'
-        
-        - task: DotNetCoreCLI@2
-          inputs:
-            command: 'publish'
-            publishWebProjects: false
-            projects: '$(project)'
-            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --self-contained true'
-          displayName: 'Publish the application'
-        
-        - task: PublishBuildArtifacts@1
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: '$(Build.buildnumber)'
-          displayName: 'Publish Build Artifacts'
+          - task: UseDotNet@2
+            inputs:
+              version: "$(dotnetVersion)"
+              includePreviewVersions: true
+            displayName: "Use .NET 8.x"
+
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: "restore"
+              projects: "$(project)"
+            displayName: "Restore NuGet Packages"
+
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: "build"
+              projects: "$(project)"
+              arguments: "--configuration $(buildConfiguration)"
+            displayName: "Build the application"
+
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: "publish"
+              publishWebProjects: false
+              projects: "$(project)"
+              arguments: "--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --self-contained true"
+            displayName: "Publish the application"
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              pathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              artifactName: "$(Build.buildnumber)"
+            displayName: "Publish Build Artifacts"
 
   - stage: Deploy
     displayName: "Deploy"
@@ -74,33 +74,27 @@ stages:
         steps:
           - task: DownloadBuildArtifacts@0
             inputs:
-              buildType: 'current'
-              downloadType: 'single'
-              artifactName: '$(Build.buildnumber)'
-              downloadPath: '$(System.ArtifactsDirectory)'
-            displayName: 'Download Build Artifacts'
+              buildType: "current"
+              downloadType: "single"
+              artifactName: "$(Build.buildnumber)"
+              downloadPath: "$(System.ArtifactsDirectory)"
+            displayName: "Download Build Artifacts"
 
           - script: |
-              echo "CD to the $(System.ArtifactsDirectory)"
-              cd $(System.ArtifactsDirectory)
-              echo "List the files in the directory"
-              ls -la
-              echo  "CD to the $(System.ArtifactsDirectory)/$(build.buildnumber)"
-              cd $(System.ArtifactsDirectory)/$(build.buildnumber)
-              echo "List the files in the directory"
-              ls -la
-              cp $(System.ArtifactsDirectory)/$(build.buildnumber)/s.zip /home/stand/applications
-              echo "CD to the home directory"
-              cd /home/stand/applications
-              echo "Unzipping the file"
+              sudo systemctl stop radio-discord-bot.service
+              sudo rm -rf /home/stand/applications/discord-bot/*
+              sudo systemctl start radio-discord-bot.service
+            condition: eq(variables['isFirstDeployment'], 'false')
+            displayName: "Stop the service and remove the old files"
+
+          - script: |
+              cp $(System.ArtifactsDirectory)/$(build.buildnumber)/s.zip /home/stand/applications/discord-bot
+              cd /home/stand/applications/discord-bot
               unzip s.zip
-              echo "Removing the zip file"
               rm s.zip
-              ls -la
-              if [$? -eq 0]; then
-                echo "Successfully deployed the application"
-              else
-                echo "Failed to deploy the application"
-                exit 1
-              fi
-            displayName: 'List Files'
+            displayName: "Extracting and copying the files"
+
+          - script: |
+              cd cd /home/stand/applications/discord-bot
+              jq -s '.[0] + .[1]' appsettings.json ../discord-bot-token.json > temp.json && mv temp.json appsettings.json
+            displayName: "Appending token to the appsetting.json file"
