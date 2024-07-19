@@ -110,11 +110,17 @@ stages:
       - job: InstallService
         steps:
           - script: |
+              echo "COMMAND: cd /home/stand/applications/discord-bot"
               cd /home/stand/applications/discord-bot
+              echo "COMMAND: wget https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz && tar -zxvf opus-1.5.2.tar.gz"
               wget https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz && tar -zxvf opus-1.5.2.tar.gz
+              echo "COMMAND: wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.20-stable.tar.gz && tar -zxvf libsodium-1.0.20-stable.tar.gz"
               wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.20-stable.tar.gz && tar -zxvf libsodium-1.0.20-stable.tar.gz
+              echo "COMMAND: cd opus-1.5.2 && ./configure --prefix=/usr/local && make && sudo make install"
               cd opus-1.5.2 && ./configure --prefix=/usr/local && make && sudo make install
+              echo "COMMAND: cp /usr/local/lib/libopus.so /home/stand/applications/discord-bot"
               cp /usr/local/lib/libopus.so /home/stand/applications/discord-bot 
+              echo "COMMAND: cd ../libsodium-stable && ./configure --prefix=/usr/local && make && sudo make install"
               cd ../libsodium-stable && ./configure --prefix=/usr/local && make && sudo make install
             displayName: "Install required linux libraries"
 
