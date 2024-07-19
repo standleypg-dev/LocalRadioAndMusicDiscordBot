@@ -1,0 +1,102 @@
+trigger:
+  branches:
+    include:
+      - master
+
+pool:
+  name: Default
+  demands:
+    - agent.name -equals raspberrypi
+
+# The 'isFirstDeployment' variable is used to determine if this is the first deployment or not
+# If it is set to 'true', it will create and install the necessary dependencies and service for the first time
+# If it is set to 'false', it will only update the service with the new code
+variables:
+  - group: "personal_website"
+  - name: isFirstDeployment
+    value: 'true' # In azure pipeline, boolean variables are not supported. So, we use 'true' and 'false' as strings
+  - name: dotnetVersion
+    value: '8.x'
+  - name: project
+    value: '**/radio-discord-bot.csproj'
+
+parameters:
+  - name: buildConfiguration
+    displayName: "Build Configuration"
+    type: string
+    default: "Release"
+
+stages:
+  - stage: Build
+    displayName: "Build"
+    jobs:
+      - job: BuildApplication
+        steps:
+        - task: UseDotNet@2
+          inputs:
+            version: '$(dotnetVersion)'
+            includePreviewVersions: true
+          displayName: 'Use .NET 8.x'
+        
+        - task: DotNetCoreCLI@2
+          inputs:
+            command: 'restore'
+            projects: '$(project)'
+          displayName: 'Restore NuGet Packages'
+        
+        - task: DotNetCoreCLI@2
+          inputs:
+            command: 'build'
+            projects: '$(project)'
+            arguments: '--configuration $(buildConfiguration)'
+          displayName: 'Build the application'
+        
+        - task: DotNetCoreCLI@2
+          inputs:
+            command: 'publish'
+            publishWebProjects: false
+            projects: '$(project)'
+            arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --self-contained true'
+          displayName: 'Publish the application'
+        
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
+            includeRootFolder: false
+            archiveType: 'zip'
+            archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip'
+            replaceExistingArchive: true
+          displayName: 'Archive Files'
+
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: '$(Build.buildnumber)'
+          displayName: 'Publish Build Artifacts'
+
+  - stage: Deploy
+    displayName: "Deploy"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    dependsOn: Build
+    jobs:
+      - job: Deploy
+        steps:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(Build.buildnumber)'
+              downloadPath: '$(Agent.BuildDirectory)'
+            displayName: 'Download Build Artifacts'
+
+          - script: |
+              pwd
+              cp $(Agent.BuildDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip /home/stand/applications
+              echo "CD to the home directory"
+              cd /home/stand/applications
+              echo "Unzipping the file"
+              unzip $(Build.BuildId).zip
+              echo "Removing the zip file"
+              rm $(Build.BuildId).zip
+              ls -la
+            displayName: 'List Files'
