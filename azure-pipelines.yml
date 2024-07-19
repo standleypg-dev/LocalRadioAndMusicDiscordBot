@@ -101,9 +101,13 @@ stages:
               cd /home/stand/applications/discord-bot
               jq -s '.[0] + .[1]' appsettings.json ../discord-bot-token.json > temp.json && mv temp.json appsettings.json
             displayName: "Appending token to the appsetting.json file"
-      
+
+  - stage: InstallService
+    displayName: "Install Service"
+    condition: eq(variables['isFirstDeployment'], 'true')
+    dependsOn: Deploy
+    jobs:
       - job: InstallService
-        condition: eq(variables['isFirstDeployment'], 'true')
         dependsOn: Deploy
         steps:
           - script: |
@@ -133,4 +137,3 @@ stages:
       #         WantedBy=default.target" > testHere
       #       displayName: "Install and start the service"
       #       condition: eq(variables['isFirstDeployment'], 'true')
-        
