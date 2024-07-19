@@ -59,6 +59,17 @@ stages:
             arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --self-contained true'
           displayName: 'Publish the application'
         
+        - script: |
+              echo "CD to the $(Build.ArtifactStagingDirectory)"
+              cd $(Build.ArtifactStagingDirectory)
+              echo "listing the directory"
+              ls -la
+              echo "CD to the $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)"
+              cd $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)
+              echo "listing the directory"
+              ls -la
+          displayName: 'List Files'
+        
         - task: ArchiveFiles@2
           inputs:
             rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
