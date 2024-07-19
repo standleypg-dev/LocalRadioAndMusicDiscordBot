@@ -88,7 +88,7 @@ stages:
             displayName: "Stop the service and remove the old files"
 
           - script: |
-              mkdir -p /home/stand/applications/discord-bot
+              cd /home/stand/applications && mkdir discord-bot
               cp $(System.ArtifactsDirectory)/$(build.buildnumber)/s.zip /home/stand/applications/discord-bot
               cd /home/stand/applications/discord-bot
               unzip s.zip
@@ -109,7 +109,8 @@ stages:
       #         apt install -y wget make tar gcc automake libtool pkg-config libopus0 opus-tools ffmpeg
       #         wget https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz && tar -zxvf opus-1.5.2.tar.gz
       #         wget https://download.libsodium.org/libsodium/releases/libsodium-1.0.20-stable.tar.gz && tar -zxvf libsodium-1.0.20-stable.tar.gz
-
+      #         cd opus-1.5.2 && ./configure --prefix=/usr/local && make && make install && cp /usr/local/lib/libopus.so /home/stand/applications/discord-bot 
+      #         cd libsodium-1.0.20-stable && ./configure --prefix=/usr/local && make && make install
       #       displayName: "Install required linux libraries"
 
       #     - script: |
