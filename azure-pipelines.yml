@@ -59,40 +59,9 @@ stages:
             arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --self-contained true'
           displayName: 'Publish the application'
         
-        - script: |
-              echo "CD to the $(Build.ArtifactStagingDirectory)"
-              cd $(Build.ArtifactStagingDirectory)
-              echo "listing the directory"
-              ls -la
-              echo "CD to the $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)"
-              cd $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)
-              echo "listing the directory"
-              ls -la
-          displayName: 'List Files'
-        
-        - task: ArchiveFiles@2
-          inputs:
-            rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
-            includeRootFolder: false
-            archiveType: 'zip'
-            archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip'
-            replaceExistingArchive: true
-          displayName: 'Archive Files'
-
-        - script: |
-            echo "CD to the $(Build.ArtifactStagingDirectory)"
-            cd $(Build.ArtifactStagingDirectory)
-            echo "listing the directory"
-            ls -la
-            echo "CD to the $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)"
-            cd $(Build.ArtifactStagingDirectory)/$(Build.buildnumber)
-            echo "listing the directory"
-            ls -la
-          displayName: 'List Files'
-
         - task: PublishBuildArtifacts@1
           inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip'
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: '$(Build.buildnumber)'
           displayName: 'Publish Build Artifacts'
 
@@ -112,13 +81,20 @@ stages:
             displayName: 'Download Build Artifacts'
 
           - script: |
-              pwd
-              cp $(Agent.BuildDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip /home/stand/applications
-              echo "CD to the home directory"
-              cd /home/stand/applications
-              echo "Unzipping the file"
-              unzip $(Build.BuildId).zip
-              echo "Removing the zip file"
-              # rm $(Build.BuildId).zip
+              echo "CD to the $(Agent.BuildDirectory)"
+              cd $(Agent.BuildDirectory)
+              echo "List the files in the directory"
               ls -la
+              echo  "CD to the $(Agent.BuildDirectory)/$(Build.buildnumber)"
+              cd $(Agent.BuildDirectory)/$(Build.buildnumber)
+              echo "List the files in the directory"
+              ls -la
+              # cp $(Agent.BuildDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip /home/stand/applications
+              # echo "CD to the home directory"
+              # cd /home/stand/applications
+              # echo "Unzipping the file"
+              # unzip $(Build.BuildId).zip
+              # echo "Removing the zip file"
+              # # rm $(Build.BuildId).zip
+              # ls -la
             displayName: 'List Files'
