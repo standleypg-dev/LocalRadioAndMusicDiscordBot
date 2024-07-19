@@ -68,11 +68,11 @@ stages:
             replaceExistingArchive: true
           displayName: 'Archive Files'
 
-        - task: PublishBuildArtifacts@1
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: '$(Build.buildnumber)'
-          displayName: 'Publish Build Artifacts'
+        # - task: PublishBuildArtifacts@1
+        #   inputs:
+        #     pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        #     artifactName: '$(Build.buildnumber)'
+        #   displayName: 'Publish Build Artifacts'
 
   - stage: Deploy
     displayName: "Deploy"
@@ -82,13 +82,13 @@ stages:
       - job: Deploy
         steps:
           # skip the download artifacts since we are at the same machine
-          # - task: DownloadBuildArtifacts@0
-          #   inputs:
-          #     buildType: 'current'
-          #     downloadType: 'single'
-          #     artifactName: '$(Build.buildnumber)'
-          #     downloadPath: '$(Agent.BuildDirectory)'
-          #   displayName: 'Download Build Artifacts'
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: '$(Build.buildnumber)'
+              downloadPath: '$(Agent.BuildDirectory)'
+            displayName: 'Download Build Artifacts'
 
           - script: |
               pwd
