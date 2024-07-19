@@ -82,7 +82,7 @@ stages:
 
           - script: |
               echo "CD to the $(System.ArtifactsDirectory)"
-              cd $(System.ArtifactsDirectory))
+              cd $(System.ArtifactsDirectory)
               echo "List the files in the directory"
               ls -la
               echo  "CD to the $(System.ArtifactsDirectory)/$(build.buildnumber)"
