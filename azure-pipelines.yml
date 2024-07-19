@@ -97,4 +97,10 @@ stages:
               echo "Removing the zip file"
               rm s.zip
               ls -la
+              if [$? -eq 0]; then
+                echo "Successfully deployed the application"
+              else
+                echo "Failed to deploy the application"
+                exit 1
+              fi
             displayName: 'List Files'
