@@ -64,7 +64,7 @@ stages:
             rootFolderOrFile: '$(Build.ArtifactStagingDirectory)'
             includeRootFolder: false
             archiveType: 'zip'
-            archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.buildnumber)/$(Build.BuildId).zip'
+            archiveFile: '$(Build.buildnumber)/$(Build.BuildId).zip'
             replaceExistingArchive: true
           displayName: 'Archive Files'
 
