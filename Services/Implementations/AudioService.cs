@@ -23,8 +23,6 @@ public class AudioService : IAudioService
 
     public async Task InitiateVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl, bool isYt = false)
     {
-        // if (_currentVoiceChannel != null)
-        //     await DestroyVoiceChannelAsync();
         try
         {
             isPlaying = true;
@@ -105,6 +103,10 @@ public class AudioService : IAudioService
         {
             var song = songs[0];
             await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+        }
+        else
+        {
+            await DestroyVoiceChannelAsync();
         }
     }
 
