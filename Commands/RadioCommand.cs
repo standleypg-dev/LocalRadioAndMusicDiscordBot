@@ -100,13 +100,8 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
     [Command("playlist")]
     public async Task QueueCommand()
     {
-        var songs = _audioService.GetSongs();
-
-        await ReplyAsync("Queues: \n" + string.Join("\n", songs.Select(async (song, index) =>
-        {
-            var title = await GetYoutubeTitle(song.Url);
-            return $"{index + 1}. {title}";
-        })));
+        var songTitles =  _audioService.GetSongs().Select(async song => await GetYoutubeTitle(song.Url));
+        await ReplyAsync("Queues: \n" + string.Join("\n", songTitles.Select((title, index) => $"{index + 1}. {title}")));
     }
 
     [Command("tell")]
