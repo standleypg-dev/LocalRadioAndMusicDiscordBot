@@ -12,7 +12,6 @@ public class AudioService : IAudioService
 {
     private readonly YoutubeClient _youtubeClient;
     private IVoiceChannel _currentVoiceChannel;
-    private IAudioClient _audioClient;
     private bool isPlaying = false;
     private bool isRadioPlaying = false;
     private List<Song> songs = new();
@@ -24,8 +23,8 @@ public class AudioService : IAudioService
 
     public async Task InitiateVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl, bool isYt = false)
     {
-        if (_currentVoiceChannel != null)
-            await DestroyVoiceChannelAsync();
+        // if (_currentVoiceChannel != null)
+        //     await DestroyVoiceChannelAsync();
         try
         {
             isPlaying = true;
@@ -45,14 +44,15 @@ public class AudioService : IAudioService
     private async Task ConnectToVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl)
     {
         List<Task> tasks = new();
-        var ffmpeg = CreateStream(audioUrl);
-        
-        var audioOutStream = ffmpeg.StandardOutput.BaseStream;
-        _audioClient = await voiceChannel.ConnectAsync();
+        IAudioClient _audioClient = await voiceChannel.ConnectAsync();
         var discordStream = _audioClient.CreatePCMStream(AudioApplication.Music);
-
         //increase the buffer size to prevent the song ending early
         var bufferedStream = new BufferedStream(discordStream, 16348);
+        
+        var ffmpeg = CreateStream(audioUrl);
+
+        var audioOutStream = ffmpeg.StandardOutput.BaseStream;
+
 
         // Store the current voice channel
         SetBotCurrentVoiceChannel(voiceChannel);
@@ -64,8 +64,8 @@ public class AudioService : IAudioService
 
         if (songs.Count > 0)
             await NextSongAsync();
-
-        await DestroyVoiceChannelAsync();
+        else
+            await DestroyVoiceChannelAsync();
     }
 
     public async Task DestroyVoiceChannelAsync()
