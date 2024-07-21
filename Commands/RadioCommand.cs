@@ -102,7 +102,11 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
     {
         var songs = _audioService.GetSongs();
 
-        await ReplyAsync("Queues: \n" + string.Join("\n", songs.Select((song, index) => $"{index + 1}. {song.Url}")));
+        await ReplyAsync("Queues: \n" + string.Join("\n", songs.Select(async (song, index) =>
+        {
+            var title = await GetYoutubeTitle(song.Url);
+            return $"{index + 1}. {title}";
+        })));
     }
 
     [Command("tell")]
@@ -123,6 +127,13 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         }
     }
 
+    private async Task<string> GetYoutubeTitle(string url)
+    {
+        var video = await _youtubeClient.Videos.GetAsync(url);
+
+        return $"{video.Title}";
+    }
+
     // [Command("gpt")]
     // public async Task GptCommand([Remainder] string command)
     // {
@@ -137,5 +148,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
     //     //     var response = await gpt.GetResponse(command);
     //     await ReplyAsync("Not implemented yet.");
     // }
+
+
 }
 
