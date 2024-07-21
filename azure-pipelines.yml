@@ -90,7 +90,3 @@ stages:
               cd /home/stand/applications/discord-bot
               jq -s '.[0] + .[1]' appsettings.json ../discord-bot-token.json > temp.json && mv temp.json appsettings.json
             displayName: "Appending token to the appsetting.json file"
-          
-          - script: |
-              sudo systemctl restart radio-discord-bot.service
-            displayName: "Restarting the service"
