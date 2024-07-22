@@ -168,4 +168,11 @@ public class AudioService : IAudioService
     {
         return _currentVoiceChannel;
     }
+
+    public async Task<string> GetYoutubeTitle(string url)
+    {
+        var video = await _youtubeClient.Videos.GetAsync(url);
+
+        return $"{video.Title}";
+    }
 }

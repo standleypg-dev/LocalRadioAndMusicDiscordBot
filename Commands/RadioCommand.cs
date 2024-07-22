@@ -104,7 +104,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         var songTitlesList = new List<string>();
         foreach (var song in songs)
         {
-            var title = await GetYoutubeTitle(song.Url);
+            var title = await _audioService.GetYoutubeTitle(song.Url);
             songTitlesList.Add(title);
         }
 
@@ -130,13 +130,6 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         {
             await ReplyAsync(await _quoteService.GetQuoteAsync(), isTTS: true);
         }
-    }
-
-    private async Task<string> GetYoutubeTitle(string url)
-    {
-        var video = await _youtubeClient.Videos.GetAsync(url);
-
-        return $"{video.Title}";
     }
 
     // [Command("gpt")]

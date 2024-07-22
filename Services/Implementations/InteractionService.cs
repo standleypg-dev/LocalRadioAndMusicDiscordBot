@@ -31,14 +31,16 @@ public class InteractionService : IInteractionService
                     var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
                     if (userVoiceChannel != null)
                     {
+                        var radio = Configuration.GetConfiguration<List<Radio>>("Radios").Find(x => x.Name == componentData.CustomId);
                         if (componentData.CustomId.Contains("FM"))
                         {
-                            await FollowupAsync(component, "Playing radio..");
-                            await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, Configuration.GetConfiguration<List<Radio>>("Radios").Find(x => x.Name == componentData.CustomId).Url);
+                            await FollowupAsync(component, $"Playing {radio.Name} radio station.");
+                            await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
                         }
                         else
                         {
-                            await FollowupAsync(component, $"Added to queue. Total songs in a queue is {_audioService.GetSongs().Count}");
+                            var videoTitle = await _audioService.GetYoutubeTitle(componentData.CustomId);
+                            await FollowupAsync(component, $"Added {videoTitle} to queue. Total songs in a queue is {_audioService.GetSongs().Count}");
                             _audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
                             await _audioService.OnPlaylistChanged();
                         }

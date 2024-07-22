@@ -19,4 +19,5 @@ public interface IAudioService
     Task OnPlaylistChanged();
     Task EmptyPlaylist();
     IVoiceChannel GetBotCurrentVoiceChannel();
+    Task<string> GetYoutubeTitle(string url);
 }
