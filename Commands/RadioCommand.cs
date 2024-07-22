@@ -111,7 +111,13 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         if (songTitlesList.Count == 0)
             await ReplyAsync("No songs in queue.");
         else
-            await ReplyAsync("Queues: \n" + string.Join("\n", songTitlesList.Select((title, index) => $"{index + 1}. {title}")));
+        {
+            await ReplyAsync("Queues: \n" + string.Join("\n", songTitlesList.Select((title, index) =>
+            {
+                var isPlayingNowMsg = index == 0 ? "(Playing now)" : "";
+                return $"{index + 1}. {title} {isPlayingNowMsg}";
+            })));
+        }
     }
 
     [Command("tell")]
