@@ -15,6 +15,7 @@ public class AudioService : IAudioService
     private bool isPlaying = false;
     private bool isRadioPlaying = false;
     private List<Song> songs = new();
+    private Process ffmpegProcess;
 
     public AudioService(YoutubeClient youtubeClient)
     {
@@ -46,7 +47,7 @@ public class AudioService : IAudioService
         var discordStream = _audioClient.CreatePCMStream(AudioApplication.Music);
         //increase the buffer size to prevent the song ending early
         var bufferedStream = new BufferedStream(discordStream, 16348);
-        
+
         var ffmpeg = CreateStream(audioUrl);
 
         var audioOutStream = ffmpeg.StandardOutput.BaseStream;
@@ -72,6 +73,7 @@ public class AudioService : IAudioService
         try
         {
             await _currentVoiceChannel.DisconnectAsync();
+            TerminateStream();
             _currentVoiceChannel = null;
             isPlaying = false;
             isRadioPlaying = false;
@@ -92,13 +94,25 @@ public class AudioService : IAudioService
             UseShellExecute = false,
             CreateNoWindow = true,
         };
-        return Process.Start(ffmpeg);
+        ffmpegProcess = Process.Start(ffmpeg)!;
+        return ffmpegProcess;
+    }
+
+    public void TerminateStream()
+    {
+        if (ffmpegProcess != null && !ffmpegProcess.HasExited)
+        {
+            ffmpegProcess.Kill();
+            ffmpegProcess.Dispose();
+        }
     }
 
 
     public async Task NextSongAsync()
     {
         RemoveFirstSong();
+        // Terminate the previous stream before playing the next song
+        TerminateStream();
         if (songs.Count > 0)
         {
             var song = songs[0];
