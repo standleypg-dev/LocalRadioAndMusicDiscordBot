@@ -107,7 +107,11 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
             var title = await GetYoutubeTitle(song.Url);
             songTitlesList.Add(title);
         }
-        await ReplyAsync("Queues: \n" + string.Join("\n", songTitlesList.Select((title, index) => $"{index + 1}. {title}")));
+
+        if (songTitlesList.Count == 0)
+            await ReplyAsync("No songs in queue.");
+        else
+            await ReplyAsync("Queues: \n" + string.Join("\n", songTitlesList.Select((title, index) => $"{index + 1}. {title}")));
     }
 
     [Command("tell")]
