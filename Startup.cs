@@ -1,59 +1,43 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
-using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
 namespace radio_discord_bot;
 
-public class Startup
+public class Startup(DiscordSocketClient client, CommandService commands, IServiceProvider serviceProvider)
 {
-    private readonly DiscordSocketClient _client;
-    private readonly CommandService _commands;
-    private readonly IServiceProvider _serviceProvider;
-
-    public Startup(DiscordSocketClient client, CommandService commands, IServiceProvider serviceProvider)
-    {
-        _client = client;
-        _commands = commands;
-        _serviceProvider = serviceProvider;
-    }
-
     public async Task SetupLoggingAndReadyEvents()
     {
         await Task.CompletedTask;
-        _client.Log += async (LogMessage log) =>
+        client.Log += async log =>
         {
             await Task.CompletedTask;
             Console.WriteLine(log);
         };
-        _client.Ready += async () =>
+        client.Ready += async () =>
         {
             await Task.CompletedTask;
-            Console.WriteLine($"Logged in as {_client.CurrentUser.Username}");
+            Console.WriteLine($"Logged in as {client.CurrentUser.Username}");
         };
     }
 
     public async Task SetupCommandHandling()
     {
-        await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _serviceProvider);
+        await commands.AddModulesAsync(Assembly.GetEntryAssembly(), serviceProvider);
 
-        _client.MessageReceived += async (arg) =>
+        client.MessageReceived += (arg) =>
         {
             _ = Task.Run(async () =>
             {
                 if (arg is not SocketUserMessage msg) return;
-                var context = new SocketCommandContext(_client, msg);
-                int argPos = 0;
+                var context = new SocketCommandContext(client, msg);
+                var argPos = 0;
 
-                var isHelpDM = context.IsPrivate && msg.ToString().Equals("help");
+                var isHelpDm = context.IsPrivate && msg.ToString().Equals("help");
 
-                if (msg.HasStringPrefix("/", ref argPos) || isHelpDM)
+                if (msg.HasStringPrefix("/", ref argPos) || isHelpDm)
                 {
-                    var result = await _commands.ExecuteAsync(context, isHelpDM ? 0 : argPos, _serviceProvider);
+                    var result = await commands.ExecuteAsync(context, isHelpDm ? 0 : argPos, serviceProvider);
 
                     if (!result.IsSuccess)
                     {
@@ -61,6 +45,7 @@ public class Startup
                     }
                 }
             });
+            return Task.CompletedTask;
         };
     }
 }

@@ -1,54 +1,46 @@
-using System.Runtime.CompilerServices;
 using Discord.WebSocket;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
+using radio_discord_bot.Services.Interfaces;
 
-namespace radio_discord_bot.Services;
+namespace radio_discord_bot.Services.Implementations;
 
-public class InteractionService : IInteractionService
+public class InteractionService(IAudioService audioService, DiscordSocketClient client) : IInteractionService
 {
-    private readonly IAudioService _audioService;
-    private readonly DiscordSocketClient _client;
-
-    Dictionary<ulong, HashSet<ulong>> usersInVoiceChannels = new Dictionary<ulong, HashSet<ulong>>();
-
-    public InteractionService(IAudioService audioService, DiscordSocketClient client)
-    {
-        _audioService = audioService;
-        _client = client;
-    }
+    private readonly Dictionary<ulong, HashSet<ulong>> _usersInVoiceChannels = new();
 
     public async Task OnInteractionCreated(SocketInteraction interaction)
     {
         await Task.CompletedTask;
         _ = Task.Run(async () =>
         {
-            if (interaction is SocketMessageComponent component)
+            if (interaction is SocketMessageComponent { Data: { } componentData } component)
             {
-                if (component.Data is SocketMessageComponentData componentData)
+                await component.DeferAsync();
+                var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
+                if (userVoiceChannel != null)
                 {
-                    await component.DeferAsync();
-                    var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
-                    if (userVoiceChannel != null)
+                    var radio = Configuration.GetConfiguration<List<Radio>>("Radios").Find(x => x.Name == componentData.CustomId);
+                    if (componentData.CustomId.Contains("FM"))
                     {
-                        var radio = Configuration.GetConfiguration<List<Radio>>("Radios").Find(x => x.Name == componentData.CustomId);
-                        if (componentData.CustomId.Contains("FM"))
+                        if (radio != null)
                         {
                             await FollowupAsync(component, $"Playing {radio.Name} radio station.");
-                            await _audioService.InitiateVoiceChannelAsync((interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
-                        }
-                        else
-                        {
-                            var videoTitle = await _audioService.GetYoutubeTitle(componentData.CustomId);
-                            await FollowupAsync(component, $"Added {videoTitle} to queue. Total songs in a queue is {_audioService.GetSongs().Count}");
-                            _audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
-                            await _audioService.OnPlaylistChanged();
+                            await audioService.InitiateVoiceChannelAsync(
+                                (interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
                         }
                     }
                     else
                     {
-                        await FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
+                        var videoTitle = await audioService.GetYoutubeTitle(componentData.CustomId);
+                        await FollowupAsync(component, $"Added {videoTitle} to queue. Total songs in a queue is {audioService.GetSongs().Count}");
+                        audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
+                        await audioService.OnPlaylistChanged();
                     }
+                }
+                else
+                {
+                    await FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
                 }
             }
         });
@@ -72,34 +64,37 @@ public class InteractionService : IInteractionService
         {
             if (user.IsBot) return; // Skip bot users
 
-            var bot = _client.CurrentUser;
+            var bot = client.CurrentUser;
 
             if (bot != null)
             {
-                var botVoiceChannel = _audioService.GetBotCurrentVoiceChannel();
-                var guild = botVoiceChannel.Guild;
-
-                // Update the user presence in the dictionary
-                if (!usersInVoiceChannels.ContainsKey(guild.Id))
+                var botVoiceChannel = audioService.GetBotCurrentVoiceChannel();
+                if (botVoiceChannel != null)
                 {
-                    usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
-                }
+                    var guild = botVoiceChannel.Guild;
 
-                if (oldState.VoiceChannel != null)
-                {
-                    usersInVoiceChannels[guild.Id].Remove(user.Id);
-                }
+                    // Update the user presence in the dictionary
+                    if (!_usersInVoiceChannels.ContainsKey(guild.Id))
+                    {
+                        _usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
+                    }
 
-                if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
-                {
-                    usersInVoiceChannels[guild.Id].Add(user.Id);
-                }
+                    if (oldState.VoiceChannel != null)
+                    {
+                        _usersInVoiceChannels[guild.Id].Remove(user.Id);
+                    }
 
-                var membersInBotChannel = usersInVoiceChannels[guild.Id];
+                    if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
+                    {
+                        _usersInVoiceChannels[guild.Id].Add(user.Id);
+                    }
 
-                if (membersInBotChannel.Count == 0)
-                {
-                    await _audioService.DestroyVoiceChannelAsync();
+                    var membersInBotChannel = _usersInVoiceChannels[guild.Id];
+
+                    if (membersInBotChannel.Count == 0)
+                    {
+                        await audioService.DestroyVoiceChannelAsync();
+                    }
                 }
             }
         });

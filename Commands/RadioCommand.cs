@@ -1,11 +1,7 @@
 using Discord;
 using Discord.Commands;
-using Discord.Interactions;
-using OpenAI;
-using OpenAI.Chat;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
-using radio_discord_bot.Services;
 using radio_discord_bot.Services.Interfaces;
 using radio_discord_bot.Utils;
 using YoutubeExplode;
@@ -13,21 +9,13 @@ using YoutubeExplode.Common;
 
 namespace radio_discord_bot.Commands;
 
-public class RadioCommand : ModuleBase<SocketCommandContext>
+public class RadioCommand(
+    IAudioService audioService,
+    YoutubeClient youtubeClient,
+    IJokeService jokeService,
+    IQuoteService quoteService)
+    : ModuleBase<SocketCommandContext>
 {
-    private readonly YoutubeClient _youtubeClient;
-    private readonly IAudioService _audioService;
-    private readonly IJokeService _jokeService;
-    private readonly IQuoteService _quoteService;
-
-    public RadioCommand(IAudioService audioService, YoutubeClient youtubeClient, IJokeService jokeService, IQuoteService quoteService)
-    {
-        _audioService = audioService;
-        _youtubeClient = youtubeClient;
-        _jokeService = jokeService;
-        _quoteService = quoteService;
-    }
-
     [Command("play")]
     public async Task HelloCommand([Remainder] string command)
     {
@@ -43,7 +31,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         }
         else if (Uri.TryCreate(command, UriKind.Absolute, out _))
         {
-            var videos = await _youtubeClient.Search.GetVideosAsync(command).CollectAsync(5); // Adjust the number of results we want
+            var videos = await youtubeClient.Search.GetVideosAsync(command).CollectAsync(5); // Adjust the number of results we want
 
             var embed = new EmbedBuilder()
                 .WithTitle("Click to play or to add to the queue:")
@@ -53,7 +41,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
         }
         else
         {
-            var videos = await _youtubeClient.Search.GetVideosAsync(command).CollectAsync(5); // Adjust the number of results we want
+            var videos = await youtubeClient.Search.GetVideosAsync(command).CollectAsync(5); // Adjust the number of results we want
 
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your song")
@@ -80,31 +68,31 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
     public async Task StopCommand()
     {
         await ReplyAsync("Stopping radio..");
-        await _audioService.DestroyVoiceChannelAsync();
-        await _audioService.EmptyPlaylist();
+        await audioService.DestroyVoiceChannelAsync();
+        await audioService.EmptyPlaylist();
 
     }
 
     [Command("next")]
     public async Task NextCommand()
     {
-        if (_audioService.GetSongs().Count == 1)
+        if (audioService.GetSongs().Count == 1)
             await ReplyAsync("No songs in queue. Nothing to next.");
         else
         {
             await ReplyAsync("Playing next song..");
-            await _audioService.NextSongAsync();
+            await audioService.NextSongAsync();
         }
     }
 
     [Command("playlist")]
     public async Task QueueCommand()
     {
-        var songs = _audioService.GetSongs();
+        var songs = audioService.GetSongs();
         var songTitlesList = new List<string>();
         foreach (var song in songs)
         {
-            var title = await _audioService.GetYoutubeTitle(song.Url);
+            var title = await audioService.GetYoutubeTitle(song.Url);
             songTitlesList.Add(title);
         }
 
@@ -125,7 +113,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
     {
         if (command.Equals("joke"))
         {
-            await ReplyAsync(await _jokeService.GetJokeAsync(), isTTS: true);
+            await ReplyAsync(await jokeService.GetJokeAsync(), isTTS: true);
         }
     }
 
@@ -134,7 +122,7 @@ public class RadioCommand : ModuleBase<SocketCommandContext>
     {
         if (command.Equals("me"))
         {
-            await ReplyAsync(await _quoteService.GetQuoteAsync(), isTTS: true);
+            await ReplyAsync(await quoteService.GetQuoteAsync(), isTTS: true);
         }
     }
 

@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace radio_discord_bot.Models;
 
-public class Joke
+public abstract class Joke
 {
     [JsonPropertyName("error")]
     public bool Error { get; set; }
