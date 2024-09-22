@@ -1,46 +1,41 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Discord;
 using Discord.Audio;
 using radio_discord_bot.Models;
+using radio_discord_bot.Services.Interfaces;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
-namespace radio_discord_bot.Services;
+namespace radio_discord_bot.Services.Implementations;
 
-public class AudioService : IAudioService
+public class AudioService(YoutubeClient youtubeClient)
+    : IAudioService
 {
-    private readonly YoutubeClient _youtubeClient;
-    private IVoiceChannel _currentVoiceChannel;
-    private bool isPlaying = false;
-    private bool isRadioPlaying = false;
-    private List<Song> songs = new();
-    private Process ffmpegProcess;
+    private IVoiceChannel? _currentVoiceChannel;
+    private bool _isPlaying;
+    private bool _isRadioPlaying;
+    private List<Song> _songs = [];
+    private Process _ffmpegProcess;
 
-    public AudioService(YoutubeClient youtubeClient)
-    {
-        _youtubeClient = youtubeClient;
-    }
-
-    public async Task InitiateVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl, bool isYt = false)
+    public async Task InitiateVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
     {
         try
         {
-            isPlaying = true;
-            isRadioPlaying = !isYt;
-            dynamic outputUrl = isYt ? (await _youtubeClient.Videos.Streams.GetManifestAsync(audioUrl)).GetAudioOnlyStreams().GetWithHighestBitrate().Url : audioUrl;
+            _isPlaying = true;
+            _isRadioPlaying = !isYt;
+            dynamic outputUrl = isYt ? (await youtubeClient.Videos.Streams.GetManifestAsync(audioUrl)).GetAudioOnlyStreams().GetWithHighestBitrate().Url : audioUrl;
 
             await ConnectToVoiceChannelAsync(voiceChannel, outputUrl);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error on InitiateVoiceChannelAsync: {ex.Message}");
-            isPlaying = false;
-            isRadioPlaying = false;
+            _isPlaying = false;
+            _isRadioPlaying = false;
         }
     }
 
-    private async Task ConnectToVoiceChannelAsync(IVoiceChannel voiceChannel, string audioUrl)
+    private async Task ConnectToVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl)
     {
         List<Task> tasks = new();
         IAudioClient _audioClient = await voiceChannel.ConnectAsync();
@@ -67,7 +62,7 @@ public class AudioService : IAudioService
         }
         finally
         {
-            if (songs.Count > 0)
+            if (_songs.Count > 0)
                 await NextSongAsync();
             else
                 await DestroyVoiceChannelAsync();
@@ -82,11 +77,15 @@ public class AudioService : IAudioService
 
         try
         {
-            await _currentVoiceChannel.DisconnectAsync();
-            TerminateStream();
+            if (_currentVoiceChannel != null)
+            {
+                await _currentVoiceChannel.DisconnectAsync();
+                TerminateStream();
+            }
+
             _currentVoiceChannel = null;
-            isPlaying = false;
-            isRadioPlaying = false;
+            _isPlaying = false;
+            _isRadioPlaying = false;
         }
         catch (Exception ex)
         {
@@ -121,13 +120,10 @@ public class AudioService : IAudioService
         return process;
     }
 
-    public void TerminateStream()
+    private void TerminateStream()
     {
-        if (ffmpegProcess != null && !ffmpegProcess.HasExited)
-        {
-            ffmpegProcess.Kill();
-            ffmpegProcess.Dispose();
-        }
+        _ffmpegProcess?.Kill();
+        _ffmpegProcess?.Dispose();
     }
 
 
@@ -136,9 +132,9 @@ public class AudioService : IAudioService
         RemoveFirstSong();
         // Terminate the previous stream before playing the next song
         TerminateStream();
-        if (songs.Count > 0)
+        if (_songs.Count > 0)
         {
-            var song = songs[0];
+            var song = _songs[0];
             await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
         }
         else
@@ -150,30 +146,30 @@ public class AudioService : IAudioService
     public async Task EmptyPlaylist()
     {
         await Task.CompletedTask;
-        songs.Clear();
+        _songs.Clear();
     }
 
     public void AddSong(Song song)
     {
-        songs.Add(song);
+        _songs.Add(song);
     }
 
     public List<Song> GetSongs()
     {
-        return songs;
+        return _songs;
     }
 
     public void RemoveFirstSong()
     {
-        songs.RemoveAt(0);
+        _songs.RemoveAt(0);
     }
 
     public async Task OnPlaylistChanged()
     {
-        var song = songs[0];
-        if (songs.Count > 0)
+        var song = _songs[0];
+        if (_songs.Count > 0)
         {
-            if (!isPlaying || isRadioPlaying)
+            if (!_isPlaying || _isRadioPlaying)
                 await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
         }
         else
@@ -182,19 +178,19 @@ public class AudioService : IAudioService
         }
     }
 
-    private void SetBotCurrentVoiceChannel(IVoiceChannel voiceChannel)
+    private void SetBotCurrentVoiceChannel(IVoiceChannel? voiceChannel)
     {
         _currentVoiceChannel = voiceChannel;
     }
 
-    public IVoiceChannel GetBotCurrentVoiceChannel()
+    public IVoiceChannel? GetBotCurrentVoiceChannel()
     {
         return _currentVoiceChannel;
     }
 
     public async Task<string> GetYoutubeTitle(string url)
     {
-        var video = await _youtubeClient.Videos.GetAsync(url);
+        var video = await youtubeClient.Videos.GetAsync(url);
 
         return $"{video.Title}";
     }
