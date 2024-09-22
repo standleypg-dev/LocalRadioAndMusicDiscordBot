@@ -1,29 +1,28 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
-using radio_discord_bot;
 using radio_discord_bot.Configs;
-using radio_discord_bot.Services;
+using radio_discord_bot.Services.Interfaces;
 
+namespace radio_discord_bot;
 
 public class Program
 {
-    private readonly IServiceProvider _serviceProvider;
     private readonly DiscordSocketClient _client;
     private readonly IInteractionService _interactionService;
     private readonly Startup _appStartup;
 
     public static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
 
-    public Program()
+    private Program()
     {
-        _serviceProvider = DependencyInjection.CreateProvider();
-        _client = _serviceProvider.GetRequiredService<DiscordSocketClient>();
-        _interactionService = _serviceProvider.GetRequiredService<IInteractionService>();
-        _appStartup = _serviceProvider.GetRequiredService<Startup>();
+        var serviceProvider = DependencyInjection.CreateProvider();
+        _client = serviceProvider.GetRequiredService<DiscordSocketClient>();
+        _interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        _appStartup = serviceProvider.GetRequiredService<Startup>();
     }
 
-    public async Task RunBotAsync()
+    private async Task RunBotAsync()
     {
         await _appStartup.SetupLoggingAndReadyEvents();
         await _appStartup.SetupCommandHandling();
