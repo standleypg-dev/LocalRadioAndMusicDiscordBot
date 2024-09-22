@@ -44,27 +44,37 @@ public class AudioService : IAudioService
     {
         List<Task> tasks = new();
         IAudioClient _audioClient = await voiceChannel.ConnectAsync();
-        var discordStream = _audioClient.CreatePCMStream(AudioApplication.Music);
         //increase the buffer size to prevent the song ending early
-        var bufferedStream = new BufferedStream(discordStream, 16348);
 
-        var ffmpeg = CreateStream(audioUrl);
+        using var ffmpeg = CreateStream(audioUrl);
+        using var audioOutStream = ffmpeg.StandardOutput.BaseStream;
+        using var discord = _audioClient.CreatePCMStream(AudioApplication.Music);
+        using var bufferedStream = new BufferedStream(discord, 16348);
+        try
+        {
+            // Store the current voice channel
+            SetBotCurrentVoiceChannel(voiceChannel);
 
-        var audioOutStream = ffmpeg.StandardOutput.BaseStream;
+            tasks.Add(audioOutStream.CopyToAsync(bufferedStream));
+            tasks.Add(bufferedStream.FlushAsync());
 
+            await Task.WhenAll(tasks);
 
-        // Store the current voice channel
-        SetBotCurrentVoiceChannel(voiceChannel);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error on ConnectToVoiceChannelAsync: {ex.Message}");
+        }
+        finally
+        {
+            if (songs.Count > 0)
+                await NextSongAsync();
+            else
+                await DestroyVoiceChannelAsync();
 
-        tasks.Add(audioOutStream.CopyToAsync(bufferedStream));
-        tasks.Add(bufferedStream.FlushAsync());
-
-        await Task.WhenAll(tasks);
-
-        if (songs.Count > 0)
-            await NextSongAsync();
-        else
-            await DestroyVoiceChannelAsync();
+            await discord.FlushAsync();
+            await bufferedStream.FlushAsync();
+        }
     }
 
     public async Task DestroyVoiceChannelAsync()
@@ -84,18 +94,31 @@ public class AudioService : IAudioService
         }
     }
 
-    private Process CreateStream(string audioUrl)
+    private static Process CreateStream(string audioUrl)
     {
         var ffmpeg = new ProcessStartInfo
         {
             FileName = "/usr/bin/ffmpeg",
-            Arguments = $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i {audioUrl} -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
+            Arguments = $"-reconnect 1 -reconnect_streamed 1 -v verbose -reconnect_delay_max 5 -i {audioUrl} -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
             RedirectStandardOutput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
+            RedirectStandardError = true,
         };
-        ffmpegProcess = Process.Start(ffmpeg)!;
-        return ffmpegProcess;
+        var process = Process.Start(ffmpeg)!;
+
+        // Capture error output
+        process.ErrorDataReceived += (sender, e) =>
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+            {
+                Console.WriteLine($"FFmpeg Log: {e.Data}");
+                // Or log to a file
+            }
+        };
+        process.BeginErrorReadLine();
+
+        return process;
     }
 
     public void TerminateStream()
