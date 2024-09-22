@@ -122,9 +122,8 @@ public class AudioService(YoutubeClient youtubeClient)
 
     private void TerminateStream()
     {
-        if (_ffmpegProcess.HasExited) return;
-        _ffmpegProcess.Kill();
-        _ffmpegProcess.Dispose();
+        _ffmpegProcess?.Kill();
+        _ffmpegProcess?.Dispose();
     }
 
 

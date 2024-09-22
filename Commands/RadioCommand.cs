@@ -64,7 +64,7 @@ public class RadioCommand(
         await ReplyAsync(embed: embed);
     }
 
-    [Command("stopdev")]
+    [Command("stop")]
     public async Task StopCommand()
     {
         await ReplyAsync("Stopping radio..");
@@ -73,7 +73,7 @@ public class RadioCommand(
 
     }
 
-    [Command("nextdev")]
+    [Command("next")]
     public async Task NextCommand()
     {
         if (audioService.GetSongs().Count == 1)
@@ -85,7 +85,7 @@ public class RadioCommand(
         }
     }
 
-    [Command("playlistdev")]
+    [Command("playlist")]
     public async Task QueueCommand()
     {
         var songs = audioService.GetSongs();
@@ -100,7 +100,7 @@ public class RadioCommand(
             await ReplyAsync("No songs in queue.");
         else
         {
-            await ReplyAsync("Queues: \n" + string.Join("\n", songTitlesList.Select((title, index) =>
+            await ReplyAsync("Queues: "+Environment.NewLine + string.Join(Environment.NewLine, songTitlesList.Select((title, index) =>
             {
                 var isPlayingNowMsg = index == 0 ? "(Playing now)" : "";
                 return $"{index + 1}. {title} {isPlayingNowMsg}";
