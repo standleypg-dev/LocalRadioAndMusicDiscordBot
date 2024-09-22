@@ -64,7 +64,7 @@ public class RadioCommand(
         await ReplyAsync(embed: embed);
     }
 
-    [Command("stop")]
+    [Command("stopdev")]
     public async Task StopCommand()
     {
         await ReplyAsync("Stopping radio..");
@@ -73,7 +73,7 @@ public class RadioCommand(
 
     }
 
-    [Command("next")]
+    [Command("nextdev")]
     public async Task NextCommand()
     {
         if (audioService.GetSongs().Count == 1)
@@ -85,7 +85,7 @@ public class RadioCommand(
         }
     }
 
-    [Command("playlist")]
+    [Command("playlistdev")]
     public async Task QueueCommand()
     {
         var songs = audioService.GetSongs();

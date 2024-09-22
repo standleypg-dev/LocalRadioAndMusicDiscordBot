@@ -8,14 +8,14 @@ using YoutubeExplode.Videos.Streams;
 
 namespace radio_discord_bot.Services.Implementations;
 
-public class AudioService(YoutubeClient youtubeClient, IVoiceChannel? currentVoiceChannel, Process ffmpegProcess)
+public class AudioService(YoutubeClient youtubeClient)
     : IAudioService
 {
-    private IVoiceChannel? _currentVoiceChannel = currentVoiceChannel;
+    private IVoiceChannel? _currentVoiceChannel;
     private bool _isPlaying;
     private bool _isRadioPlaying;
     private List<Song> _songs = [];
-    private Process _ffmpegProcess = ffmpegProcess;
+    private Process _ffmpegProcess;
 
     public async Task InitiateVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
     {

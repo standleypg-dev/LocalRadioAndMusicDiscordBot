@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace radio_discord_bot.Models;
 
-public abstract class Joke
+public class Joke
 {
     [JsonPropertyName("error")]
     public bool Error { get; set; }
