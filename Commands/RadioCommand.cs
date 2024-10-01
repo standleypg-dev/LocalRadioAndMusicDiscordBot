@@ -16,7 +16,7 @@ public class RadioCommand(
     IQuoteService quoteService)
     : ModuleBase<SocketCommandContext>
 {
-    [Command("playdev")]
+    [Command("play")]
     public async Task HelloCommand([Remainder] string command)
     {
         if (command.Equals("radio"))
@@ -64,7 +64,7 @@ public class RadioCommand(
         await ReplyAsync(embed: embed);
     }
 
-    [Command("stopdev")]
+    [Command("stop")]
     public async Task StopCommand()
     {
         await ReplyAsync("Stopping radio..");
@@ -73,7 +73,7 @@ public class RadioCommand(
 
     }
 
-    [Command("nextdev")]
+    [Command("next")]
     public async Task NextCommand()
     {
         if (audioService.GetSongs().Count == 1)
