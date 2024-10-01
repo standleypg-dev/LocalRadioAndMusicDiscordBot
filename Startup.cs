@@ -25,27 +25,25 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
     {
         await commands.AddModulesAsync(Assembly.GetEntryAssembly(), serviceProvider);
 
-        client.MessageReceived += (arg) =>
+        client.MessageReceived += MessageReceived;
+    }
+
+    private async Task MessageReceived(SocketMessage arg)
+    {
+        if (arg is not SocketUserMessage msg) return;
+        var context = new SocketCommandContext(client, msg);
+        var argPos = 0;
+
+        var isHelpDm = context.IsPrivate && msg.ToString().Equals("help");
+
+        if (msg.HasStringPrefix("/", ref argPos) || isHelpDm)
         {
-            _ = Task.Run(async () =>
+            var result = await commands.ExecuteAsync(context, isHelpDm ? 0 : argPos, serviceProvider);
+
+            if (!result.IsSuccess)
             {
-                if (arg is not SocketUserMessage msg) return;
-                var context = new SocketCommandContext(client, msg);
-                var argPos = 0;
-
-                var isHelpDm = context.IsPrivate && msg.ToString().Equals("help");
-
-                if (msg.HasStringPrefix("/", ref argPos) || isHelpDm)
-                {
-                    var result = await commands.ExecuteAsync(context, isHelpDm ? 0 : argPos, serviceProvider);
-
-                    if (!result.IsSuccess)
-                    {
-                        Console.WriteLine(result.ErrorReason);
-                    }
-                }
-            });
-            return Task.CompletedTask;
-        };
+                Console.WriteLine(result.ErrorReason);
+            }
+        }
     }
 }
