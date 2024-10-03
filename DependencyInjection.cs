@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using radio_discord_bot.Commands;
 using radio_discord_bot.Services.Implementations;
 using radio_discord_bot.Services.Interfaces;
+using radio_discord_bot.Store;
 using YoutubeExplode;
 
 namespace radio_discord_bot;
@@ -23,8 +24,9 @@ public static class DependencyInjection
         .AddSingleton<DiscordSocketClient>()
         .AddSingleton<CommandService>()
         .AddSingleton<Startup>()
-        .AddScoped<YoutubeClient>()
         .AddSingleton<RadioCommand>()
+        .AddSingleton<GlobalStore>()
+        .AddScoped<YoutubeClient>()
         .AddScoped<IAudioService, AudioService>()
         .AddSingleton<IJokeService, JokeService>()
         .AddSingleton<IQuoteService, QuoteService>()

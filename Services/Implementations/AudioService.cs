@@ -1,35 +1,41 @@
 using System.Diagnostics;
 using Discord;
 using Discord.Audio;
+using Discord.WebSocket;
 using radio_discord_bot.Models;
 using radio_discord_bot.Services.Interfaces;
+using radio_discord_bot.Store;
+using radio_discord_bot.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
 namespace radio_discord_bot.Services.Implementations;
 
-public class AudioService(YoutubeClient youtubeClient)
-    : IAudioService
+public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) : IAudioService
 {
     private IVoiceChannel? _currentVoiceChannel;
     private bool _isPlaying;
     private bool _isRadioPlaying;
-    private List<Song> _songs = [];
     private Process _ffmpegProcess;
-
+    
     public async Task InitiateVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
     {
         try
         {
             _isPlaying = true;
             _isRadioPlaying = !isYt;
-            dynamic outputUrl = isYt ? (await youtubeClient.Videos.Streams.GetManifestAsync(audioUrl)).GetAudioOnlyStreams().GetWithHighestBitrate().Url : audioUrl;
+            dynamic outputUrl = isYt
+                ? (await youtubeClient.Videos.Streams.GetManifestAsync(audioUrl)).GetAudioOnlyStreams()
+                .GetWithHighestBitrate().Url
+                : audioUrl;
 
             await ConnectToVoiceChannelAsync(voiceChannel, outputUrl);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error on InitiateVoiceChannelAsync: {ex.Message}");
+            await ReplyToChannel.FollowupAsync(globalStore.Get<SocketMessageComponent>()!,
+                $"Error on InitiateVoiceChannelAsync: {ex.Message}");
+        
             _isPlaying = false;
             _isRadioPlaying = false;
         }
@@ -38,13 +44,14 @@ public class AudioService(YoutubeClient youtubeClient)
     private async Task ConnectToVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl)
     {
         List<Task> tasks = new();
-        IAudioClient _audioClient = await voiceChannel.ConnectAsync();
-        //increase the buffer size to prevent the song ending early
+
+        IAudioClient audioClient = await voiceChannel.ConnectAsync();
+        //increase the buffer size to prevent the song ending early1
 
         using var ffmpeg = CreateStream(audioUrl);
-        using var audioOutStream = ffmpeg.StandardOutput.BaseStream;
-        using var discord = _audioClient.CreatePCMStream(AudioApplication.Music);
-        using var bufferedStream = new BufferedStream(discord, 16348);
+        await using var audioOutStream = ffmpeg.StandardOutput.BaseStream;
+        await using var discord = audioClient.CreatePCMStream(AudioApplication.Music);
+        await using var bufferedStream = new BufferedStream(discord, 16348);
         try
         {
             // Store the current voice channel
@@ -55,18 +62,18 @@ public class AudioService(YoutubeClient youtubeClient)
 
             await Task.WhenAll(tasks);
 
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error on ConnectToVoiceChannelAsync: {ex.Message}");
-        }
-        finally
-        {
-            if (_songs.Count > 0)
+            if (globalStore.Get<List<Song>>()?.Count > 0)
                 await NextSongAsync();
             else
                 await DestroyVoiceChannelAsync();
-
+        }
+        catch (Exception ex)
+        {
+            await ReplyToChannel.FollowupAsync(globalStore.Get<SocketMessageComponent>()!,
+                $"Error on ConnectToVoiceChannelAsync: {ex.Message}");
+        }
+        finally
+        {
             await discord.FlushAsync();
             await bufferedStream.FlushAsync();
         }
@@ -74,7 +81,6 @@ public class AudioService(YoutubeClient youtubeClient)
 
     public async Task DestroyVoiceChannelAsync()
     {
-
         try
         {
             if (_currentVoiceChannel != null)
@@ -89,7 +95,8 @@ public class AudioService(YoutubeClient youtubeClient)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"error on DestroyVoiceChannelAsync: {ex}");
+            await ReplyToChannel.FollowupAsync(globalStore.Get<SocketMessageComponent>()!,
+                $"Error on DestroyVoiceChannelAsync: {ex.Message}");
         }
     }
 
@@ -98,7 +105,8 @@ public class AudioService(YoutubeClient youtubeClient)
         var ffmpeg = new ProcessStartInfo
         {
             FileName = "/usr/bin/ffmpeg",
-            Arguments = $"-reconnect 1 -reconnect_streamed 1 -v verbose -reconnect_delay_max 5 -i {audioUrl} -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
+            Arguments =
+                $"-reconnect 1 -reconnect_streamed 1 -v verbose -reconnect_delay_max 5 -i {audioUrl} -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
             RedirectStandardOutput = true,
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -132,10 +140,11 @@ public class AudioService(YoutubeClient youtubeClient)
         RemoveFirstSong();
         // Terminate the previous stream before playing the next song
         TerminateStream();
-        if (_songs.Count > 0)
+        if (globalStore.Get<List<Song>>()?.Count > 0)
         {
-            var song = _songs[0];
-            await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+            var song = globalStore.Get<List<Song>>()?[0];
+            if (song != null)
+                await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
         }
         else
         {
@@ -146,29 +155,39 @@ public class AudioService(YoutubeClient youtubeClient)
     public async Task EmptyPlaylist()
     {
         await Task.CompletedTask;
-        _songs.Clear();
+        globalStore.Get<List<Song>>()?.Clear();
     }
 
-    public void AddSong(Song song)
+    public async Task AddSong(Song song)
     {
-        _songs.Add(song);
+        if (globalStore.Get<List<Song>>() is null)
+            globalStore.Set(new List<Song>());
+        
+        globalStore.Get<List<Song>>()?.Add(song);
+        
+        var component = globalStore.Get<SocketMessageComponent>()!;
+        var videoTitle = await GetYoutubeTitle(component.Data.CustomId);
+        
+        await ReplyToChannel.FollowupAsync(component,
+            $"Added {videoTitle} to queue. Total songs in a queue is {GetSongs().Count}");
     }
 
     public List<Song> GetSongs()
     {
-        return _songs;
+        return globalStore.Get<List<Song>>() ?? new List<Song>();
     }
 
     public void RemoveFirstSong()
     {
-        _songs.RemoveAt(0);
+        globalStore.Get<List<Song>>()?.RemoveAt(0);
     }
 
     public async Task OnPlaylistChanged()
     {
-        var song = _songs[0];
-        if (_songs.Count > 0)
+        var songs = globalStore.Get<List<Song>>();
+        if (songs is not null)
         {
+            var song = songs[0];
             if (!_isPlaying || _isRadioPlaying)
                 await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
         }

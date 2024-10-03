@@ -30,20 +30,24 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
 
     private async Task MessageReceived(SocketMessage arg)
     {
-        if (arg is not SocketUserMessage msg) return;
-        var context = new SocketCommandContext(client, msg);
-        var argPos = 0;
-
-        var isHelpDm = context.IsPrivate && msg.ToString().Equals("help");
-
-        if (msg.HasStringPrefix("/", ref argPos) || isHelpDm)
+        await Task.CompletedTask;
+        _ = Task.Run(async () =>
         {
-            var result = await commands.ExecuteAsync(context, isHelpDm ? 0 : argPos, serviceProvider);
+            if (arg is not SocketUserMessage msg) return;
+            var context = new SocketCommandContext(client, msg);
+            var argPos = 0;
 
-            if (!result.IsSuccess)
+            var isHelpDm = context.IsPrivate && msg.ToString().Equals("help");
+
+            if (msg.HasStringPrefix("/", ref argPos) || isHelpDm)
             {
-                Console.WriteLine(result.ErrorReason);
+                var result = await commands.ExecuteAsync(context, isHelpDm ? 0 : argPos, serviceProvider);
+
+                if (!result.IsSuccess)
+                {
+                    Console.WriteLine(result.ErrorReason);
+                }
             }
-        }
+        });
     }
 }
