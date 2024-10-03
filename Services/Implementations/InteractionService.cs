@@ -1,60 +1,55 @@
+using Discord;
 using Discord.WebSocket;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
 using radio_discord_bot.Services.Interfaces;
+using radio_discord_bot.Store;
+using radio_discord_bot.Utils;
 
 namespace radio_discord_bot.Services.Implementations;
 
-public class InteractionService(IAudioService audioService, DiscordSocketClient client) : IInteractionService
+public class InteractionService(IAudioService audioService, DiscordSocketClient client, GlobalStore globalStore)
+    : IInteractionService
 {
-    private readonly Dictionary<ulong, HashSet<ulong>> _usersInVoiceChannels = new();
+    private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
 
     public async Task OnInteractionCreated(SocketInteraction interaction)
     {
         await Task.CompletedTask;
         _ = Task.Run(async () =>
         {
-            if (interaction is SocketMessageComponent { Data: { } componentData } component)
+            if (interaction is not SocketMessageComponent { Data: { } } component)
             {
-                await component.DeferAsync();
-                var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
-                if (userVoiceChannel != null)
+                return;
+            }
+
+            await component.DeferAsync();
+            _globalStore.Set(component);
+            var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
+            if (userVoiceChannel is null)
+            {
+                await ReplyToChannel.FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
+                return;
+            }
+
+            var componentData = _globalStore.Get<SocketMessageComponent>()!.Data;
+            var radio = Configuration.GetConfiguration<List<Radio>>("Radios")
+                .Find(x => x.Name == componentData.CustomId);
+            if (componentData.CustomId.Contains("FM"))
+            {
+                if (radio != null)
                 {
-                    var radio = Configuration.GetConfiguration<List<Radio>>("Radios").Find(x => x.Name == componentData.CustomId);
-                    if (componentData.CustomId.Contains("FM"))
-                    {
-                        if (radio != null)
-                        {
-                            await FollowupAsync(component, $"Playing {radio.Name} radio station.");
-                            await audioService.InitiateVoiceChannelAsync(
-                                (interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
-                        }
-                    }
-                    else
-                    {
-                        var videoTitle = await audioService.GetYoutubeTitle(componentData.CustomId);
-                        await FollowupAsync(component, $"Added {videoTitle} to queue. Total songs in a queue is {audioService.GetSongs().Count}");
-                        audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
-                        await audioService.OnPlaylistChanged();
-                    }
-                }
-                else
-                {
-                    await FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
+                    await ReplyToChannel.FollowupAsync(component, $"Playing {radio.Name} radio station.");
+                    await audioService.InitiateVoiceChannelAsync(
+                        (interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
                 }
             }
+            else
+            {
+                await audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
+                await audioService.OnPlaylistChanged();
+            }
         });
-    }
-
-    public async Task FollowupAsync(SocketMessageComponent component, string msg)
-    {
-        await component.FollowupAsync(
-            text: msg, // Text content of the follow-up message
-            isTTS: false,           // Whether the message is text-to-speech
-                                    // embeds: new[] { embed }, // Embed(s) to include in the message
-            allowedMentions: null,  // Allowed mentions (e.g., roles, users)
-            options: null  // Message component options (e.g., buttons)
-        );
     }
 
     public async Task OnUserVoiceStateUpdated(SocketUser user, SocketVoiceState oldState, SocketVoiceState newState)
@@ -66,36 +61,44 @@ public class InteractionService(IAudioService audioService, DiscordSocketClient 
 
             var bot = client.CurrentUser;
 
-            if (bot != null)
+            if (bot is null)
             {
-                var botVoiceChannel = audioService.GetBotCurrentVoiceChannel();
-                if (botVoiceChannel != null)
-                {
-                    var guild = botVoiceChannel.Guild;
+                return;
+            }
 
-                    // Update the user presence in the dictionary
-                    if (!_usersInVoiceChannels.ContainsKey(guild.Id))
-                    {
-                        _usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
-                    }
+            var botVoiceChannel = audioService.GetBotCurrentVoiceChannel();
+            if (botVoiceChannel is null)
+            {
+                return;
+            }
 
-                    if (oldState.VoiceChannel != null)
-                    {
-                        _usersInVoiceChannels[guild.Id].Remove(user.Id);
-                    }
+            var guild = botVoiceChannel.Guild;
 
-                    if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
-                    {
-                        _usersInVoiceChannels[guild.Id].Add(user.Id);
-                    }
+            // Update the user presence in the dictionary
+            _globalStore.Set(new Dictionary<ulong, HashSet<ulong>>());
+            var usersInVoiceChannels = _globalStore.Get<Dictionary<ulong, HashSet<ulong>>>() ??
+                                       new Dictionary<ulong, HashSet<ulong>>();
 
-                    var membersInBotChannel = _usersInVoiceChannels[guild.Id];
+            if (!usersInVoiceChannels.ContainsKey(guild.Id))
+            {
+                usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
+            }
 
-                    if (membersInBotChannel.Count == 0)
-                    {
-                        await audioService.DestroyVoiceChannelAsync();
-                    }
-                }
+            if (oldState.VoiceChannel != null)
+            {
+                usersInVoiceChannels[guild.Id].Remove(user.Id);
+            }
+
+            if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
+            {
+                usersInVoiceChannels[guild.Id].Add(user.Id);
+            }
+
+            var membersInBotChannel = usersInVoiceChannels[guild.Id];
+
+            if (membersInBotChannel.Count == 0)
+            {
+                await audioService.DestroyVoiceChannelAsync();
             }
         });
     }
