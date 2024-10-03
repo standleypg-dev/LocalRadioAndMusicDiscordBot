@@ -9,7 +9,7 @@ public interface IAudioService
 
     Task DestroyVoiceChannelAsync();
     Task NextSongAsync();
-    void AddSong(Song song);
+    Task AddSong(Song song);
     List<Song> GetSongs();
     void RemoveFirstSong();
     Task OnPlaylistChanged();
