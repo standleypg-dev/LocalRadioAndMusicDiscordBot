@@ -3,7 +3,7 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using radio_discord_bot.Commands;
-using radio_discord_bot.Services;
+using radio_discord_bot.Services.Implementations;
 using radio_discord_bot.Services.Interfaces;
 using radio_discord_bot.Store;
 using YoutubeExplode;
@@ -27,7 +27,7 @@ public static class DependencyInjection
         .AddSingleton<RadioCommand>()
         .AddSingleton<GlobalStore>()
         .AddScoped<YoutubeClient>()
-        .AddTransient<IAudioService, AudioService>()
+        .AddScoped<IAudioService, AudioService>()
         .AddSingleton<IJokeService, JokeService>()
         .AddSingleton<IQuoteService, QuoteService>()
         .AddSingleton<IHttpRequestService, HttpRequestService>()
