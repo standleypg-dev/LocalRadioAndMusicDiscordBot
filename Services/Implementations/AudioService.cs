@@ -9,18 +9,15 @@ using radio_discord_bot.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
-namespace radio_discord_bot.Services;
+namespace radio_discord_bot.Services.Implementations;
 
 public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) : IAudioService
 {
-    private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
     private IVoiceChannel? _currentVoiceChannel;
     private bool _isPlaying;
     private bool _isRadioPlaying;
-    private Process? _ffmpegProcess;
-    private IAudioClient? _audioClient;
-    private CancellationTokenSource? _cancellationTokenSource;
-
+    private Process _ffmpegProcess;
+    
     public async Task InitiateVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
     {
         try
@@ -34,11 +31,11 @@ public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) 
 
             await ConnectToVoiceChannelAsync(voiceChannel, outputUrl);
         }
-        catch (OperationCanceledException ex)
+        catch (Exception ex)
         {
-            await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
+            await ReplyToChannel.FollowupAsync(globalStore.Get<SocketMessageComponent>()!,
                 $"Error on InitiateVoiceChannelAsync: {ex.Message}");
-
+        
             _isPlaying = false;
             _isRadioPlaying = false;
         }
@@ -46,49 +43,39 @@ public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) 
 
     private async Task ConnectToVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl)
     {
-        if (_cancellationTokenSource is not null && !_cancellationTokenSource.IsCancellationRequested)
-        {
-            await _cancellationTokenSource.CancelAsync();
-            _cancellationTokenSource = new CancellationTokenSource();
-        }
-
-        var cancellationToken = _cancellationTokenSource.Token;
-
         List<Task> tasks = new();
-        if (voiceChannel is not null)
-            _audioClient = await voiceChannel.ConnectAsync();
 
-        if (_audioClient is not null)
+        IAudioClient audioClient = await voiceChannel.ConnectAsync();
+        //increase the buffer size to prevent the song ending early1
+
+        using var ffmpeg = CreateStream(audioUrl);
+        await using var audioOutStream = ffmpeg.StandardOutput.BaseStream;
+        await using var discord = audioClient.CreatePCMStream(AudioApplication.Music);
+        await using var bufferedStream = new BufferedStream(discord, 16348);
+        try
         {
-            CreateStream(audioUrl);
-            await using var audioOutStream = _ffmpegProcess!.StandardOutput.BaseStream;
-            await using var discord = _audioClient.CreatePCMStream(AudioApplication.Music);
-            await using var bufferedStream = new BufferedStream(discord, 2048);
-            try
-            {
-                // Store the current voice channel
-                SetBotCurrentVoiceChannel(voiceChannel);
+            // Store the current voice channel
+            SetBotCurrentVoiceChannel(voiceChannel);
 
-                tasks.Add(audioOutStream.CopyToAsync(bufferedStream, cancellationToken));
-                tasks.Add(bufferedStream.FlushAsync(cancellationToken));
+            tasks.Add(audioOutStream.CopyToAsync(bufferedStream));
+            tasks.Add(bufferedStream.FlushAsync());
 
-                await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks);
 
-                if (_globalStore.Get<List<Song>>()?.Count > 0)
-                    await NextSongAsync();
-                else
-                    await DestroyVoiceChannelAsync();
-            }
-            catch (Exception ex)
-            {
-                await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                    $"Error on ConnectToVoiceChannelAsync: {ex.Message}");
-            }
-            finally
-            {
-                await discord.FlushAsync(cancellationToken);
-                await bufferedStream.FlushAsync(cancellationToken);
-            }
+            if (globalStore.Get<List<Song>>()?.Count > 0)
+                await NextSongAsync();
+            else
+                await DestroyVoiceChannelAsync();
+        }
+        catch (Exception ex)
+        {
+            await ReplyToChannel.FollowupAsync(globalStore.Get<SocketMessageComponent>()!,
+                $"Error on ConnectToVoiceChannelAsync: {ex.Message}");
+        }
+        finally
+        {
+            await discord.FlushAsync();
+            await bufferedStream.FlushAsync();
         }
     }
 
@@ -105,16 +92,15 @@ public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) 
             _currentVoiceChannel = null;
             _isPlaying = false;
             _isRadioPlaying = false;
-            _audioClient = null;
         }
         catch (Exception ex)
         {
-            await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
+            await ReplyToChannel.FollowupAsync(globalStore.Get<SocketMessageComponent>()!,
                 $"Error on DestroyVoiceChannelAsync: {ex.Message}");
         }
     }
 
-    private void CreateStream(string audioUrl)
+    private static Process CreateStream(string audioUrl)
     {
         var ffmpeg = new ProcessStartInfo
         {
@@ -126,10 +112,10 @@ public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) 
             CreateNoWindow = true,
             RedirectStandardError = true,
         };
-        _ffmpegProcess = Process.Start(ffmpeg)!;
+        var process = Process.Start(ffmpeg)!;
 
         // Capture error output
-        _ffmpegProcess.ErrorDataReceived += (sender, e) =>
+        process.ErrorDataReceived += (sender, e) =>
         {
             if (!string.IsNullOrEmpty(e.Data))
             {
@@ -137,14 +123,15 @@ public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) 
                 // Or log to a file
             }
         };
-        _ffmpegProcess.BeginErrorReadLine();
+        process.BeginErrorReadLine();
+
+        return process;
     }
 
     private void TerminateStream()
     {
         _ffmpegProcess?.Kill();
         _ffmpegProcess?.Dispose();
-        _ffmpegProcess = null;
     }
 
 
@@ -153,14 +140,9 @@ public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) 
         RemoveFirstSong();
         // Terminate the previous stream before playing the next song
         TerminateStream();
-        if (_cancellationTokenSource is not null && !_cancellationTokenSource.IsCancellationRequested)
+        if (globalStore.Get<List<Song>>()?.Count > 0)
         {
-            await _cancellationTokenSource.CancelAsync();
-        }
-
-        if (_globalStore.Get<List<Song>>()?.Count > 0)
-        {
-            var song = _globalStore.Get<List<Song>>()?[0];
+            var song = globalStore.Get<List<Song>>()?[0];
             if (song != null)
                 await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
         }
@@ -173,36 +155,36 @@ public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) 
     public async Task EmptyPlaylist()
     {
         await Task.CompletedTask;
-        _globalStore.Get<List<Song>>()?.Clear();
+        globalStore.Get<List<Song>>()?.Clear();
     }
 
     public async Task AddSong(Song song)
     {
-        if (_globalStore.Get<List<Song>>() is null)
-            _globalStore.Set(new List<Song>());
-
-        _globalStore.Get<List<Song>>()?.Add(song);
-
-        var component = _globalStore.Get<SocketMessageComponent>()!;
+        if (globalStore.Get<List<Song>>() is null)
+            globalStore.Set(new List<Song>());
+        
+        globalStore.Get<List<Song>>()?.Add(song);
+        
+        var component = globalStore.Get<SocketMessageComponent>()!;
         var videoTitle = await GetYoutubeTitle(component.Data.CustomId);
-
+        
         await ReplyToChannel.FollowupAsync(component,
             $"Added {videoTitle} to queue. Total songs in a queue is {GetSongs().Count}");
     }
 
     public List<Song> GetSongs()
     {
-        return _globalStore.Get<List<Song>>() ?? new List<Song>();
+        return globalStore.Get<List<Song>>() ?? new List<Song>();
     }
 
     public void RemoveFirstSong()
     {
-        _globalStore.Get<List<Song>>()?.RemoveAt(0);
+        globalStore.Get<List<Song>>()?.RemoveAt(0);
     }
 
     public async Task OnPlaylistChanged()
     {
-        var songs = _globalStore.Get<List<Song>>();
+        var songs = globalStore.Get<List<Song>>();
         if (songs is not null)
         {
             var song = songs[0];

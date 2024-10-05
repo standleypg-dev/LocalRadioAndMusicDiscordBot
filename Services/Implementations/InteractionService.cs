@@ -1,3 +1,4 @@
+using Discord;
 using Discord.WebSocket;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
@@ -5,7 +6,7 @@ using radio_discord_bot.Services.Interfaces;
 using radio_discord_bot.Store;
 using radio_discord_bot.Utils;
 
-namespace radio_discord_bot.Services;
+namespace radio_discord_bot.Services.Implementations;
 
 public class InteractionService(IAudioService audioService, DiscordSocketClient client, GlobalStore globalStore)
     : IInteractionService
