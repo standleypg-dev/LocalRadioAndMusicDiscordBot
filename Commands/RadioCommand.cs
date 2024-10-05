@@ -1,5 +1,6 @@
 using Discord;
 using Discord.Commands;
+using Newtonsoft.Json.Serialization;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
 using radio_discord_bot.Services.Interfaces;
@@ -16,22 +17,29 @@ public class RadioCommand(
     IQuoteService quoteService)
     : ModuleBase<SocketCommandContext>
 {
-    [Command("play")]
+    private const bool IsProd = false;
+
+    [Command(IsProd ? "play" : "playdev")]
     public async Task HelloCommand([Remainder] string command)
     {
         if (command.Equals("radio"))
         {
-            MessageComponentGenerator.GenerateComponents(Configuration.GetConfiguration<List<Radio>>("Radios"), colInRow: 2);
+            MessageComponentGenerator.GenerateComponents(Configuration.GetConfiguration<List<Radio>>("Radios"),
+                colInRow: 2);
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your favorite radio station:")
                 .WithFooter("Powered by RMT & Astro")
                 .Build();
 
-            await ReplyAsync(embed: embed, components: MessageComponentGenerator.GenerateComponents(Configuration.GetConfiguration<List<Radio>>("Radios"), colInRow: 3));
+            await ReplyAsync(embed: embed,
+                components: MessageComponentGenerator.GenerateComponents(
+                    Configuration.GetConfiguration<List<Radio>>("Radios"), colInRow: 3));
         }
         else if (Uri.TryCreate(command, UriKind.Absolute, out _))
         {
-            var videos = await youtubeClient.Search.GetVideosAsync(command).CollectAsync(5); // Adjust the number of results we want
+            var videos =
+                await youtubeClient.Search.GetVideosAsync(command)
+                    .CollectAsync(5); // Adjust the number of results we want
 
             var embed = new EmbedBuilder()
                 .WithTitle("Click to play or to add to the queue:")
@@ -41,7 +49,9 @@ public class RadioCommand(
         }
         else
         {
-            var videos = await youtubeClient.Search.GetVideosAsync(command).CollectAsync(5); // Adjust the number of results we want
+            var videos =
+                await youtubeClient.Search.GetVideosAsync(command)
+                    .CollectAsync(5); // Adjust the number of results we want
 
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your song")
@@ -49,10 +59,9 @@ public class RadioCommand(
 
             await ReplyAsync(embed: embed, components: MessageComponentGenerator.GenerateComponents(videos.ToList()));
         }
-
     }
 
-    [Command("help")]
+    [Command(IsProd ? "help" : "helpdev")]
     public async Task HelpCommand()
     {
         var helpMessage = Configuration.GetConfiguration<HelpMessage>("HelpMessage");
@@ -64,16 +73,15 @@ public class RadioCommand(
         await ReplyAsync(embed: embed);
     }
 
-    [Command("stop")]
+    [Command(IsProd ? "stop" : "stopdev")]
     public async Task StopCommand()
     {
         await ReplyAsync("Stopping radio..");
         await audioService.DestroyVoiceChannelAsync();
         await audioService.EmptyPlaylist();
-
     }
 
-    [Command("next")]
+    [Command(IsProd ? "next" : "nextdev")]
     public async Task NextCommand()
     {
         if (audioService.GetSongs().Count == 1)
@@ -85,7 +93,7 @@ public class RadioCommand(
         }
     }
 
-    [Command("playlist")]
+    [Command(IsProd ? "playlist" : "playlistdev")]
     public async Task QueueCommand()
     {
         var songs = audioService.GetSongs();
@@ -100,11 +108,12 @@ public class RadioCommand(
             await ReplyAsync("No songs in queue.");
         else
         {
-            await ReplyAsync("Queues: " + Environment.NewLine + string.Join(Environment.NewLine, songTitlesList.Select((title, index) =>
-            {
-                var isPlayingNowMsg = index == 0 ? "(Playing now)" : "";
-                return $"{index + 1}. {title} {isPlayingNowMsg}";
-            })));
+            await ReplyAsync("Queues: " + Environment.NewLine + string.Join(Environment.NewLine, songTitlesList.Select(
+                (title, index) =>
+                {
+                    var isPlayingNowMsg = index == 0 ? "(Playing now)" : "";
+                    return $"{index + 1}. {title} {isPlayingNowMsg}";
+                })));
         }
     }
 
@@ -140,7 +149,4 @@ public class RadioCommand(
     //     //     var response = await gpt.GetResponse(command);
     //     await ReplyAsync("Not implemented yet.");
     // }
-
-
 }
-
