@@ -1,7 +1,7 @@
 using System.Text.Json;
 using radio_discord_bot.Services.Interfaces;
 
-namespace radio_discord_bot.Services.Implementations;
+namespace radio_discord_bot.Services;
 
 public class HttpRequestService : IHttpRequestService
 {
