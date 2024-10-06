@@ -15,14 +15,16 @@ public class GlobalStore
 
     /// <summary>
     /// Set the value of the item in the store of type <typeparamref name="T"/>
+    /// If the item is already set, it will be overwritten
+    /// Use this only for the first time setting the value
     /// </summary>
     /// <param name="item"></param>
     /// <typeparam name="T"></typeparam>
     /// <exception cref="ArgumentNullException"></exception>
-    public void Set<T>(T item)
+    public void Set<T>(T? item)
     {
-        if (item is null)
-            throw new ArgumentNullException(nameof(item));
+        // if (item is null)
+        //     throw new ArgumentNullException(nameof(item));
 
         EnterWriteLock();
         try

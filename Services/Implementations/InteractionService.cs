@@ -8,7 +8,7 @@ using radio_discord_bot.Utils;
 
 namespace radio_discord_bot.Services.Implementations;
 
-public class InteractionService(IAudioService audioService, DiscordSocketClient client, GlobalStore globalStore)
+public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketClient client, GlobalStore globalStore, IQueueService queueService)
     : IInteractionService
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
@@ -40,14 +40,14 @@ public class InteractionService(IAudioService audioService, DiscordSocketClient 
                 if (radio != null)
                 {
                     await ReplyToChannel.FollowupAsync(component, $"Playing {radio.Name} radio station.");
-                    await audioService.InitiateVoiceChannelAsync(
+                    await audioPlayer.InitiateVoiceChannelAsync(
                         (interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
                 }
             }
             else
             {
-                await audioService.AddSong(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
-                await audioService.OnPlaylistChanged();
+                await queueService.AddSongAsync(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
+                await audioPlayer.OnPlaylistChanged();
             }
         });
     }
@@ -66,7 +66,7 @@ public class InteractionService(IAudioService audioService, DiscordSocketClient 
                 return;
             }
 
-            var botVoiceChannel = audioService.GetBotCurrentVoiceChannel();
+            var botVoiceChannel = audioPlayer.GetBotCurrentVoiceChannel();
             if (botVoiceChannel is null)
             {
                 return;
@@ -98,7 +98,7 @@ public class InteractionService(IAudioService audioService, DiscordSocketClient 
 
             if (membersInBotChannel.Count == 0)
             {
-                await audioService.DestroyVoiceChannelAsync();
+                await audioPlayer.DestroyVoiceChannelAsync();
             }
         });
     }
