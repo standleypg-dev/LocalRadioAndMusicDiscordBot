@@ -1,10 +1,11 @@
 using System.Reflection;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 
 namespace radio_discord_bot;
 
-public class Startup(DiscordSocketClient client, CommandService commands, IServiceProvider serviceProvider)
+public class Startup(DiscordSocketClient client, CommandService commands, IServiceProvider serviceProvider, ILogger<Startup> logger)
 {
     public async Task SetupLoggingAndReadyEvents()
     {
@@ -12,12 +13,13 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
         client.Log += async log =>
         {
             await Task.CompletedTask;
-            Console.WriteLine(log);
+            logger.LogInformation(log.ToString());
+            // Console.WriteLine(log);
         };
         client.Ready += async () =>
         {
             await Task.CompletedTask;
-            Console.WriteLine($"Logged in as {client.CurrentUser.Username}");
+            logger.LogInformation($"Logged in as {client.CurrentUser.Username}");
         };
     }
 
@@ -45,7 +47,7 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
 
                 if (!result.IsSuccess)
                 {
-                    Console.WriteLine(result.ErrorReason);
+                    logger.LogError($"OnMesssageReceived: {result.ErrorReason}");
                 }
             }
         });

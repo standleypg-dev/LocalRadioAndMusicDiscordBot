@@ -11,6 +11,7 @@ using YoutubeExplode.Videos.Streams;
 
 namespace radio_discord_bot.Services.Implementations;
 
+[Obsolete("This class is not used anymore. Use AudioPlayerService instead.")]
 public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) : IAudioService
 {
     private IVoiceChannel? _currentVoiceChannel;
