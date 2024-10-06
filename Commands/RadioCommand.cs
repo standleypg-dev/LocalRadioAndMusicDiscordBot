@@ -11,13 +11,15 @@ using YoutubeExplode.Common;
 namespace radio_discord_bot.Commands;
 
 public class RadioCommand(
-    IAudioService audioService,
+    IAudioPlayerService audioPlayer,
     YoutubeClient youtubeClient,
     IJokeService jokeService,
-    IQuoteService quoteService)
+    IQuoteService quoteService,
+    IQueueService queueService,
+    IYoutubeService youtubeService)
     : ModuleBase<SocketCommandContext>
 {
-    private const bool IsProd = false;
+    private const bool IsProd = true;
 
     [Command(IsProd ? "play" : "playdev")]
     public async Task HelloCommand([Remainder] string command)
@@ -77,32 +79,27 @@ public class RadioCommand(
     public async Task StopCommand()
     {
         await ReplyAsync("Stopping radio..");
-        await audioService.DestroyVoiceChannelAsync();
-        await audioService.EmptyPlaylist();
+        await audioPlayer.DestroyVoiceChannelAsync();
+        await queueService.ClearQueueAsync();
     }
 
     [Command(IsProd ? "next" : "nextdev")]
     public async Task NextCommand()
     {
-        if (audioService.GetSongs().Count == 1)
+        if ((await queueService.GetQueueAsync()).Count == 1)
             await ReplyAsync("No songs in queue. Nothing to next.");
         else
         {
             await ReplyAsync("Playing next song..");
-            await audioService.NextSongAsync();
+            await audioPlayer.NextSongAsync();
         }
     }
 
     [Command(IsProd ? "playlist" : "playlistdev")]
     public async Task QueueCommand()
     {
-        var songs = audioService.GetSongs();
-        var songTitlesList = new List<string>();
-        foreach (var song in songs)
-        {
-            var title = await audioService.GetYoutubeTitle(song.Url);
-            songTitlesList.Add(title);
-        }
+        var songs = await queueService.GetQueueAsync();
+        var songTitlesList = await queueService.GetQueueAsync();
 
         if (songTitlesList.Count == 0)
             await ReplyAsync("No songs in queue.");
