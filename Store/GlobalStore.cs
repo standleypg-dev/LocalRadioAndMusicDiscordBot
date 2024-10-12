@@ -21,10 +21,10 @@ public class GlobalStore
     /// <param name="item"></param>
     /// <typeparam name="T"></typeparam>
     /// <exception cref="ArgumentNullException"></exception>
-    public void Set<T>(T item)
+    public void Set<T>(T? item)
     {
-        if (item is null)
-            throw new ArgumentNullException(nameof(item));
+        // if (item is null)
+        //     throw new ArgumentNullException(nameof(item));
 
         EnterWriteLock();
         try
