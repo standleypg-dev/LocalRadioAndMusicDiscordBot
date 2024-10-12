@@ -9,6 +9,7 @@ pool:
     - agent.name -equals raspberrypi
 
 variables:
+  - group: "discord-bot"
   - name: isFirstDeployment
     value: "false" # In azure pipeline, boolean variables are not supported. So, we use 'true' and 'false' as strings
   - name: dotnetVersion
