@@ -87,6 +87,7 @@ stages:
 
           - script: |
               cd /home/stand/applications/discord-bot
+              jq --arg isProd "$(IsProduction)" '.IsProduction = $isProd' appsettings.json > temp.json && mv temp.json appsettings.json
               jq -s '.[0] + .[1]' appsettings.json ../discord-bot-token.json > temp.json && mv temp.json appsettings.json
             displayName: "Appending token to the appsetting.json file"
 
