@@ -88,6 +88,8 @@ stages:
           - script: |
               cd /home/stand/applications/discord-bot
               jq --arg token "$(BotToken)" '.BotToken = $token' appsettings.json > temp.json && mv temp.json appsettings.json
+              jq --arg clientId "$(ClientId)" '.SpotifySettings.ClientId = $clientId' appsettings.json > temp.json && mv temp.json appsettings.json
+              jq --arg clientSecret "$(ClientSecret)" '.SpotifySettings.ClientSecret = $clientSecret' appsettings.json > temp.json && mv temp.json appsettings.json
 #              no longer in use since we're getting the token from the pipeline now
 #              jq -s '.[0] + .[1]' appsettings.json ../discord-bot-token.json > temp.json && mv temp.json appsettings.json
             displayName: "Appending token to the appsetting.json file"

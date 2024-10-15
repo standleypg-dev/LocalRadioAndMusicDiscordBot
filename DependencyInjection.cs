@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using radio_discord_bot.Commands;
 using radio_discord_bot.Services;
-using radio_discord_bot.Services.Implementations;
 using radio_discord_bot.Services.Interfaces;
 using radio_discord_bot.Store;
 using YoutubeExplode;
@@ -39,6 +38,7 @@ public static class DependencyInjection
             .AddScoped<IYoutubeService, YoutubeService>()
             .AddSingleton<IFfmpegProcessService, FfmpegProcessService>()
             .AddSingleton<IAudioPlayerService, AudioPlayerService>()
+            .AddTransient<ISpotifyService, SpotifyService>()
             .AddTransient<IAudioService, AudioService>();
 
         return collection.BuildServiceProvider();
