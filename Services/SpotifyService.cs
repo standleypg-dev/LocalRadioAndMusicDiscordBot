@@ -48,7 +48,7 @@ public class SpotifyService(IHttpRequestService httpRequestService, GlobalStore 
         var response =
             await httpRequestService.GetAsync<Recommendation>(url, data, _globalStore.Get<Auth>()!.AccessToken);
         
-        _globalStore.Set<BaseSearch[]>(response.Tracks);
+        _globalStore.Set<Items[]>(response.Tracks);
         
         var embed = new EmbedBuilder()
             .WithTitle("You might like these as well:")

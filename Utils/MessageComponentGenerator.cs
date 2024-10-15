@@ -28,9 +28,9 @@ public static class MessageComponentGenerator
                 button.WithLabel($"{idx}. {(ytVideo.Title.Length > 70 ? ytVideo.Title.Substring(0, 70) : ytVideo.Title)}")
                       .WithCustomId($"{ytVideo.Url}");
             }
-            else if(item is BaseSearch baseSearch)
+            else if(item is Items baseSearch)
             {
-                button.WithLabel($"{idx}. {baseSearch.Name}")
+                button.WithLabel($"{idx}. {baseSearch.Name} - {baseSearch.Artists.FirstOrDefault()?.Name}")
                       .WithCustomId($"{baseSearch.Id}");
             }
 
