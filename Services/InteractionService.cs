@@ -6,7 +6,7 @@ using radio_discord_bot.Services.Interfaces;
 using radio_discord_bot.Store;
 using radio_discord_bot.Utils;
 
-namespace radio_discord_bot.Services.Implementations;
+namespace radio_discord_bot.Services;
 
 public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketClient client, GlobalStore globalStore, IQueueService queueService)
     : IInteractionService

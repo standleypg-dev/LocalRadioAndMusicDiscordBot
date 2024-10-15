@@ -9,7 +9,7 @@ using radio_discord_bot.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
-namespace radio_discord_bot.Services.Implementations;
+namespace radio_discord_bot.Services;
 
 [Obsolete("This class is not used anymore. Use AudioPlayerService instead.")]
 public class AudioService(YoutubeClient youtubeClient, GlobalStore globalStore) : IAudioService

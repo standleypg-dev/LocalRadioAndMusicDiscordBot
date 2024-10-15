@@ -2,7 +2,7 @@ using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
 using radio_discord_bot.Services.Interfaces;
 
-namespace radio_discord_bot.Services.Implementations;
+namespace radio_discord_bot.Services;
 
     public class JokeService : IJokeService
     {

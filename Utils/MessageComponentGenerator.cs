@@ -1,5 +1,6 @@
 using Discord;
 using radio_discord_bot.Models;
+using radio_discord_bot.Models.Spotify;
 using YoutubeExplode.Search;
 
 namespace radio_discord_bot.Utils;
@@ -26,6 +27,11 @@ public static class MessageComponentGenerator
             {
                 button.WithLabel($"{idx}. {(ytVideo.Title.Length > 70 ? ytVideo.Title.Substring(0, 70) : ytVideo.Title)}")
                       .WithCustomId($"{ytVideo.Url}");
+            }
+            else if(item is BaseSearch baseSearch)
+            {
+                button.WithLabel($"{idx}. {baseSearch.Name}")
+                      .WithCustomId($"{baseSearch.Id}");
             }
 
             currentRow.AddComponent(button.Build());

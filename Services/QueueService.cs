@@ -1,19 +1,46 @@
 using Discord.WebSocket;
 using radio_discord_bot.Models;
+using radio_discord_bot.Models.Spotify;
 using radio_discord_bot.Services.Interfaces;
 using radio_discord_bot.Store;
 using radio_discord_bot.Utils;
+using YoutubeExplode;
+using YoutubeExplode.Common;
 
 namespace radio_discord_bot.Services;
 
-public class QueueService(GlobalStore globalStore, IYoutubeService youtubeService) : IQueueService
+public delegate void OnSongAdded(string title);
+
+public class QueueService(
+    GlobalStore globalStore,
+    IYoutubeService youtubeService,
+    YoutubeClient youtubeClient) : IQueueService
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
+    public event OnSongAdded? SongAdded;
 
     public async Task AddSongAsync(Song song)
     {
         try
         {
+            if (Uri.TryCreate(song.Url, UriKind.Absolute, out _))
+            {
+                var songTitle = await youtubeService.GetVideoTitleAsync(song.Url);
+                await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
+                    $"Added {songTitle} to the queue.");
+                SongAdded?.Invoke(songTitle);
+            }
+            else
+            {
+                var baseSearch = _globalStore.Get<BaseSearch[]>()!.ToList().Find(x => x.Id == song.Url);
+                var videos = await youtubeClient.Search.GetVideosAsync(baseSearch.Name).CollectAsync(1);
+                song.Url = videos[0].Url;
+                var songTitle = await youtubeService.GetVideoTitleAsync(song.Url);
+                await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
+                    $"Added {songTitle} to the queue.");
+                SongAdded?.Invoke(songTitle);
+            }
+
             // if the store doesn't have a queue, create a new instance of the Queue store
             if (!_globalStore.TryGet<Queue<Song>>(out _))
             {
@@ -24,15 +51,10 @@ public class QueueService(GlobalStore globalStore, IYoutubeService youtubeServic
             {
                 _globalStore.Get<Queue<Song>>()?.Enqueue(song);
             }
-
-            var songTitle = await youtubeService.GetVideoTitleAsync(song.Url);
-            await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                $"Added {songTitle} to the queue.");
         }
         catch (Exception ex)
         {
-            await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                $"Error on AddSongAsync: {ex.Message}");
+            Console.WriteLine($"Error on AddSongAsync: {ex.Message}");
         }
     }
 
