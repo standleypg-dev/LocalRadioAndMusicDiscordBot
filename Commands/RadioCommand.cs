@@ -18,7 +18,7 @@ public class RadioCommand(
     IYoutubeService youtubeService)
     : ModuleBase<SocketCommandContext>
 {
-    private const bool IsProd = true;
+    private const bool IsProd = false;
 
     [Command(IsProd ? "play" : "playdev")]
     public async Task HelloCommand([Remainder] string command)
