@@ -32,8 +32,8 @@ public class QueueService(
             }
             else
             {
-                var baseSearch = _globalStore.Get<BaseSearch[]>()!.ToList().Find(x => x.Id == song.Url);
-                var videos = await youtubeClient.Search.GetVideosAsync(baseSearch.Name).CollectAsync(1);
+                var item = _globalStore.Get<Items[]>()!.ToList().Find(x => x.Id == song.Url);
+                var videos = await youtubeClient.Search.GetVideosAsync(item.Name).CollectAsync(1);
                 song.Url = videos[0].Url;
                 var songTitle = await youtubeService.GetVideoTitleAsync(song.Url);
                 await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,

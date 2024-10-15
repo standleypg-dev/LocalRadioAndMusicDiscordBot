@@ -127,10 +127,10 @@ public class AudioPlayerService(
             List<Task> tasks = new();
             if (voiceChannel is not null)
             {
-                if(_globalStore.TryGet<IVoiceChannel>(out var currentVoiceChannel))
+                if (_globalStore.TryGet<IVoiceChannel>(out var currentVoiceChannel))
                     await currentVoiceChannel.DisconnectAsync();
-                
-                _globalStore.Set<IAudioClient>(await voiceChannel.ConnectAsync(disconnect:false));
+
+                _globalStore.Set<IAudioClient>(await voiceChannel.ConnectAsync(disconnect: false));
             }
 
             if (_globalStore.TryGet<IAudioClient>(out var audioClient))
@@ -157,13 +157,12 @@ public class AudioPlayerService(
                     audioClient.ClientDisconnected += async (e) =>
                     {
                         await DestroyVoiceChannelAsync();
-                        logger.LogInformation($"Disconnected from voice channel: {e}");
+                        logger.LogInformation("Disconnected from voice channel: {0}", e);
                     };
                 }
                 catch (Exception ex)
                 {
-                    await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                        $"Error on ConnectToVoiceChannelAsync: {ex.Message}");
+                    _logger.LogError(ex, "Error on ConnectToVoiceChannelAsync");
                 }
                 finally
                 {
