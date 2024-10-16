@@ -8,6 +8,6 @@ public interface IQueueService
     Task AddSongAsync(Song song);
     Task SkipSongAsync();
     Task ClearQueueAsync();
-    Task<List<string>> GetQueueAsync();
+    Task<List<Song>> GetQueueAsync();
 
 }

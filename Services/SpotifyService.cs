@@ -39,7 +39,7 @@ public class SpotifyService(IHttpRequestService httpRequestService, GlobalStore 
         genre = genre.Where(x => !x.Contains('-')).ToArray();
         var data = new
         {
-            limit = 5,
+            limit = 10,
             market = "MY",
             seed_artists = artistId,
             seed_genres = new StringBuilder().AppendJoin(",", genre.Length > 0 ? genre : LaguIbanGenre).ToString(),
@@ -53,7 +53,7 @@ public class SpotifyService(IHttpRequestService httpRequestService, GlobalStore 
         var embed = new EmbedBuilder()
             .WithTitle("You might like these as well:")
             .Build();
-        await ReplyToChannel.FollowupEmbebAsync(_globalStore.Get<SocketMessageComponent>()!, MessageComponentGenerator.GenerateComponents(response.Tracks.ToList()), embed);
+        await ReplyToChannel.FollowupEmbebAsync(_globalStore.Get<SocketMessageComponent>()!, MessageComponentGenerator.GenerateComponents(response.Tracks.ToList(), 2), embed);
     }
 
     #region private methods
