@@ -1,0 +1,27 @@
+# This is a generated file. Not intended for manual editing.
+version: "3.4"
+services:
+  radio-discord-bot:
+    build:
+      context: "/mnt/c/Users/StandleyG/source/repos/personal/Discord_Music_Bot"
+      dockerfile: "src/Dockerfile"
+      args:
+        BUILD_CONFIGURATION: "Debug"
+    entrypoint:
+    - "/opt/rider-debugger/linux-x64/JetBrains.Debugger.Worker"
+    - "--runtimeconfig"
+    - "/opt/rider-debugger/JetBrains.Debugger.Worker.runtimeconfig.json"
+    - "--mode=server"
+    - "--frontend-port=57100"
+    - "--backend-port=57300"
+    - "--timeout=60"
+    environment:
+      RIDER_DEBUGGER_LOG_DIR: "/var/opt/rider-debugger"
+      RESHARPER_LOG_CONF: "/etc/opt/rider-debugger/backend-log.xml"
+    ports:
+    - "127.0.0.1:57006:57100"
+    - "127.0.0.1:57206:57300"
+    volumes:
+    - "/mnt/c/Users/StandleyG/AppData/Local/JetBrains/RiderRemoteDebugger/2024.2.7/Linux64:/opt/rider-debugger"
+    - "/mnt/c/Program Files/JetBrains/JetBrains Rider 2024.2.4/bin:/etc/opt/rider-debugger/backend-log.xml"
+    - "/mnt/c/Users/StandleyG/AppData/Local/JetBrains/Rider2024.2/log/DebuggerWorker/JetBrains.Debugger.Worker.2024_11_03_20_33_24:/var/opt/rider-debugger:rw"
