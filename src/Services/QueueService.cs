@@ -23,23 +23,19 @@ public class QueueService(
     {
         try
         {
-            if (Uri.TryCreate(song.Url, UriKind.Absolute, out _))
+            if (!Uri.TryCreate(song.Url, UriKind.Absolute, out _))
             {
-                var songTitle = await youtubeService.GetVideoTitleAsync(song.Url);
-                await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                    $"Added {songTitle} to the queue.");
-                SongAdded?.Invoke(songTitle);
-            }
-            else
-            {
-                var baseSearch = _globalStore.Get<BaseSearch[]>()!.ToList().Find(x => x.Id == song.Url);
-                var videos = await youtubeClient.Search.GetVideosAsync(baseSearch.Name).CollectAsync(1);
+                var item = _globalStore.Get<Items[]>()?.ToList().Find(x => x.Id == song.Url);
+                var videos = await youtubeClient.Search.GetVideosAsync(item.Name).CollectAsync(1);
                 song.Url = videos[0].Url;
-                var songTitle = await youtubeService.GetVideoTitleAsync(song.Url);
-                await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                    $"Added {songTitle} to the queue.");
-                SongAdded?.Invoke(songTitle);
             }
+
+            var songTitle = await youtubeService.GetVideoTitleAsync(song.Url);
+            song.Title = songTitle;
+
+            await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
+                $"Added {songTitle} to the queue.");
+            SongAdded?.Invoke(songTitle);
 
             // if the store doesn't have a queue, create a new instance of the Queue store
             if (!_globalStore.TryGet<Queue<Song>>(out _))
@@ -73,14 +69,9 @@ public class QueueService(
         _globalStore.Get<Queue<Song>>()?.Clear();
     }
 
-    public async Task<List<string>> GetQueueAsync()
+    public async Task<List<Song>> GetQueueAsync()
     {
-        var songTitles = new List<string>();
-        foreach (var songs in globalStore.Get<Queue<Song>>()?.Select(x => x.Url).ToList() ?? [])
-        {
-            songTitles.Add(await youtubeService.GetVideoTitleAsync(songs));
-        }
-
-        return songTitles;
+        await Task.CompletedTask;
+        return globalStore.Get<Queue<Song>>()?.ToList() ?? [];
     }
 }

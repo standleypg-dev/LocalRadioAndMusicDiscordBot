@@ -98,17 +98,16 @@ public class RadioCommand(
     public async Task QueueCommand()
     {
         var songs = await queueService.GetQueueAsync();
-        var songTitlesList = await queueService.GetQueueAsync();
 
-        if (songTitlesList.Count == 0)
+        if (songs.Count == 0)
             await ReplyAsync("No songs in queue.");
         else
         {
-            await ReplyAsync("Queues: " + Environment.NewLine + string.Join(Environment.NewLine, songTitlesList.Select(
+            await ReplyAsync("Queues: " + Environment.NewLine + string.Join(Environment.NewLine, songs.Select(
                 (title, index) =>
                 {
                     var isPlayingNowMsg = index == 0 ? "(Playing now)" : "";
-                    return $"{index + 1}. {title} {isPlayingNowMsg}";
+                    return $"{index + 1}. {title.Title} {isPlayingNowMsg}";
                 })));
         }
     }
