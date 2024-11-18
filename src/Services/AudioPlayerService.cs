@@ -116,11 +116,8 @@ public class AudioPlayerService(
     {
         try
         {
-            // if (_cancellationTokenSource is not null && !_cancellationTokenSource.IsCancellationRequested)
-            // {
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = new CancellationTokenSource();
-            // }
 
             var cancellationToken = _cancellationTokenSource.Token;
 
