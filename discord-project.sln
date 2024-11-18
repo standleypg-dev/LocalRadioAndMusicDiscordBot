@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "radio-discord-bot", "src\radio-discord-bot.csproj", "{AE2BC31D-0C57-4D46-BF67-5E9BB638FF6E}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{BCBE5D8E-DDC7-4753-96EA-8168B0F30074}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AE2BC31D-0C57-4D46-BF67-5E9BB638FF6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE2BC31D-0C57-4D46-BF67-5E9BB638FF6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE2BC31D-0C57-4D46-BF67-5E9BB638FF6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE2BC31D-0C57-4D46-BF67-5E9BB638FF6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BCBE5D8E-DDC7-4753-96EA-8168B0F30074}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCBE5D8E-DDC7-4753-96EA-8168B0F30074}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCBE5D8E-DDC7-4753-96EA-8168B0F30074}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCBE5D8E-DDC7-4753-96EA-8168B0F30074}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
