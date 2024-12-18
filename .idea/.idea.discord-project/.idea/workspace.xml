@@ -8,10 +8,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8edff0b5-7900-4c99-a079-a61b74bead2d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.discord-project/Docker/docker-compose.generated.override.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/Docker/docker-compose.generated.override.yml" afterDir="false" />
+    <list default="true" id="8edff0b5-7900-4c99-a079-a61b74bead2d" name="Changes" comment="Updated command">
       <change beforePath="$PROJECT_DIR$/src/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/appsettings.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -58,7 +55,10 @@
     </option>
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock://C:/Users/stand/sources/Personal/Discord_Music_Bot/src/Commands/RadioCommand.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/DependencyInjection.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/stand/sources/Personal/Discord_Music_Bot/src/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/stand/sources/Personal/Discord_Music_Bot/src/appsettings.json" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="KubernetesApiPersistence">{}</component>
   <component name="KubernetesApiProvider">{
@@ -172,7 +172,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730554757959</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Updated command">
+      <option name="closed" value="true" />
+      <created>1734483192299</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1734483192299</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -183,6 +191,7 @@
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="update folder structure" />
-    <option name="LAST_COMMIT_MESSAGE" value="update folder structure" />
+    <MESSAGE value="Updated command" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated command" />
   </component>
 </project>
