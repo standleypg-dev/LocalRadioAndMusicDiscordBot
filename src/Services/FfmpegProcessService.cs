@@ -13,10 +13,6 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger) : IFfmpe
     public async Task<Process> CreateStream(string audioUrl, CancellationToken cancellationToken)
     {
         await Task.CompletedTask;
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return await Task.FromCanceled<Process>(cancellationToken);
-        }
         TerminateFFmpegProcess();
         _cancellationTokenSource = new CancellationTokenSource();
         try
@@ -34,6 +30,23 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger) : IFfmpe
                     RedirectStandardError = true,
                 }
             };
+            
+            cancellationToken.Register(() =>
+            {
+                try
+                {
+                    if (_ffmpegProcess is { HasExited: false })
+                    {
+                        logger.LogInformation("Cancellation requested — killing FFmpeg process...");
+                        _ffmpegProcess.Kill(entireProcessTree: true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError($"Failed to kill FFmpeg: {ex.Message}");
+                }
+            });
+            
             _ffmpegProcess.Start();
 
             // Capture error output
@@ -63,7 +76,7 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger) : IFfmpe
         {
             try
             {
-                _ffmpegProcess.Kill();
+                _ffmpegProcess.Kill(entireProcessTree: true);
                 _ffmpegProcess.Dispose();
             }
             catch (Exception ex)
@@ -71,9 +84,8 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger) : IFfmpe
                 logger.LogError($"Error terminating FFmpeg: {ex.Message}");
             }
         }
-
-        _cancellationTokenSource?.Cancel();
     }
+
     
     public void Dispose()
     {

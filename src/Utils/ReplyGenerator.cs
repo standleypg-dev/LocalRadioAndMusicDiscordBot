@@ -12,13 +12,15 @@ public interface ISearchGenerator
     Task<(Embed?, IReadOnlyList<VideoSearchResult>?)> SearchAsync(string command, YtSearchCollection ytSearchCollection = YtSearchCollection.FirstFive);
 }
 
-public class SearchGenerator(YoutubeClient youtubeClient) : ISearchGenerator
+public class SearchGenerator(IServiceProvider serviceProvider) : ISearchGenerator
 {
     public async Task<(Embed?, IReadOnlyList<VideoSearchResult>?)> SearchAsync(string command, YtSearchCollection ytSearchCollection = YtSearchCollection.FirstFive)
     {
         IReadOnlyList<VideoSearchResult>? videos;
         string title;
         System.Console.WriteLine(ytSearchCollection);
+        using var scope = serviceProvider.CreateScope();
+        var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
         switch (ytSearchCollection)
         {
             case YtSearchCollection.FirstFive:

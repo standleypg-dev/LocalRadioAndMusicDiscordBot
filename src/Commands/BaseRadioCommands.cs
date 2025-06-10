@@ -9,23 +9,22 @@ using YoutubeExplode.Common;
 
 namespace radio_discord_bot.Commands;
 
-public class RadioCommand(
+public class BaseRadioCommands(
     IAudioPlayerService audioPlayer,
-    YoutubeClient youtubeClient,
     IJokeService jokeService,
     IQuoteService quoteService,
     IQueueService queueService,
-    IYoutubeService youtubeService)
+    IServiceProvider serviceProvider,
+    IConfiguration configuration)
     : ModuleBase<SocketCommandContext>
 {
-    private const bool IsProd = true;
-
-    [Command(IsProd ? "play" : "playdev")]
-    public async Task HelloCommand([Remainder] string command)
+    public async Task PlayCommand([Remainder] string command)
     {
+        using var scope = serviceProvider.CreateScope();
+        var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
         if (command.Equals("radio"))
         {
-            MessageComponentGenerator.GenerateComponents(Configuration.GetConfiguration<List<Radio>>("Radios"),
+            MessageComponentGenerator.GenerateComponents(ConfigurationHelper.GetConfiguration<List<Radio>>(configuration, "Radios"),
                 colInRow: 2);
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your favorite radio station:")
@@ -34,7 +33,7 @@ public class RadioCommand(
 
             await ReplyAsync(embed: embed,
                 components: MessageComponentGenerator.GenerateComponents(
-                    Configuration.GetConfiguration<List<Radio>>("Radios"), colInRow: 3));
+                    ConfigurationHelper.GetConfiguration<List<Radio>>(configuration, "Radios"), colInRow: 3));
         }
         else if (Uri.TryCreate(command, UriKind.Absolute, out _))
         {
@@ -62,10 +61,9 @@ public class RadioCommand(
         }
     }
 
-    [Command(IsProd ? "help" : "helpdev")]
     public async Task HelpCommand()
     {
-        var helpMessage = Configuration.GetConfiguration<HelpMessage>("HelpMessage");
+        var helpMessage = ConfigurationHelper.GetConfiguration<HelpMessage>(configuration, "HelpMessage");
         var embed = new EmbedBuilder()
             .WithTitle(helpMessage.Title)
             .WithDescription(helpMessage.Description)
@@ -74,7 +72,6 @@ public class RadioCommand(
         await ReplyAsync(embed: embed);
     }
 
-    [Command(IsProd ? "stop" : "stopdev")]
     public async Task StopCommand()
     {
         await ReplyAsync("Stopping radio..");
@@ -82,7 +79,6 @@ public class RadioCommand(
         await queueService.ClearQueueAsync();
     }
 
-    [Command(IsProd ? "next" : "nextdev")]
     public async Task NextCommand()
     {
         if ((await queueService.GetQueueAsync()).Count == 1)
@@ -94,7 +90,6 @@ public class RadioCommand(
         }
     }
 
-    [Command(IsProd ? "playlist" : "playlistdev")]
     public async Task QueueCommand()
     {
         var songs = await queueService.GetQueueAsync();
@@ -112,7 +107,6 @@ public class RadioCommand(
         }
     }
 
-    [Command("tell")]
     public async Task TellJoke([Remainder] string command)
     {
         if (command.Equals("joke"))
@@ -121,7 +115,6 @@ public class RadioCommand(
         }
     }
 
-    [Command("motivate")]
     public async Task TellQuote([Remainder] string command)
     {
         if (command.Equals("me"))

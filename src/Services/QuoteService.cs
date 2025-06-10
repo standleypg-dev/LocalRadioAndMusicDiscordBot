@@ -4,9 +4,9 @@ using radio_discord_bot.Services.Interfaces;
 
 namespace radio_discord_bot.Services;
 
-public class QuoteService(IHttpRequestService httpRequestService) : IQuoteService
+public class QuoteService(IHttpRequestService httpRequestService, IConfiguration configuration) : IQuoteService
 {
-    private readonly JokeQuoteSetting _quoteConfig = Configuration.GetConfiguration<JokeQuoteSetting>("QuoteSettings");
+    private readonly JokeQuoteSetting _quoteConfig = ConfigurationHelper.GetConfiguration<JokeQuoteSetting>(configuration, "QuoteSettings")!;
 
     public async Task<string> GetQuoteAsync()
     {

@@ -10,11 +10,11 @@ using radio_discord_bot.Utils;
 
 namespace radio_discord_bot.Services;
 
-public class SpotifyService(IHttpRequestService httpRequestService, GlobalStore globalStore) : ISpotifyService
+public class SpotifyService(IHttpRequestService httpRequestService, GlobalStore globalStore, IConfiguration configuration) : ISpotifyService
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
-    private readonly string _spotifyClientId = Configuration.GetConfiguration<string>("SpotifySettings:ClientId");
-    private readonly string _spotifySecret = Configuration.GetConfiguration<string>("SpotifySettings:ClientSecret");
+    private readonly string? _spotifyClientId = ConfigurationHelper.GetConfiguration<string>(configuration, "SpotifySettings:ClientId");
+    private readonly string? _spotifySecret = ConfigurationHelper.GetConfiguration<string>(configuration, "SpotifySettings:ClientSecret");
     private const string SpotifyBaseUrl = "https://api.spotify.com";
 
     // top 5 genres
