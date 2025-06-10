@@ -10,11 +10,11 @@ using radio_discord_bot.Utils;
 namespace radio_discord_bot.Services;
 
 public class AudioPlayerService(
-    IYoutubeService youtubeService,
     GlobalStore globalStore,
     ILogger<AudioPlayerService> logger,
     IFfmpegProcessService ffmpegProcessService,
-    IQueueService queueService) : IAudioPlayerService
+    IQueueService queueService,
+    IServiceProvider serviceProvider) : IAudioPlayerService
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
     private readonly ILogger<AudioPlayerService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -22,6 +22,8 @@ public class AudioPlayerService(
 
     public async Task InitiateVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
     {
+        using var scope = serviceProvider.CreateScope();
+        var youtubeService = scope.ServiceProvider.GetRequiredService<IYoutubeService>();
         try
         {
             _globalStore.Set(new PlayState
@@ -69,6 +71,13 @@ public class AudioPlayerService(
     {
         try
         {
+            if (_cancellationTokenSource is not null)
+            {
+                await _cancellationTokenSource.CancelAsync();
+                _cancellationTokenSource.Dispose();
+                _cancellationTokenSource = null;
+            }
+
             if (_globalStore.TryGet<IVoiceChannel>(out var currentVoiceChannel))
             {
                 await currentVoiceChannel.DisconnectAsync();
@@ -116,9 +125,13 @@ public class AudioPlayerService(
     {
         try
         {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource = new CancellationTokenSource();
+            if (_cancellationTokenSource is not null)
+            {
+                await _cancellationTokenSource.CancelAsync();
+                _cancellationTokenSource.Dispose();
+            }
 
+            _cancellationTokenSource = new CancellationTokenSource();
             var cancellationToken = _cancellationTokenSource.Token;
 
             List<Task> tasks = new();

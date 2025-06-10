@@ -4,7 +4,7 @@ trigger:
       - master
 
 pool:
-  name: Default
+  name: "Self Hosted Agent"
   demands:
     - agent.name -equals raspberrypi
 
@@ -79,10 +79,10 @@ stages:
 
             # -o to overwrite the files if they already exist, otherwise it will error out
           - script: |
-              cp $(System.ArtifactsDirectory)/$(build.buildnumber)/s.zip /home/stand/applications/discord-bot
+              cp $(System.ArtifactsDirectory)/$(build.buildnumber)/src.zip /home/stand/applications/discord-bot
               cd /home/stand/applications/discord-bot
-              unzip -o s.zip 
-              rm s.zip
+              unzip -o src.zip 
+              rm src.zip
             displayName: "Extracting and copying the files"
 
           - script: |

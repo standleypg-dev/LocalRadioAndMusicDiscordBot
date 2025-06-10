@@ -8,7 +8,7 @@ using radio_discord_bot.Utils;
 
 namespace radio_discord_bot.Services;
 
-public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketClient client, GlobalStore globalStore, IQueueService queueService)
+public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketClient client, GlobalStore globalStore, IQueueService queueService, IConfiguration configuration, ILogger<InteractionService> logger)
     : IInteractionService
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
@@ -23,32 +23,40 @@ public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketCl
                 return;
             }
 
-            await component.DeferAsync();
-            _globalStore.Set(component);
-            var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
-            if (userVoiceChannel is null)
+            try
             {
-                await ReplyToChannel.FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
-                return;
-            }
-
-            var componentData = _globalStore.Get<SocketMessageComponent>()!.Data;
-            var radio = Configuration.GetConfiguration<List<Radio>>("Radios")
-                .Find(x => x.Name == componentData.CustomId);
-            if (componentData.CustomId.Contains("FM"))
-            {
-                if (radio != null)
+                await component.DeferAsync();
+                _globalStore.Set(component);
+                var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
+                if (userVoiceChannel is null)
                 {
-                    await ReplyToChannel.FollowupAsync(component, $"Playing {radio.Name} radio station.");
-                    await audioPlayer.InitiateVoiceChannelAsync(
-                        (interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
+                    await ReplyToChannel.FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
+                    return;
+                }
+
+                var componentData = _globalStore.Get<SocketMessageComponent>()!.Data;
+                var radio = ConfigurationHelper.GetConfiguration<List<Radio>>(configuration, "Radios")
+                    .Find(x => x.Name == componentData.CustomId);
+                if (componentData.CustomId.Contains("FM"))
+                {
+                    if (radio != null)
+                    {
+                        await ReplyToChannel.FollowupAsync(component, $"Playing {radio.Name} radio station.");
+                        await audioPlayer.InitiateVoiceChannelAsync(
+                            (interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
+                    }
+                }
+                else
+                {
+                    await queueService.AddSongAsync(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
+                    await audioPlayer.OnPlaylistChanged();
                 }
             }
-            else
+            catch (Exception e)
             {
-                await queueService.AddSongAsync(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
-                await audioPlayer.OnPlaylistChanged();
+                logger.LogError(e, "Error processing interaction: {Message}", e.Message);
             }
+            
         });
     }
 

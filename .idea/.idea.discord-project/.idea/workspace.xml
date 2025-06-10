@@ -8,31 +8,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8edff0b5-7900-4c99-a079-a61b74bead2d" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.dockerignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/.name" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/git_toolbox_blame.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/indexLayout.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/projectSettingsUpdater.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.discord-project/Docker/docker-compose.generated.override.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/ProjectEvaluation/discord-project.metadata.v8.bin" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/ProjectEvaluation/discord-project.projects.v8.bin" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/ProjectEvaluation/discord-project.strings.v8.bin" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/discord-project/DesignTimeBuild/.dtbcache.v2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/discord-project/v17/.futdcache.v2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/discord-project/v17/.suo" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vs/discord-project/v17/DocumentLayout.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docker-compose.dcproj" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docker-compose.override.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/launchSettings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/discord-project.sln" beforeDir="false" afterPath="$PROJECT_DIR$/discord-project.sln" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/src/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Services/AudioPlayerService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Services/AudioPlayerService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/radio-discord-bot.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/src/radio-discord-bot.csproj" afterDir="false" />
+    <list default="true" id="8edff0b5-7900-4c99-a079-a61b74bead2d" name="Changes" comment="Updated command">
+      <change beforePath="$PROJECT_DIR$/src/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/appsettings.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +55,10 @@
     </option>
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock://C:/Users/stand/sources/Personal/Discord_Music_Bot/src/Commands/RadioCommand.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/DependencyInjection.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/stand/sources/Personal/Discord_Music_Bot/src/appsettings.json" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/stand/sources/Personal/Discord_Music_Bot/src/appsettings.json" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="KubernetesApiPersistence">{}</component>
   <component name="KubernetesApiProvider">{
@@ -100,10 +80,11 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Docker.Docker.executor": "Run",
+    "Docker.docker-compose.yml: Compose Deployment.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SONARLINT_PRECOMMIT_ANALYSIS": "true",
-    "git-widget-placeholder": "Merging Chore/FolderRestructure",
+    "git-widget-placeholder": "Chore/FolderRestructure",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -113,7 +94,7 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="RunManager" selected="Docker.Docker">
+  <component name="RunManager" selected="Docker.docker-compose.yml: Compose Deployment">
     <configuration name="radio-discord-bot" type="DotNetProject" factoryName=".NET Project">
       <option name="EXE_PATH" value="$PROJECT_DIR$/src/bin/Debug/net8.0/radio-discord-bot.exe" />
       <option name="PROGRAM_PARAMETERS" value="" />
@@ -191,7 +172,15 @@
       <option name="project" value="LOCAL" />
       <updated>1730554757959</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Updated command">
+      <option name="closed" value="true" />
+      <created>1734483192299</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1734483192299</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -202,6 +191,7 @@
   <component name="VcsManagerConfiguration">
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
     <MESSAGE value="update folder structure" />
-    <option name="LAST_COMMIT_MESSAGE" value="update folder structure" />
+    <MESSAGE value="Updated command" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated command" />
   </component>
 </project>

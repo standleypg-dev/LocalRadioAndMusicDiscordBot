@@ -13,7 +13,7 @@ namespace radio_discord_bot;
 
 public static class DependencyInjection
 {
-    public static IServiceProvider CreateProvider()
+    public static void AddDiscordServices(this IServiceCollection services)
     {
         var config = new DiscordSocketConfig
         {
@@ -21,26 +21,24 @@ public static class DependencyInjection
                              GatewayIntents.GuildMembers | GatewayIntents.MessageContent | GatewayIntents.DirectMessages
         };
 
-        var collection = new ServiceCollection()
-            .AddLogging(opts => opts.AddConsole())
-            .AddSingleton(config)
-            .AddSingleton<DiscordSocketClient>()
-            .AddSingleton<CommandService>()
-            .AddSingleton<Startup>()
-            .AddSingleton<RadioCommand>()
-            .AddSingleton<GlobalStore>()
-            .AddSingleton<IJokeService, JokeService>()
-            .AddSingleton<IQuoteService, QuoteService>()
-            .AddSingleton<IHttpRequestService, HttpRequestService>()
-            .AddSingleton<IInteractionService, InteractionService>()
-            .AddSingleton<IQueueService, QueueService>()
-            .AddScoped<YoutubeClient>()
-            .AddScoped<IYoutubeService, YoutubeService>()
-            .AddSingleton<IFfmpegProcessService, FfmpegProcessService>()
-            .AddSingleton<IAudioPlayerService, AudioPlayerService>()
-            .AddTransient<ISpotifyService, SpotifyService>()
-            .AddTransient<IAudioService, AudioService>();
-
-        return collection.BuildServiceProvider();
+        services.AddLogging(opts => opts.AddConsole());
+        services.AddSingleton(config);
+        services.AddSingleton<DiscordSocketClient>();
+        services.AddSingleton<CommandService>();
+        services.AddSingleton<Startup>();
+        services.AddSingleton<ProdRadioCommands>();
+        services.AddSingleton<DevRadioCommands>();
+        services.AddSingleton<GlobalStore>();
+        services.AddSingleton<IJokeService, JokeService>();
+        services.AddSingleton<IQuoteService, QuoteService>();
+        services.AddSingleton<IHttpRequestService, HttpRequestService>();
+        services.AddSingleton<IInteractionService, InteractionService>();
+        services.AddSingleton<IQueueService, QueueService>();
+        services.AddScoped<YoutubeClient>();
+        services.AddScoped<IYoutubeService, YoutubeService>();
+        services.AddSingleton<IFfmpegProcessService, FfmpegProcessService>();
+        services.AddSingleton<IAudioPlayerService, AudioPlayerService>();
+        services.AddTransient<ISpotifyService, SpotifyService>();
+        services.AddSingleton<DiscordBot>();
     }
 }

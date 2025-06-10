@@ -9,10 +9,10 @@ namespace radio_discord_bot.Services;
         private readonly IHttpRequestService _httpRequestService;
         private readonly JokeQuoteSetting _jokeConfig;
 
-        public JokeService(IHttpRequestService httpRequestService)
+        public JokeService(IHttpRequestService httpRequestService, IConfiguration configuration)
         {
             _httpRequestService = httpRequestService;
-            _jokeConfig = Configuration.GetConfiguration<JokeQuoteSetting>("JokeSettings");
+            _jokeConfig = ConfigurationHelper.GetConfiguration<JokeQuoteSetting>(configuration, "JokeSettings")!;
         }
 
         public async Task<string> GetJokeAsync()

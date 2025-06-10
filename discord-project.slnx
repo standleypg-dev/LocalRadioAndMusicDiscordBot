@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="deployment/docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="src/radio-discord-bot.csproj" />
+</Solution>

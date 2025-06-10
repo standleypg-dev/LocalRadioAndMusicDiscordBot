@@ -13,14 +13,16 @@ public delegate void OnSongAdded(string title);
 
 public class QueueService(
     GlobalStore globalStore,
-    IYoutubeService youtubeService,
-    YoutubeClient youtubeClient) : IQueueService
+    IServiceProvider serviceProvider) : IQueueService
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
     public event OnSongAdded? SongAdded;
 
     public async Task AddSongAsync(Song song)
     {
+        using var scope = serviceProvider.CreateScope();
+        var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
+        var youtubeService = scope.ServiceProvider.GetRequiredService<IYoutubeService>();
         try
         {
             if (!Uri.TryCreate(song.Url, UriKind.Absolute, out _))
