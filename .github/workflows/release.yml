@@ -7,7 +7,9 @@ on:
 
 jobs:
   deploy:
-    runs-on: self-hosted
+    runs-on:
+      group: my-custom-group
+      labels: [self-hosted, Linux, X64]
 
     steps:
       - name: Checkout code
