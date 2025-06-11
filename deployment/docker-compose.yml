@@ -1,6 +1,8 @@
 services:
   radio-discord-bot:
+    container_name: discord-bot
     image: ${DOCKER_REGISTRY-}radiodiscordbot
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
