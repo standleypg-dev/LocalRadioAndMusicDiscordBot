@@ -1,41 +1,49 @@
 # Stage 1: Base with system + native dependencies
 FROM fedora:latest AS lib-build
 
-ARG OPUS_VERSION=1.5.2
-ARG LIBSODIUM_VERSION=1.0.20
-
 WORKDIR /deps
 
 RUN dnf upgrade -y && \
     dnf install -y libsodium-devel opus-devel \
-                   ffmpeg dotnet-sdk-9.0 dotnet-runtime-9.0
+                   ffmpeg dotnet-runtime-9.0 dotnet-sdk-9.0
 
 # Stage 2: Build the application
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM lib-build AS build
 
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["src/radio-discord-bot.csproj", "src/"]
-RUN dotnet restore "src/radio-discord-bot.csproj"
-COPY . .
-WORKDIR /src/src
-RUN dotnet build "radio-discord-bot.csproj" -c $BUILD_CONFIGURATION -o /app/build
+# Copy the project file and restore dependencies
+COPY ["src/radio-discord-bot.csproj", "./"]
+RUN dotnet restore "radio-discord-bot.csproj"
+
+# Copy the rest of the source code
+COPY src/ .
+
+# Build the application
+RUN dotnet build "radio-discord-bot.csproj" -c $BUILD_CONFIGURATION -o /app/build --os linux
 
 # Stage 3: Publish the application
 FROM build AS publish
 
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "radio-discord-bot.csproj" -c $BUILD_CONFIGURATION -o /app/publish -r linux-x64 # --self-contained true
+RUN dotnet publish "radio-discord-bot.csproj" \
+    -c $BUILD_CONFIGURATION \
+    -o /app/publish \
+    --os linux \
+    --self-contained false \
+    --no-restore
 
 # Stage 4: Final runtime image
 FROM lib-build AS final
 
 WORKDIR /app
 
-# Optional: if dynamically linked to shared libraries
-ENV LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+# Set production environment
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_ENVIRONMENT=Production
 
+# Copy published application
 COPY --from=publish /app/publish .
 
 ENTRYPOINT ["dotnet", "radio-discord-bot.dll"]

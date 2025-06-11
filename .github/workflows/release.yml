@@ -1,22 +1,31 @@
 name: Run Radio Discord Bot
-
 on:
   push:
-    branches: 
+    branches:
       - master
-
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Build
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and run Docker Compose
+      - name: Stop existing container
         run: |
-          docker compose down
-          docker compose up -d --build
+          docker stop discord-bot || true
+          docker rm discord-bot || true
+
+      - name: Remove old image
+        run: |
+          docker rmi radiodiscordbot:latest || true
+
+      - name: Build new image
+        run: |
+          docker build -f deployment/Dockerfile -t radiodiscordbot:latest .
+
+      - name: Run new container
+        run: |
+          docker run -d \
+            --name discord-bot \
+            --restart unless-stopped \
+            radiodiscordbot:latest
