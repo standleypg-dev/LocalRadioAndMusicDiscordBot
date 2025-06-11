@@ -46,6 +46,9 @@ ENV DOTNET_ENVIRONMENT=Production
 # Copy published application
 COPY --from=publish /app/publish .
 
+RUN cp /usr/lib64/libsodium.so* . && \
+    cp /usr/lib64/libopus.so* . || true
+
 ENTRYPOINT ["dotnet", "radio-discord-bot.dll"]
 # If you use self-contained: 
 # ENTRYPOINT ["./radio-discord-bot"]
