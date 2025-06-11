@@ -1,0 +1,6 @@
+services:
+  radio-discord-bot:
+    image: ${DOCKER_REGISTRY-}radiodiscordbot
+    build:
+      context: .
+      dockerfile: Dockerfile
