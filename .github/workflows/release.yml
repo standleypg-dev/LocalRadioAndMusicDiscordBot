@@ -3,13 +3,12 @@ name: Run Radio Discord Bot
 on:
   push:
     branches: 
-        - main
+      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
-    runs-on:
-      group: my-custom-group
-      labels: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, Linux, X64]
 
     steps:
       - name: Checkout code
