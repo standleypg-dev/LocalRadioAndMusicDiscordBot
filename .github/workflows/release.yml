@@ -28,4 +28,7 @@ jobs:
           docker run -d \
             --name discord-bot \
             --restart unless-stopped \
+            -e SpotifySettings__ClientId="${{ secrets.SPOTIFY_CLIENT_ID }}" \
+            -e SpotifySettings__ClientSecret="${{ secrets.SPOTIFY_CLIENT_SECRET }}" \
+            -e Discord__Token="${{ secrets.DISCORD_TOKEN }}" \
             radiodiscordbot:latest
