@@ -44,26 +44,41 @@ public class AudioPlayerService(
                 IsPlaying = false, IsRadioPlaying = false
             });
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error on InitiateVoiceChannelAsync");
+            _globalStore.Set(new PlayState
+            {
+                IsPlaying = false, IsRadioPlaying = false
+            });
+        }
     }
 
     public async Task NextSongAsync()
     {
-        await queueService.SkipSongAsync();
+        try
+        {
+            await queueService.SkipSongAsync();
 
-        if (_cancellationTokenSource is not null && !_cancellationTokenSource.IsCancellationRequested)
-        {
-            await _cancellationTokenSource.CancelAsync();
-        }
+            if (_cancellationTokenSource is not null && !_cancellationTokenSource.IsCancellationRequested)
+            {
+                await _cancellationTokenSource.CancelAsync();
+            }
 
-        if (_globalStore.Get<Queue<Song>>()?.Count > 0)
-        {
-            var song = _globalStore.Get<Queue<Song>>()?.Peek();
-            if (song != null)
-                await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+            if (_globalStore.Get<Queue<Song>>()?.Count > 0)
+            {
+                var song = _globalStore.Get<Queue<Song>>()?.Peek();
+                if (song != null)
+                    await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+            }
+            else
+            {
+                await DestroyVoiceChannelAsync();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await DestroyVoiceChannelAsync();
+            _logger.LogError(ex, "Error on NextSongAsync");
         }
     }
 
@@ -99,18 +114,25 @@ public class AudioPlayerService(
 
     public async Task OnPlaylistChanged()
     {
-        var songs = _globalStore.Get<Queue<Song>>();
-        if (songs is not null)
+        try
         {
-            var song = songs.Peek();
-            var playState = _globalStore.Get<PlayState>() ??
-                            new PlayState { IsPlaying = false, IsRadioPlaying = false };
-            if (!playState.IsPlaying || playState.IsRadioPlaying)
-                await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+            var songs = _globalStore.Get<Queue<Song>>();
+            if (songs is not null)
+            {
+                var song = songs.Peek();
+                var playState = _globalStore.Get<PlayState>() ??
+                                new PlayState { IsPlaying = false, IsRadioPlaying = false };
+                if (!playState.IsPlaying || playState.IsRadioPlaying)
+                    await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+            }
+            else
+            {
+                await DestroyVoiceChannelAsync();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await DestroyVoiceChannelAsync();
+            _logger.LogError(ex, "Error on OnPlaylistChanged");
         }
     }
 
@@ -140,7 +162,7 @@ public class AudioPlayerService(
                 if (_globalStore.TryGet<IVoiceChannel>(out var currentVoiceChannel))
                     await currentVoiceChannel.DisconnectAsync();
 
-                _globalStore.Set<IAudioClient>(await voiceChannel.ConnectAsync(disconnect: false));
+                _globalStore.Set<IAudioClient>(await voiceChannel.ConnectAsync());
             }
 
             if (_globalStore.TryGet<IAudioClient>(out var audioClient))
@@ -173,6 +195,7 @@ public class AudioPlayerService(
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error on ConnectToVoiceChannelAsync");
+                    await DestroyVoiceChannelAsync();
                 }
                 finally
                 {
@@ -189,7 +212,7 @@ public class AudioPlayerService(
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            _logger.LogError(e, "Error on ConnectToVoiceChannelAsync");
             throw;
         }
     }
