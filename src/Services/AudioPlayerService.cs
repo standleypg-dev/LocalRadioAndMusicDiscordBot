@@ -22,18 +22,12 @@ public sealed class AudioPlayerService(
     private CancellationTokenSource? _cancellationTokenSource;
     private readonly Lock _cancellationLock = new();
 
-    // Semaphore to prevent concurrent audio operations
-    private readonly SemaphoreSlim _audioOperationSemaphore = new(1, 1);
-
     // Flag to prevent recursive calls
     private bool _isProcessingNextSong;
     private readonly Lock _nextSongLock = new();
 
-    public async Task InitiateVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
+    public async Task InitiateVoiceChannelAsync(SocketVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
     {
-        // Ensure only one audio operation at a time
-        await _audioOperationSemaphore.WaitAsync();
-
         try
         {
             using var scope = serviceProvider.CreateScope();
@@ -68,10 +62,6 @@ public sealed class AudioPlayerService(
             _logger.LogError(ex, "Error initiating voice channel connection");
             await SetStoppedStateAsync();
             throw; // Re-throw to allow caller to handle
-        }
-        finally
-        {
-            _audioOperationSemaphore.Release();
         }
     }
 
@@ -158,7 +148,6 @@ public sealed class AudioPlayerService(
         {
             try
             {
-                audioClient.ClientDisconnected -= OnClientDisconnected;
                 await audioClient.StopAsync();
                 audioClient.Dispose();
             }
@@ -173,7 +162,7 @@ public sealed class AudioPlayerService(
         }
 
         // Disconnect from voice channel
-        if (_globalStore.TryGet<IVoiceChannel>(out var currentVoiceChannel))
+        if (_globalStore.TryGet<SocketVoiceChannel>(out var currentVoiceChannel))
         {
             try
             {
@@ -185,7 +174,7 @@ public sealed class AudioPlayerService(
             }
             finally
             {
-                _globalStore.Clear<IVoiceChannel>();
+                _globalStore.Clear<SocketVoiceChannel>();
             }
         }
 
@@ -267,14 +256,14 @@ public sealed class AudioPlayerService(
         }
     }
 
-    public IVoiceChannel? GetBotCurrentVoiceChannel()
+    public SocketVoiceChannel? GetBotCurrentVoiceChannel()
     {
-        return _globalStore.Get<IVoiceChannel>();
+        return _globalStore.Get<SocketVoiceChannel>();
     }
 
     #region Private Methods
 
-    private async Task ConnectToVoiceChannelAsync(IVoiceChannel? voiceChannel, string audioUrl)
+    private async Task ConnectToVoiceChannelAsync(SocketVoiceChannel? voiceChannel, string audioUrl)
     {
         IAudioClient? audioClient;
         Stream? audioOutStream = null;
@@ -314,8 +303,24 @@ public sealed class AudioPlayerService(
             // Connect to voice channel if needed
             if (voiceChannel is not null)
             {
+                // Ensure voice channel have at least one user
+                if(voiceChannel.ConnectedUsers.Count(u => !u.IsBot) == 0)
+                {
+                    _logger.LogWarning("Voice channel {ChannelId} has no users, cannot connect", voiceChannel.Id);
+                    var messageComponent = _globalStore.Get<SocketMessageComponent>();
+                    if (messageComponent != null)
+                    {
+                        await ReplyToChannel.FollowupAsync(messageComponent, 
+                            $"Can't connect to '{voiceChannel.Name}' — no users are in the channel. It looks like this command was used in a different voice channel earlier. Please use the command again in the correct channel.");
+                    }
+                    
+                    await SetStoppedStateAsync();
+                    await queueService.ClearQueueAsync();
+                    return;
+                }
+                
                 // Disconnect from current channel first
-                if (_globalStore.TryGet<IVoiceChannel>(out var currentVoiceChannel) &&
+                if (_globalStore.TryGet<SocketVoiceChannel>(out var currentVoiceChannel) &&
                     currentVoiceChannel.Id != voiceChannel.Id)
                 {
                     await currentVoiceChannel.DisconnectAsync();
@@ -335,11 +340,6 @@ public sealed class AudioPlayerService(
                     _globalStore.Set<IAudioClient>(audioClient);
                     _globalStore.Set(voiceChannel);
                 }
-
-
-                // Subscribe to disconnect events (unsubscribe first to prevent duplicates)
-                audioClient.ClientDisconnected -= OnClientDisconnected;
-                audioClient.ClientDisconnected += OnClientDisconnected;
             }
             else if (_globalStore.TryGet(out audioClient))
             {
@@ -504,23 +504,6 @@ public sealed class AudioPlayerService(
         await Task.Delay(10);
     }
 
-    /// <summary>
-    /// Event handler for audio client disconnection
-    /// </summary>
-    private async Task OnClientDisconnected(ulong args)
-    {
-        _logger.LogInformation("Audio client disconnected: {ClientId}", args);
-
-        try
-        {
-            await DestroyVoiceChannelAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error handling client disconnection");
-        }
-    }
-
     #endregion
 
     #region IDisposable Implementation
@@ -541,9 +524,6 @@ public sealed class AudioPlayerService(
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
             }
-
-            // Dispose semaphore
-            _audioOperationSemaphore.Dispose();
         }
     }
 

@@ -11,7 +11,4 @@
     <None Include=".dockerignore" />
     <None Include="Dockerfile" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="release.yml" />
-  </ItemGroup>
 </Project>
