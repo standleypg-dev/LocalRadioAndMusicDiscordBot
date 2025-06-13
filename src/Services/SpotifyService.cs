@@ -25,7 +25,7 @@ public class SpotifyService(IHttpRequestService httpRequestService, GlobalStore 
 
     public async Task GetRecommendationAsync(string songTitle)
     {
-        Console.WriteLine("GetRecommendationAsync" + songTitle);
+        Console.WriteLine("GetRecommendationAsync " + songTitle);
         await CheckAuth();
         await SearchTrackAsync(songTitle);
         await GetArtistAsync();

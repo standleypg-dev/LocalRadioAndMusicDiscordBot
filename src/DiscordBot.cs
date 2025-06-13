@@ -16,7 +16,8 @@ public class DiscordBot(DiscordSocketClient client,
     {
         queueService.SongAdded += title =>
         {
-            _ = Task.Run(async () => { await spotifyService.GetRecommendationAsync(title); }, stoppingToken);
+            // Disable Spotify recommendation for now
+            // _ = Task.Run(async () => { await spotifyService.GetRecommendationAsync(title); }, stoppingToken);
         };
 
         return RunBotAsync(stoppingToken);
