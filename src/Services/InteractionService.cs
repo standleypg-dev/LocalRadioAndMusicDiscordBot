@@ -80,31 +80,9 @@ public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketCl
                 return;
             }
 
-            var guild = botVoiceChannel.Guild;
+            var isAnyUserStillConnected = botVoiceChannel.ConnectedUsers.Count(u => !u.IsBot) > 0;
 
-            // Update the user presence in the dictionary
-            _globalStore.Set(new Dictionary<ulong, HashSet<ulong>>());
-            var usersInVoiceChannels = _globalStore.Get<Dictionary<ulong, HashSet<ulong>>>() ??
-                                       new Dictionary<ulong, HashSet<ulong>>();
-
-            if (!usersInVoiceChannels.ContainsKey(guild.Id))
-            {
-                usersInVoiceChannels[guild.Id] = new HashSet<ulong>();
-            }
-
-            if (oldState.VoiceChannel != null)
-            {
-                usersInVoiceChannels[guild.Id].Remove(user.Id);
-            }
-
-            if (newState.VoiceChannel != null && newState.VoiceChannel.Id == botVoiceChannel.Id)
-            {
-                usersInVoiceChannels[guild.Id].Add(user.Id);
-            }
-
-            var membersInBotChannel = usersInVoiceChannels[guild.Id];
-
-            if (membersInBotChannel.Count == 0)
+            if (!isAnyUserStillConnected)
             {
                 await audioPlayer.DestroyVoiceChannelAsync();
             }
