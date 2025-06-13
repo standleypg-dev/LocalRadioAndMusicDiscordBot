@@ -22,6 +22,7 @@
         <PackageReference Include="SoundTouch.Net.NAudioSupport" Version="2.3.2"/>
         <PackageReference Include="Discord.Addons.Interactive" Version="2.0.0"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.5"/>
+        <PackageReference Include="YoutubeDLSharp" Version="1.1.2" />
         <PackageReference Include="YoutubeExplode" Version="6.5.4"/>
         <PackageReference Include="Victoria" Version="7.0.5"/>
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.5"/>
@@ -34,6 +35,8 @@
         <Copy SourceFiles="/usr/lib64/libsodium.so"
               DestinationFolder="$(OutputPath)"/>
         <Copy SourceFiles="/usr/lib64/libopus.so"
+              DestinationFolder="$(OutputPath)"/>
+        <Copy SourceFiles="/usr/lib/yt-dlp"
               DestinationFolder="$(OutputPath)"/>
     </Target>
 

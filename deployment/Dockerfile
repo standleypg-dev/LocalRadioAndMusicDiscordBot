@@ -4,7 +4,7 @@ FROM fedora:latest AS lib-build
 WORKDIR /deps
 
 RUN dnf upgrade -y && \
-    dnf install -y libsodium-devel opus-devel \
+    dnf install -y libsodium-devel opus-devel yt-dlp \
                    ffmpeg dotnet-runtime-9.0 dotnet-sdk-9.0
 
 # Stage 2: Build the application
@@ -47,6 +47,7 @@ ENV DOTNET_ENVIRONMENT=Production
 COPY --from=publish /app/publish .
 
 RUN cp /usr/lib64/libsodium.so* . && \
+    cp /usr/lib/yt-dlp . && \
     cp /usr/lib64/libopus.so* . || true
 
 ENTRYPOINT ["dotnet", "radio-discord-bot.dll"]
