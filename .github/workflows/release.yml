@@ -10,18 +10,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug - List files
+        run: |
+          echo "Root directory contents:"
+          ls -la
+          echo "Deployment directory contents:"
+          ls -la deployment/
+
       - name: Stop existing containers
         run: |
-          cd deployment && docker compose down || true
+          cd deployment && docker compose -f docker-compose.yml down || true
 
       - name: Remove old images
         run: |
-          docker rmi radiodiscordbot:latest || true
+          cd deployment && docker rmi radiodiscordbot:latest || true
 
       - name: Create .env file
         run: |
-          echo "POSTGRES_DB=postgres_db" > .env
-          echo "POSTGRES_USER=postgres_user" >> .env
+          cd deployment
+          echo "POSTGRES_DB=radiobot" > .env
+          echo "POSTGRES_USER=radiouser" >> .env
           echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
           echo "SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}" >> .env
           echo "SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}" >> .env
@@ -29,4 +37,4 @@ jobs:
 
       - name: Build and run with Docker Compose
         run: |
-          docker compose up -d --build
+          cd deployment && docker compose -f docker-compose.yml up -d --build
