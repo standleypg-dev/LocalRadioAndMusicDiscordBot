@@ -13,10 +13,17 @@ builder.Services.AddHostedService<DiscordBot>();
 
 builder.Services.AddDbContext<DiscordBotContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorCodesToAdd: null);
+    });
 });
 
 var app = builder.Build();
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
@@ -26,24 +33,21 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<DiscordBotContext>();
+    var connectionString = context.Database.GetDbConnection().ConnectionString;
+    logger.LogInformation("Using DB: {ConnectionString}", connectionString[..Math.Min(50, connectionString.Length)]);
 
     try
     {
-        // Ensure the database is created
-        await context.Database.EnsureCreatedAsync();
-
         // Apply pending migrations (if any)
         await context.Database.MigrateAsync();
     }
     catch (PostgresException ex) when (ex.SqlState == "42P07")
     {
-        // 42P07 = "duplicate_table" in PostgreSQL
-        Console.WriteLine("Table already exists. Skipping creation.");
+        logger.LogInformation("Table already exists. Skipping creation.");
     }
     catch (Exception ex)
     {
-        // Log or handle other unexpected issues
-        Console.WriteLine($"Database migration failed: {ex.Message}");
+        logger.LogError(ex, "An error occurred while applying migrations.");
     }
 }
 
