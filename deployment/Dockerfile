@@ -11,14 +11,23 @@ RUN dnf upgrade -y && \
 FROM lib-build AS build
 
 ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
+WORKDIR /app
 
-# Copy the project file and restore dependencies
-COPY ["src/radio-discord-bot.csproj", "./"]
-RUN dotnet restore "radio-discord-bot.csproj"
+# Copy all project files first
+COPY ["src/radio-discord-bot.csproj", "src/"]
+COPY ["Data/Data.csproj", "Data/"]
+COPY ["Domain/Domain.csproj", "Domain/"]
+
+# Restore dependencies
+RUN dotnet restore "src/radio-discord-bot.csproj"
 
 # Copy the rest of the source code
-COPY src/ .
+COPY src/ src/
+COPY Data/ Data/
+COPY Domain/ Domain/
+
+# Set working directory to the main project
+WORKDIR /app/src
 
 # Build the application
 RUN dotnet build "radio-discord-bot.csproj" -c $BUILD_CONFIGURATION -o /app/build --os linux
@@ -27,6 +36,7 @@ RUN dotnet build "radio-discord-bot.csproj" -c $BUILD_CONFIGURATION -o /app/buil
 FROM build AS publish
 
 ARG BUILD_CONFIGURATION=Release
+WORKDIR /app/src
 RUN dotnet publish "radio-discord-bot.csproj" \
     -c $BUILD_CONFIGURATION \
     -o /app/publish \
