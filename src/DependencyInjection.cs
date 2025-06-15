@@ -22,6 +22,7 @@ public static class DependencyInjection
         };
 
         services.AddLogging(opts => opts.AddConsole());
+        
         services.AddSingleton(config);
         services.AddSingleton<DiscordSocketClient>();
         services.AddSingleton<CommandService>();
@@ -34,11 +35,15 @@ public static class DependencyInjection
         services.AddSingleton<IHttpRequestService, HttpRequestService>();
         services.AddSingleton<IInteractionService, InteractionService>();
         services.AddSingleton<IQueueService, QueueService>();
-        services.AddScoped<YoutubeClient>();
-        services.AddScoped<IYoutubeService, YoutubeService>();
         services.AddSingleton<IFfmpegProcessService, FfmpegProcessService>();
         services.AddSingleton<IAudioPlayerService, AudioPlayerService>();
-        services.AddTransient<ISpotifyService, SpotifyService>();
         services.AddSingleton<DiscordBot>();
+        
+        services.AddScoped<YoutubeClient>();
+        services.AddScoped<IYoutubeService, YoutubeService>();
+        services.AddScoped<IStatisticsService, StatisticsService>();
+        services.AddScoped<IUserService, UserService>();
+        
+        services.AddTransient<ISpotifyService, SpotifyService>();
     }
 }
