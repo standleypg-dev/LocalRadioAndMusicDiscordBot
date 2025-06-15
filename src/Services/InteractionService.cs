@@ -8,7 +8,14 @@ using radio_discord_bot.Utils;
 
 namespace radio_discord_bot.Services;
 
-public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketClient client, GlobalStore globalStore, IQueueService queueService, IConfiguration configuration, ILogger<InteractionService> logger)
+public class InteractionService(
+    IAudioPlayerService audioPlayer,
+    DiscordSocketClient client,
+    GlobalStore globalStore,
+    IQueueService queueService,
+    IConfiguration configuration,
+    ILogger<InteractionService> logger,
+    IServiceProvider serviceProvider)
     : IInteractionService
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
@@ -30,7 +37,8 @@ public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketCl
                 var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
                 if (userVoiceChannel is null)
                 {
-                    await ReplyToChannel.FollowupAsync(component, "You need to be in a voice channel to activate the bot.");
+                    await ReplyToChannel.FollowupAsync(component,
+                        "You need to be in a voice channel to activate the bot.");
                     return;
                 }
 
@@ -48,7 +56,15 @@ public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketCl
                 }
                 else
                 {
-                    await queueService.AddSongAsync(new Song() { Url = componentData.CustomId, VoiceChannel = userVoiceChannel });
+                    using var scope = serviceProvider.CreateScope();
+                    var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService>();
+
+                    var song = new Song
+                        { Url = componentData.CustomId, VoiceChannel = userVoiceChannel };
+
+                    await statisticsService.LogSongPlayAsync(component.User, song);
+
+                    await queueService.AddSongAsync(song);
                     await audioPlayer.OnPlaylistChanged();
                 }
             }
@@ -56,7 +72,6 @@ public class InteractionService(IAudioPlayerService audioPlayer, DiscordSocketCl
             {
                 logger.LogError(e, "Error processing interaction: {Message}", e.Message);
             }
-            
         });
     }
 
