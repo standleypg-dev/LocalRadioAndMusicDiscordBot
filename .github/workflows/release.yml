@@ -10,25 +10,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Stop existing container
+      - name: Stop existing containers
         run: |
-          docker stop discord-bot || true
-          docker rm discord-bot || true
+          cd deployment && docker compose down || true
 
-      - name: Remove old image
+      - name: Remove old images
         run: |
           docker rmi radiodiscordbot:latest || true
 
-      - name: Build new image
+      - name: Create .env file
         run: |
-          docker build -f deployment/Dockerfile -t radiodiscordbot:latest .
+          echo "POSTGRES_DB=postgres_db" > .env
+          echo "POSTGRES_USER=postgres_user" >> .env
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+          echo "SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}" >> .env
+          echo "SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}" >> .env
+          echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> .env
 
-      - name: Run new container
+      - name: Build and run with Docker Compose
         run: |
-          docker run -d \
-            --name discord-bot \
-            --restart unless-stopped \
-            -e SpotifySettings__ClientId="${{ secrets.SPOTIFY_CLIENT_ID }}" \
-            -e SpotifySettings__ClientSecret="${{ secrets.SPOTIFY_CLIENT_SECRET }}" \
-            -e Discord__Token="${{ secrets.DISCORD_TOKEN }}" \
-            radiodiscordbot:latest
+          docker compose up -d --build

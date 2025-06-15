@@ -3,11 +3,16 @@ services:
     container_name: discord-bot
     image: ${DOCKER_REGISTRY-}radiodiscordbot
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: deployment/Dockerfile
     restart: unless-stopped
     depends_on:
       - postgres
+    environment:
+      - SpotifySettings__ClientId=${SPOTIFY_CLIENT_ID}
+      - SpotifySettings__ClientSecret=${SPOTIFY_CLIENT_SECRET}
+      - Discord__Token=${DISCORD_TOKEN}
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
 
   postgres:
     image: postgres:latest
@@ -19,7 +24,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports: 
+    ports:
       - "5432:5432"
 
 volumes:
