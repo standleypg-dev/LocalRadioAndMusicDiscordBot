@@ -34,7 +34,7 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<DiscordBotContext>();
     var connectionString = context.Database.GetDbConnection().ConnectionString;
-    logger.LogInformation("Using DB: {ConnectionString}", connectionString[..Math.Min(50, connectionString.Length)]);
+    logger.LogInformation("Using DB: {ConnectionString}", connectionString);
 
     try
     {
