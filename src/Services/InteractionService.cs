@@ -65,7 +65,15 @@ public class InteractionService(
                 {
                     using var scope = serviceProvider.CreateScope();
                     var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService>();
+                    var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
 
+                    // Check if the song is blacklisted, if so, do not add it to the queue
+                    if (await blacklistService.IsBlacklistedAsync(componentData.CustomId))
+                    {
+                        await ReplyToChannel.FollowupAsync(component, "This song is blacklisted and cannot be played.");
+                        return;
+                    }
+                    
                     var song = new Song
                         { Url = componentData.CustomId, VoiceChannel = user.VoiceChannel };
 

@@ -12,4 +12,7 @@ public interface IRadioCommand
     Task TellJoke([Remainder] string command);
     Task TellQuote([Remainder] string command);
     Task UserStatsCommand([Remainder] string command);
+    Task BlacklistCommand([Remainder] string command);
+    Task UnblacklistCommand([Remainder] string command);
+    Task BlacklistListCommand();
 }
