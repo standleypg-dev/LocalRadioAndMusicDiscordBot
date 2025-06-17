@@ -15,31 +15,24 @@ public class DevRadioCommands(
         IRadioCommand
 {
     [Command("playdev")]
-    [Summary("Plays a song or a radio station.")]
     public new async Task PlayCommand([Remainder] string command) => await base.PlayCommand(command);
 
     [Command("helpdev")]
-    [Summary("Displays the help message for the bot commands.")]
     public new async Task HelpCommand() => await base.HelpCommand();
 
     [Command("stopdev")]
-    [Summary("Stops the currently playing song or radio station.")]
     public new async Task StopCommand() => await base.StopCommand();
 
     [Command("nextdev")]
-    [Summary("Skips to the next song in the queue.")]
     public new async Task NextCommand() => await base.NextCommand();
 
     [Command("playlistdev")]
-    [Summary("Displays the current playlist.")]
     public new async Task QueueCommand() => await base.QueueCommand();
 
     [Command("telldev")]
-    [Summary("Tells a random joke or quote.")]
     public new async Task TellJoke([Remainder] string command) => await base.TellJoke(command);
 
     [Command("motivatedev")]
-    [Summary("Tells a random motivational quote.")]
     public new async Task TellQuote([Remainder] string command) => await base.TellQuote(command);
 
     [Command("statsdev")]

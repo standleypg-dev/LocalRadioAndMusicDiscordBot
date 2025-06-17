@@ -1,5 +1,6 @@
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
 using radio_discord_bot.Models.Stats;
@@ -19,8 +20,14 @@ public class BaseRadioCommands(
     IConfiguration configuration)
     : ModuleBase<SocketCommandContext>, IRadioCommand
 {
+    [Summary("Plays a song or a radio station.")]
     public async Task PlayCommand([Remainder] string command)
     {
+        if (!IsUserEligibleForCommand(Context.User))
+        {
+            return;
+        }
+        
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
         if (command.Equals("radio"))
@@ -63,6 +70,7 @@ public class BaseRadioCommands(
         }
     }
 
+    [Summary("Displays the help message for the bot commands.")]
     public async Task HelpCommand()
     {
         var helpMessage = ConfigurationHelper.GetConfiguration<HelpMessage>(configuration, "HelpMessage");
@@ -74,15 +82,27 @@ public class BaseRadioCommands(
         await ReplyAsync(embed: embed);
     }
 
+    [Summary("Stops the currently playing song or radio station.")]
     public async Task StopCommand()
     {
+        if (!IsUserEligibleForCommand(Context.User))
+        {
+            return;
+        }
+
         await ReplyAsync("Stopping radio..");
         await audioPlayer.DestroyVoiceChannelAsync();
         await queueService.ClearQueueAsync();
     }
 
+    [Summary("Skips to the next song in the queue.")]
     public async Task NextCommand()
     {
+        if (!IsUserEligibleForCommand(Context.User))
+        {
+            return;
+        }
+
         if ((await queueService.GetQueueAsync()).Count == 1)
             await ReplyAsync("No songs in queue. Nothing to next.");
         else
@@ -92,6 +112,7 @@ public class BaseRadioCommands(
         }
     }
 
+    [Summary("Displays the current playlist.")]
     public async Task QueueCommand()
     {
         var songs = await queueService.GetQueueAsync();
@@ -109,22 +130,29 @@ public class BaseRadioCommands(
         }
     }
 
+    [Summary("Tells a random joke.")]
     public async Task TellJoke([Remainder] string command)
     {
+        using var scope = serviceProvider.CreateScope();
+        var jokeService = scope.ServiceProvider.GetRequiredService<IJokeService>();
         if (command.Equals("joke"))
         {
             await ReplyAsync(await jokeService.GetJokeAsync(), isTTS: true);
         }
     }
-
+    
+    [Summary("Tells a random motivational quote.")]
     public async Task TellQuote([Remainder] string command)
     {
+        using var scope = serviceProvider.CreateScope();
+        var quoteService = scope.ServiceProvider.GetRequiredService<IQuoteService>();
         if (command.Equals("me"))
         {
             await ReplyAsync(await quoteService.GetQuoteAsync(), isTTS: true);
         }
     }
 
+    [Summary("Displays user statistics.")]
     public async Task UserStatsCommand(string command)
     {
         command = command.ToLowerInvariant().Trim();
@@ -207,5 +235,24 @@ public class BaseRadioCommands(
                     string.Join(Environment.NewLine,
                         recentPlays.Select(rp => $"{rp.Title} at {rp.PlayedAt.ToLocalTime():g}")));
         }
+    }
+
+    private bool IsUserEligibleForCommand(SocketUser user)
+    {
+        // check if user is in the voice channel
+        if (user is not SocketGuildUser guildUser || guildUser.VoiceChannel == null)
+        {
+            ReplyAsync("You need to be in a voice channel to use this command.");
+            return false;
+        }
+
+        // check if user is self deafened or deafened
+        if (guildUser.IsSelfDeafened || guildUser.IsDeafened)
+        {
+            ReplyAsync("You cannot use this command while deafened.");
+            return false;
+        }
+
+        return true;
     }
 }

@@ -13,5 +13,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include=".env" />
+    <Content Include="docker-compose.override.yml" />
   </ItemGroup>
 </Project>
