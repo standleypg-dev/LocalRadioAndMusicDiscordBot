@@ -1,0 +1,10 @@
+services:
+  radio-discord-bot:
+    build:
+      args:
+        BUILD_CONFIGURATION: Debug
+    volumes:
+      - ../src:/app/src
+      - ../Data:/app/Data
+      - ../Domain:/app/Domain
+    entrypoint: ["dotnet", "radio-discord-bot.dll", "--wait-for-debugger"]

@@ -34,18 +34,25 @@ public class InteractionService(
             {
                 await component.DeferAsync();
                 _globalStore.Set(component);
-                var userVoiceChannel = (interaction.User as SocketGuildUser)?.VoiceChannel;
-                if (userVoiceChannel is null)
+                var user = interaction.User as SocketGuildUser;
+
+                if (user is not { } guildUser || guildUser.VoiceChannel == null)
                 {
-                    await ReplyToChannel.FollowupAsync(component,
-                        "You need to be in a voice channel to activate the bot.");
+                    await ReplyToChannel.FollowupAsync(component, "You need to be in a voice channel to use this command.");
+                    return;
+                }
+
+                // check if user is self deafened or deafened
+                if (guildUser.IsSelfDeafened || guildUser.IsDeafened)
+                {
+                    await ReplyToChannel.FollowupAsync(component, "You cannot use this command while deafened.");
                     return;
                 }
 
                 var componentData = _globalStore.Get<SocketMessageComponent>()!.Data;
                 var radio = ConfigurationHelper.GetConfiguration<List<Radio>>(configuration, "Radios")
                     .Find(x => x.Name == componentData.CustomId);
-                if (componentData.CustomId.Contains("FM"))
+                if (componentData.CustomId.Contains("FM") && componentData.CustomId.Length < 20)
                 {
                     if (radio != null)
                     {
@@ -60,7 +67,7 @@ public class InteractionService(
                     var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService>();
 
                     var song = new Song
-                        { Url = componentData.CustomId, VoiceChannel = userVoiceChannel };
+                        { Url = componentData.CustomId, VoiceChannel = user.VoiceChannel };
 
                     await statisticsService.LogSongPlayAsync(component.User, song);
 

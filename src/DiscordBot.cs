@@ -9,7 +9,6 @@ public class DiscordBot(DiscordSocketClient client,
     IInteractionService interactionService,
     Startup appStartup,
     IQueueService queueService,
-    ISpotifyService spotifyService,
     IConfiguration configuration) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken)

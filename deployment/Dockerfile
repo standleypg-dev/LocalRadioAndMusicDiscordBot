@@ -30,7 +30,7 @@ COPY Domain/ Domain/
 WORKDIR /app/src
 
 # Build the application
-RUN dotnet build "radio-discord-bot.csproj" -c $BUILD_CONFIGURATION -o /app/build --os linux
+RUN dotnet build "radio-discord-bot.csproj" -c $BUILD_CONFIGURATION -o /app/build --os linux --p:DebugSymbols=true --p:DebugType=portable
 
 # Stage 3: Publish the application
 FROM build AS publish
