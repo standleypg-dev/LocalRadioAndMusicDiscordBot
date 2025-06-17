@@ -5,6 +5,7 @@ using radio_discord_bot.Configs;
 using radio_discord_bot.Models;
 using radio_discord_bot.Models.Stats;
 using radio_discord_bot.Services.Interfaces;
+using radio_discord_bot.Store;
 using radio_discord_bot.Utils;
 using YoutubeExplode;
 using YoutubeExplode.Common;
@@ -17,6 +18,7 @@ public class BaseRadioCommands(
     IQuoteService quoteService,
     IQueueService queueService,
     IServiceProvider serviceProvider,
+    GlobalStore globalStore,
     IConfiguration configuration)
     : ModuleBase<SocketCommandContext>, IRadioCommand
 {
@@ -133,8 +135,6 @@ public class BaseRadioCommands(
     [Summary("Tells a random joke.")]
     public async Task TellJoke([Remainder] string command)
     {
-        using var scope = serviceProvider.CreateScope();
-        var jokeService = scope.ServiceProvider.GetRequiredService<IJokeService>();
         if (command.Equals("joke"))
         {
             await ReplyAsync(await jokeService.GetJokeAsync(), isTTS: true);
@@ -144,8 +144,6 @@ public class BaseRadioCommands(
     [Summary("Tells a random motivational quote.")]
     public async Task TellQuote([Remainder] string command)
     {
-        using var scope = serviceProvider.CreateScope();
-        var quoteService = scope.ServiceProvider.GetRequiredService<IQuoteService>();
         if (command.Equals("me"))
         {
             await ReplyAsync(await quoteService.GetQuoteAsync(), isTTS: true);
@@ -236,6 +234,84 @@ public class BaseRadioCommands(
                         recentPlays.Select(rp => $"{rp.Title} at {rp.PlayedAt.ToLocalTime():g}")));
         }
     }
+    
+    [Summary("Blacklists a song from the queue.")]
+    public async Task BlacklistCommand([Remainder] string command)
+    {
+        if (!IsAdminUser(Context.User))
+        {
+            await ReplyAsync("You do not have permission to use this command.");
+            return;
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
+
+        if (command.Equals("this"))
+        {
+            if (!globalStore.TryGet<Queue<Song>>(out var songs))
+            {
+                await ReplyAsync("No songs in queue to blacklist.");
+                return;
+            }
+            
+            var song = songs.Peek();
+            await blacklistService.AddToBlacklistAsync(song.Url);
+            await ReplyAsync($"Blacklisted {song.Title} ({song.Url}) from the queue.");
+            
+            // if the the queue has only one song, stop it
+            if (songs.Count == 1)
+            {
+                await StopCommand();
+            }
+            else
+            {
+                await NextCommand();
+            }
+        }
+    }
+    
+    [Summary("Unblacklists a song from the queue.")]
+    public async Task UnblacklistCommand([Remainder] string command)
+    {
+        if (!IsAdminUser(Context.User))
+        {
+            await ReplyAsync("You do not have permission to use this command.");
+            return;
+        }
+
+        using var scope = serviceProvider.CreateScope();
+        var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
+
+        if (command.Equals(command, StringComparison.OrdinalIgnoreCase))
+        {
+            await blacklistService.RemoveFromBlacklistAsync(command);
+            await ReplyAsync($"Unblacklisted ({command}) from the queue. This will take effect only if the song have been blacklisted before.");
+        }
+    }
+    
+    // get list of blacklisted songs
+    [Summary("Lists all blacklisted songs.")]
+    public async Task BlacklistListCommand()
+    {
+        using var scope = serviceProvider.CreateScope();
+        var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
+
+        var blacklistedSongs = await blacklistService.GetBlacklistedSongsAsync();
+
+        if (blacklistedSongs.Count == 0)
+        {
+            await ReplyAsync("No songs are currently blacklisted.");
+            return;
+        }
+
+        var embed = new EmbedBuilder()
+            .WithTitle("Blacklisted Songs")
+            .WithDescription(string.Join(Environment.NewLine, blacklistedSongs.Select(s => s.Title)))
+            .Build();
+
+        await ReplyAsync(embed: embed);
+    }
 
     private bool IsUserEligibleForCommand(SocketUser user)
     {
@@ -254,5 +330,11 @@ public class BaseRadioCommands(
         }
 
         return true;
+    }
+    
+    private static bool IsAdminUser(SocketUser user)
+    {
+        // Check if the user is an admin (you can customize this logic)
+        return user is SocketGuildUser { GuildPermissions.Administrator: true };
     }
 }

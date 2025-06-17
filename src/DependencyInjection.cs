@@ -42,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<YoutubeClient>();
         services.AddScoped<IYoutubeService, YoutubeService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
+        services.AddScoped<IBlacklistService, BlacklistService>();
         services.AddScoped<IUserService, UserService>();
         
         services.AddTransient<ISpotifyService, SpotifyService>();
