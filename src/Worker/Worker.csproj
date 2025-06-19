@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <RootNamespace>Worker</RootNamespace>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <UserSecretsId>e2fb2202-35a6-45f6-88ad-5961cbfb63d7</UserSecretsId>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Update="appsettings.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.6" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.6" />
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2"/>
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Application\Application.csproj" />
+      <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Models\" />
+    </ItemGroup>
+    <Target Name="CopyLibsAfterBuild" AfterTargets="Build" Condition="'$(OS)' == 'Unix'">
+        <Message Text="Copying native libraries..." Importance="high"/>
+        <Copy SourceFiles="/usr/lib64/libsodium.so"
+              DestinationFolder="$(OutputPath)"/>
+        <Copy SourceFiles="/usr/lib64/libopus.so"
+              DestinationFolder="$(OutputPath)"/>
+        <Copy SourceFiles="/usr/bin/yt-dlp"
+              DestinationFolder="$(OutputPath)"/>
+    </Target>
+
+</Project>
