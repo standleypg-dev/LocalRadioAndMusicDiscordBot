@@ -4,7 +4,8 @@ services:
       args:
         BUILD_CONFIGURATION: Debug
     volumes:
-      - ../src:/app/src
-      - ../Data:/app/Data
-      - ../Domain:/app/Domain
-    entrypoint: ["dotnet", "radio-discord-bot.dll", "--wait-for-debugger"]
+      - ../src/Worker:/app/Worker
+      - ../src/Data:/app/Data
+      - ../src/Domain:/app/Domain
+      - ../src/Infrastructure:/app/Infrastructure
+    entrypoint: ["dotnet", "Worker.dll", "--wait-for-debugger"]

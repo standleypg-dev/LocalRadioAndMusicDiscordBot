@@ -1,6 +1,9 @@
 <Solution>
-  <Project Path="Data\Data.csproj" Type="Classic C#" />
+  <Folder Name="/src/">
+    <Project Path="src/Domain/Domain.csproj" Type="Classic C#" />
+    <Project Path="src/Infrastructure/Infrastructure.csproj" Type="Classic C#" />
+    <Project Path="src/Worker/Worker.csproj" />
+    <Project Path="src/Application/Application.csproj" Type="Classic C#" />
+  </Folder>
   <Project Path="deployment/docker-compose.dcproj" />
-  <Project Path="Domain\Domain.csproj" Type="Classic C#" />
-  <Project Path="src/radio-discord-bot.csproj" />
 </Solution>
