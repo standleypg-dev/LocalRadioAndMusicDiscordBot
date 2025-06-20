@@ -1,6 +1,5 @@
 using Application.DTOs;
-using ApplicationDto.DTOs;
-using ApplicationDto.DTOs.Spotify;
+using Application.DTOs.Spotify;
 using Discord;
 using YoutubeExplode.Search;
 

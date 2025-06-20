@@ -1,18 +1,13 @@
 using Application.DTOs;
-using Application.Interfaces;
 using Application.Interfaces.Services;
 using Application.Services;
 using Application.Store;
-using ApplicationDto.DTOs;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Infrastructure.Commands;
-using Infrastructure.Interfaces;
 using Infrastructure.Interfaces.Services;
 using Infrastructure.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using YoutubeExplode;
 
 namespace Worker;

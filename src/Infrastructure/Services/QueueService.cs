@@ -1,8 +1,7 @@
 using Application.DTOs;
+using Application.DTOs.Spotify;
 using Application.Interfaces.Services;
 using Application.Store;
-using ApplicationDto.DTOs;
-using ApplicationDto.DTOs.Spotify;
 using Discord.WebSocket;
 using Infrastructure.Utils;
 using Microsoft.Extensions.DependencyInjection;

@@ -2,40 +2,21 @@ using Domain.Common;
 
 namespace Domain.Entities;
 
-public class PlayHistory: EntityBase
+public class PlayHistory(DateTimeOffset playedAt, ulong userId, Guid songId)
+    : EntityBase
 {
-    public Guid Id { get; private set; }
+    public Guid Id { get; init; }
 
-    public DateTime PlayedAt
-    {
-        get
-        {
-            var malaysiaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Singapore");
-            return TimeZoneInfo.ConvertTimeFromUtc(field, malaysiaTimeZone);
-        }
-        
-        private set;
-    }
+    public DateTimeOffset PlayedAt { get; init; } = playedAt;
+
+    public ulong UserId { get; init; } = userId;
+    public User? User { get; init; }
+
+    public Guid SongId { get; init; } = songId;
+    public Song? Song { get; init; }
     
-    public ulong UserId { get; private set; }
-    public User User { get; private set; }
-    
-    public Guid SongId { get; private set; }
-    public Song Song { get; private set; }
-    
-    private PlayHistory()
+    public static PlayHistory Create(DateTimeOffset playedAt, ulong userId, Guid songId)
     {
-        // EF Core requires a parameterless constructor for entity instantiation
-    }
-    private PlayHistory(DateTime playedAt, User user, Song song)
-    {
-        PlayedAt = playedAt;
-        User = user;
-        Song = song;
-    }
-    
-    public static PlayHistory Create(DateTime playedAt, User user, Song song)
-    {
-        return new PlayHistory(playedAt, user, song);
+        return new PlayHistory(playedAt, userId, songId);
     }
 }

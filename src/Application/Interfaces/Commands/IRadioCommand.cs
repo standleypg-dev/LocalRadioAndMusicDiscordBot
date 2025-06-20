@@ -1,8 +1,7 @@
 
 namespace Application.Interfaces.Commands;
 
-public interface IRadioCommand<in TCommand, TContext>
-    where TContext : class
+public interface IRadioCommand<in TCommand>
 {
     Task PlayCommand(TCommand command);
     Task HelpCommand();

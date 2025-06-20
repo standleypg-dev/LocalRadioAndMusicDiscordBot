@@ -47,7 +47,7 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
 
             var isHelpDm = context.IsPrivate && msg.ToString().Equals("help");
 
-            var commandPrefix = ConfigurationHelper.GetConfiguration<string>(configuration, "Discord:Prefix");
+            var commandPrefix = configuration.GetConfiguration<string>("Discord:Prefix");
             if (msg.HasStringPrefix(commandPrefix, ref argPos) || isHelpDm)
             {
                 var result = await commands.ExecuteAsync(context, isHelpDm ? 0 : argPos, serviceProvider);

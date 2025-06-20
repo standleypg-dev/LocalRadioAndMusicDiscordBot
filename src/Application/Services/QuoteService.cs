@@ -7,7 +7,7 @@ namespace Application.Services;
 
 public class QuoteService(IHttpRequestService httpRequestService, IConfiguration configuration) : IQuoteService
 {
-    private readonly JokeQuoteSettingDto _quoteConfig = ConfigurationHelper.GetConfiguration<JokeQuoteSettingDto>(configuration, "QuoteSettings")!;
+    private readonly JokeQuoteSettingDto _quoteConfig = configuration.GetConfiguration<JokeQuoteSettingDto>("QuoteSettings")!;
 
     public async Task<string> GetQuoteAsync()
     {

@@ -1,6 +1,6 @@
 using Application.DTOs;
+using Application.DTOs.Stats;
 using Application.Interfaces.Services;
-using ApplicationDto.DTOs.Stats;
 using Discord.WebSocket;
 using Domain.Entities;
 using Infrastructure.Data;
@@ -44,7 +44,7 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
             await context.SaveChangesAsync();
             
             // Log the play
-            var playHistory = PlayHistory.Create(DateTime.UtcNow, user, song);
+            var playHistory = PlayHistory.Create(DateTimeOffset.UtcNow, user.Id, song.Id);
             
             context.PlayHistory.Add(playHistory);
             
@@ -61,12 +61,12 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
         }
     }
 
-    public async Task<List<TopSong>> GetUserTopSongsAsync(ulong userId, int limit = 10)
+    public async Task<List<TopSongDto>> GetUserTopSongsAsync(ulong userId, int limit = 10)
     {
         return await context.PlayHistory
             .Where(ph => ph.UserId == userId)
             .GroupBy(ph => new { ph.SongId, ph.Song.Title})
-            .Select(g => new TopSong
+            .Select(g => new TopSongDto
             {
                 Title = g.Key.Title,
                 PlayCount = g.Count(),
@@ -78,7 +78,7 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
     }
     
     // Get user's total stats
-    public async Task<UserStats?> GetUserStatsAsync(ulong userId)
+    public async Task<UserStatsDto?> GetUserStatsAsync(ulong userId)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return null;
@@ -91,7 +91,7 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
             .Distinct()
             .CountAsync();
         
-        return new UserStats
+        return new UserStatsDto
         {
             Username = user.Username,
             TotalPlays = totalSongs,
@@ -101,12 +101,12 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
     }
     
     // Get user's recent activity
-    public async Task<List<RecentPlay>> GetUserRecentPlaysAsync(ulong userId, int limit = 10)
+    public async Task<List<RecentPlayDto>> GetUserRecentPlaysAsync(ulong userId, int limit = 10)
     {
         return await context.PlayHistory
             .Where(ph => ph.UserId == userId)
             .OrderByDescending(ph => ph.PlayedAt)
-            .Select(ph => new RecentPlay
+            .Select(ph => new RecentPlayDto
             {
                 Title = ph.Song.Title,
                 PlayedAt = ph.PlayedAt
@@ -115,19 +115,19 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
             .ToListAsync();
     }
     
-    public async Task<List<TopSong>> GetTopSongsAsync(bool isToday = false, int limit = 10)
+    public async Task<List<TopSongDto>> GetTopSongsAsync(bool isToday = false, int limit = 10)
     {
         var query = context.PlayHistory.AsQueryable();
         
         if (isToday)
         {
-            var today = DateTime.UtcNow.Date;
+            var today = DateTimeOffset.UtcNow;
             query = query.Where(ph => ph.PlayedAt >= today);
         }
         
         return await query
             .GroupBy(ph => new { ph.SongId, ph.Song.Title })
-            .Select(g => new TopSong
+            .Select(g => new TopSongDto
             {
                 Title = g.Key.Title,
                 PlayCount = g.Count(),

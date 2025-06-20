@@ -18,7 +18,6 @@ public class SearchGenerator(IServiceProvider serviceProvider) : ISearchGenerato
     {
         IReadOnlyList<VideoSearchResult>? videos;
         string title;
-        System.Console.WriteLine(ytSearchCollection);
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
         switch (ytSearchCollection)
@@ -28,8 +27,8 @@ public class SearchGenerator(IServiceProvider serviceProvider) : ISearchGenerato
                 title = "Choose your song";
                 break;
             case YtSearchCollection.Random:
-                var random = new Random();
-                videos = await youtubeClient.Search.GetVideosAsync(command).Skip(10).OrderBy(_ => random.Next()).CollectAsync(5);
+                var random = Random.Shared.Next();
+                videos = await youtubeClient.Search.GetVideosAsync(command).Skip(10).OrderBy(_ => random).CollectAsync(5);
                 title = "You might like these songs";
                 break;
             default:

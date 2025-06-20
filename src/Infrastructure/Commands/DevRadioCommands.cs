@@ -2,7 +2,6 @@ using Application.DTOs;
 using Application.Interfaces.Commands;
 using Application.Interfaces.Services;
 using Application.Store;
-using ApplicationDto.DTOs;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +17,7 @@ public class DevRadioCommands(
     GlobalStore globalStore,
     IConfiguration configuration)
     : BaseRadioCommands(audioPlayer, jokeService, quoteService, queueService, serviceProvider, globalStore, configuration),
-        IRadioCommand<string, SocketCommandContext>
+        IRadioCommand<string>
 {
     [Command("playdev")]
     public new async Task PlayCommand([Remainder] string command) => await base.PlayCommand(command);

@@ -15,24 +15,17 @@ public class DiscordBotContext(DbContextOptions<DiscordBotContext> options) : Db
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Username).IsUnique();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
         
         modelBuilder.Entity<Song>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.SourceUrl).IsUnique();
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
         
         modelBuilder.Entity<PlayHistory>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.PlayedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
         });
     }
 }

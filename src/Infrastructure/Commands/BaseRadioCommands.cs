@@ -1,10 +1,9 @@
 using Application.Configs;
 using Application.DTOs;
+using Application.DTOs.Stats;
 using Application.Interfaces.Commands;
 using Application.Interfaces.Services;
 using Application.Store;
-using ApplicationDto.DTOs;
-using ApplicationDto.DTOs.Stats;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -24,7 +23,7 @@ public class BaseRadioCommands(
     IServiceProvider serviceProvider,
     GlobalStore globalStore,
     IConfiguration configuration)
-    : ModuleBase<SocketCommandContext>, IRadioCommand<string, SocketCommandContext>
+    : ModuleBase<SocketCommandContext>, IRadioCommand<string>
 {
     [Summary("Plays a song or a radio station.")]
     public async Task PlayCommand([Remainder] string command)
@@ -39,7 +38,7 @@ public class BaseRadioCommands(
         if (command.Equals("radio"))
         {
             MessageComponentGenerator.GenerateComponents(
-                ConfigurationHelper.GetConfiguration<List<RadioDto>>(configuration, "Radios"),
+                configuration.GetConfiguration<List<RadioDto>>("Radios"),
                 colInRow: 2);
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your favorite radio station:")
@@ -48,7 +47,7 @@ public class BaseRadioCommands(
 
             await ReplyAsync(embed: embed,
                 components: MessageComponentGenerator.GenerateComponents(
-                    ConfigurationHelper.GetConfiguration<List<RadioDto>>(configuration, "Radios"), colInRow: 3));
+                    configuration.GetConfiguration<List<RadioDto>>("Radios"), colInRow: 3));
         }
         else if (Uri.TryCreate(command, UriKind.Absolute, out _))
         {
@@ -79,7 +78,7 @@ public class BaseRadioCommands(
     [Summary("Displays the help message for the bot commands.")]
     public async Task HelpCommand()
     {
-        var helpMessage = ConfigurationHelper.GetConfiguration<HelpMessageDto>(configuration, "HelpMessage");
+        var helpMessage = configuration.GetConfiguration<HelpMessageDto>("HelpMessage");
         var embed = new EmbedBuilder()
             .WithTitle(helpMessage.Title)
             .WithDescription(helpMessage.Description)
@@ -162,9 +161,9 @@ public class BaseRadioCommands(
         var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
         var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
-        UserStats? userStats;
-        List<TopSong> topSongs;
-        List<RecentPlay> recentPlays;
+        UserStatsDto? userStats;
+        List<TopSongDto> topSongs;
+        List<RecentPlayDto> recentPlays;
         var embed = new EmbedBuilder();
 
         if (command.Equals("me") || command.Equals("mine"))
@@ -226,16 +225,16 @@ public class BaseRadioCommands(
                     .WithAuthor(Context.User.Username,
                         Context.User.GetAvatarUrl() ?? Context.User.GetDefaultAvatarUrl());
             }
-
+            
             embed.WithTitle($"Stats for {userStats.Username}")
-                .AddField("Your first play", userStats.MemberSince.ToLocalTime().ToString("g"))
+                .AddField("Your first play", userStats.MemberSince.ToLocalTime().ToString("MM/dd/yyyy HH:mm"))
                 .AddField("Total Plays", userStats.TotalPlays)
                 .AddField("Unique Songs", userStats.UniqueSongs)
                 .AddField("Top Songs",
                     string.Join(Environment.NewLine, topSongs.Select(ts => $"{ts.Title} - {ts.PlayCount} plays")))
                 .AddField("Recent Plays",
                     string.Join(Environment.NewLine,
-                        recentPlays.Select(rp => $"{rp.Title} at {rp.PlayedAt.ToLocalTime():g}")));
+                        recentPlays.Select(rp => $"{rp.Title} at {rp.PlayedAt.ToLocalTime():MM/dd/yyyy HH:mm}")));
         }
     }
     

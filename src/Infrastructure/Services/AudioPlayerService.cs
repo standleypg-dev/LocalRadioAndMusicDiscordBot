@@ -1,7 +1,6 @@
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Application.Store;
-using ApplicationDto.DTOs;
 using Discord;
 using Discord.Audio;
 using Discord.WebSocket;
