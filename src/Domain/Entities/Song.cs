@@ -5,12 +5,11 @@ namespace Domain.Entities;
 
 public class Song: EntityBase
 {
-    public Guid Id { get; private set; }
-    public string SourceUrl { get; private set; }
-    public string Title { get; private set; }
+    public Guid Id { get; init; }
+    public string SourceUrl { get; init; }
+    public string Title { get; init; }
     public bool IsBlacklisted { get; private set; } = false;
     
-    [JsonIgnore]
     public ICollection<PlayHistory> PlayHistories { get; set; } = new List<PlayHistory>();
 
     private Song(string sourceUrl, string title)

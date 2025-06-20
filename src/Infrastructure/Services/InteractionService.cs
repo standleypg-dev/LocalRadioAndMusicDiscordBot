@@ -2,9 +2,7 @@ using Application.Configs;
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Application.Store;
-using ApplicationDto.DTOs;
 using Discord.WebSocket;
-using Domain.Entities;
 using Infrastructure.Interfaces.Services;
 using Infrastructure.Utils;
 using Microsoft.Extensions.Configuration;
@@ -55,7 +53,7 @@ public class InteractionService(
                 }
 
                 var componentData = _globalStore.Get<SocketMessageComponent>()!.Data;
-                var radio = ConfigurationHelper.GetConfiguration<List<RadioDto>>(configuration, "Radios")
+                var radio = configuration.GetConfiguration<List<RadioDto>>("Radios")
                     .Find(x => x.Name == componentData.CustomId);
                 if (componentData.CustomId.Contains("FM") && componentData.CustomId.Length < 20)
                 {

@@ -4,12 +4,14 @@ WORKDIR /deps
 
 RUN dnf upgrade -y && \
     dnf install -y libsodium-devel opus-devel yt-dlp \
-                   ffmpeg dotnet-runtime-9.0 dotnet-sdk-9.0
+                   ffmpeg dotnet-runtime-9.0 dotnet-sdk-9.0 tzdata && \
+                   ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
 
 FROM lib-build AS build
 
 ARG BUILD_CONFIGURATION=Release
 ARG PROJECT_PATH=src/Worker/Worker.csproj
+
 WORKDIR /app
 
 COPY . .
@@ -42,6 +44,8 @@ WORKDIR /app/run
 
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_ENVIRONMENT=Production
+ENV TZ=Asia/Singapore
+
 
 COPY --from=publish /app/publish .
 

@@ -8,7 +8,7 @@ namespace Application.Services;
     public class JokeService(IHttpRequestService httpRequestService, IConfiguration configuration)
         : IJokeService
     {
-        private readonly JokeQuoteSettingDto _jokeConfig = ConfigurationHelper.GetConfiguration<JokeQuoteSettingDto>(configuration, "JokeSettings")!;
+        private readonly JokeQuoteSettingDto _jokeConfig = configuration.GetConfiguration<JokeQuoteSettingDto>("JokeSettings")!;
 
         public async Task<string> GetJokeAsync()
         {

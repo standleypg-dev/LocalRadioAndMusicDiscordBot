@@ -1,5 +1,4 @@
-﻿using Data;
-using Infrastructure.Data;
+﻿using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Worker;
@@ -51,6 +50,5 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while applying migrations.");
     }
 }
-
 
 app.Run();

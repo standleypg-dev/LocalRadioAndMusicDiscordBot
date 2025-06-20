@@ -46,7 +46,7 @@ public class DiscordBot(
         client.UserVoiceStateUpdated += interactionService.OnUserVoiceStateUpdated;
 
         await client.LoginAsync(TokenType.Bot,
-            ConfigurationHelper.GetConfiguration<string>(configuration, "Discord:Token"));
+            configuration.GetConfiguration<string>("Discord:Token"));
         await client.StartAsync();
 
         while (!stoppingToken.IsCancellationRequested)
