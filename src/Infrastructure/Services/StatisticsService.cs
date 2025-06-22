@@ -134,8 +134,11 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
 
         if (isToday)
         {
-            var today = DateTimeOffset.UtcNow;
-            query = query.Where(ph => ph.PlayedAt >= today);
+            var localToday = DateTime.Today;
+            var offset = TimeZoneInfo.Local.GetUtcOffset(localToday);
+            var localDateTime = new DateTimeOffset(localToday, offset);
+            var utcTodayStart = localDateTime.ToUniversalTime(); 
+            query = query.Where(ph => ph.PlayedAt >= utcTodayStart);
         }
 
         return await query
@@ -143,7 +146,7 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
             .Select(g => new TopSongDto
             {
                 Title = g.Key.Title,
-                PlayCount = g.Count(),
+                PlayCount = g.Sum(ph => ph.TotalPlays),
                 LastPlayed = g.Max(ph => ph.PlayedAt)
             })
             .OrderByDescending(ts => ts.PlayCount)

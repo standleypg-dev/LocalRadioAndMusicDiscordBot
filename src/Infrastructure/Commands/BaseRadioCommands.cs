@@ -230,14 +230,14 @@ public class BaseRadioCommands(
             topSongs = await statisticsService.GetTopSongsAsync();
             embed.WithTitle("All Time Top Songs")
                 .WithDescription(string.Join(Environment.NewLine,
-                    topSongs.Select(ts => $"{ts.Title} - {ts.PlayCount} plays")));
+                    topSongs.Select((ts, index) => $"{index + 1}. {ts.Title} - {ts.PlayCount} plays")));
         }
         else if (command.Equals("today"))
         {
             topSongs = await statisticsService.GetTopSongsAsync(isToday: true);
             embed.WithTitle("Today's Top Songs")
                 .WithDescription(string.Join(Environment.NewLine,
-                    topSongs.Select(ts => $"{ts.Title} - {ts.PlayCount} plays")));
+                    topSongs.Select((ts, index) => $"{index + 1}. {ts.Title} - {ts.PlayCount} plays")));
         }
         else
         {
