@@ -37,7 +37,7 @@ public static class DependencyInjection
         services.AddSingleton<IInteractionService, InteractionService>();
         services.AddSingleton<IQueueService<SongDto<SocketVoiceChannel>>, QueueService>();
         services.AddSingleton<INativePlaceMusicProcessorService, FfmpegProcessService>();
-        services.AddSingleton<IAudioPlayerService<SocketVoiceChannel>, AudioPlayerService>();
+        services.AddSingleton<IAudioPlayerService<SongDto<SocketVoiceChannel>, SocketVoiceChannel>, AudioPlayerService>();
         services.AddSingleton<DiscordBot>();
         
         services.AddScoped<YoutubeClient>();

@@ -15,7 +15,7 @@ public sealed class AudioPlayerService(
     ILogger<AudioPlayerService> logger,
     INativePlaceMusicProcessorService ffmpegProcessService,
     IQueueService<SongDto<SocketVoiceChannel>> queueService,
-    IServiceProvider serviceProvider) : IAudioPlayerService<SocketVoiceChannel>
+    IServiceProvider serviceProvider) : IAudioPlayerService<SongDto<SocketVoiceChannel>, SocketVoiceChannel>
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
     private readonly ILogger<AudioPlayerService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -28,12 +28,23 @@ public sealed class AudioPlayerService(
     private bool _isProcessingNextSong;
     private readonly Lock _nextSongLock = new();
 
-    public async Task InitiateVoiceChannelAsync(SocketVoiceChannel? voiceChannel, string audioUrl, bool isYt = false)
+    public async Task InitiateVoiceChannelAsync(SongDto<SocketVoiceChannel> song, bool isYt = false)
     {
+        var voiceChannel = song.VoiceChannel;
+        var audioUrl = song.Url;
+        var userId = song.UserId;
         try
         {
             using var scope = serviceProvider.CreateScope();
             var youtubeService = scope.ServiceProvider.GetRequiredService<IYoutubeService>();
+            var statisticsService = scope.ServiceProvider
+                .GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
+
+            var user = voiceChannel?.GetUser(userId);
+            if (user is not null)
+            {
+                await statisticsService.LogSongPlayAsync(user.Id, user.Username, user.GlobalName, song);
+            }
 
             // Update play state before starting
             _globalStore.Set(new PlayStateDto
@@ -104,7 +115,7 @@ public sealed class AudioPlayerService(
                 {
                     try
                     {
-                        await InitiateVoiceChannelAsync(nextSong.VoiceChannel, nextSong.Url, isYt: true);
+                        await InitiateVoiceChannelAsync(nextSong, isYt: true);
                     }
                     catch (Exception ex)
                     {
@@ -134,99 +145,99 @@ public sealed class AudioPlayerService(
     }
 
     public async Task DestroyVoiceChannelAsync()
-{
-    try
     {
-        _logger.LogInformation("Destroying voice channel connection");
-
-        // Cancel current audio operations (this signals Discord streams to clean up)
-        await CancelCurrentAudioAsync();
-
-        // Additional wait to ensure Discord streams have finished their natural disposal
-        await Task.Delay(100);
-
-        // Clean up audio client
-        if (_globalStore.TryGet<IAudioClient>(out var audioClient))
+        try
         {
-            try
-            {
-                await audioClient.StopAsync();
-                audioClient.Dispose();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error cleaning up audio client");
-            }
-            finally
-            {
-                _globalStore.Clear<IAudioClient>();
-            }
-        }
+            _logger.LogInformation("Destroying voice channel connection");
 
-        // Disconnect from voice channel
-        if (_globalStore.TryGet<SocketVoiceChannel>(out var currentVoiceChannel))
-        {
-            try
-            {
-                await currentVoiceChannel.DisconnectAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error disconnecting from voice channel");
-            }
-            finally
-            {
-                _globalStore.Clear<SocketVoiceChannel>();
-            }
-        }
+            // Cancel current audio operations (this signals Discord streams to clean up)
+            await CancelCurrentAudioAsync();
 
-        // Now safe to dispose cancellation token source
-        lock (_cancellationLock)
-        {
-            if (_cancellationTokenSource != null)
+            // Additional wait to ensure Discord streams have finished their natural disposal
+            await Task.Delay(100);
+
+            // Clean up audio client
+            if (_globalStore.TryGet<IAudioClient>(out var audioClient))
             {
                 try
                 {
-                    // By now, Discord streams should have disposed naturally
-                    _cancellationTokenSource.Dispose();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Already disposed, ignore
+                    await audioClient.StopAsync();
+                    audioClient.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error disposing cancellation token source");
+                    _logger.LogWarning(ex, "Error cleaning up audio client");
                 }
                 finally
                 {
-                    _cancellationTokenSource = null;
+                    _globalStore.Clear<IAudioClient>();
                 }
             }
-        }
 
-        await SetStoppedStateAsync();
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error destroying voice channel");
-        
-        // Try to notify user about the error
-        try
-        {
-            var messageComponent = _globalStore.Get<SocketMessageComponent>();
-            if (messageComponent != null)
+            // Disconnect from voice channel
+            if (_globalStore.TryGet<SocketVoiceChannel>(out var currentVoiceChannel))
             {
-                await ReplyToChannel.FollowupAsync(messageComponent,
-                    $"Error stopping audio: {ex.Message}");
+                try
+                {
+                    await currentVoiceChannel.DisconnectAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error disconnecting from voice channel");
+                }
+                finally
+                {
+                    _globalStore.Clear<SocketVoiceChannel>();
+                }
+            }
+
+            // Now safe to dispose cancellation token source
+            lock (_cancellationLock)
+            {
+                if (_cancellationTokenSource != null)
+                {
+                    try
+                    {
+                        // By now, Discord streams should have disposed naturally
+                        _cancellationTokenSource.Dispose();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Already disposed, ignore
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error disposing cancellation token source");
+                    }
+                    finally
+                    {
+                        _cancellationTokenSource = null;
+                    }
+                }
+            }
+
+            await SetStoppedStateAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error destroying voice channel");
+
+            // Try to notify user about the error
+            try
+            {
+                var messageComponent = _globalStore.Get<SocketMessageComponent>();
+                if (messageComponent != null)
+                {
+                    await ReplyToChannel.FollowupAsync(messageComponent,
+                        $"Error stopping audio: {ex.Message}");
+                }
+            }
+            catch (Exception notifyEx)
+            {
+                _logger.LogWarning(notifyEx, "Could not notify user about destruction error");
             }
         }
-        catch (Exception notifyEx)
-        {
-            _logger.LogWarning(notifyEx, "Could not notify user about destruction error");
-        }
     }
-}
 
     public async Task OnPlaylistChanged()
     {
@@ -243,7 +254,7 @@ public sealed class AudioPlayerService(
                 if (!playState.IsPlaying || playState.IsRadioPlaying)
                 {
                     _logger.LogInformation("Playlist changed, starting new song");
-                    await InitiateVoiceChannelAsync(song.VoiceChannel, song.Url, isYt: true);
+                    await InitiateVoiceChannelAsync(song, isYt: true);
                 }
             }
             else
@@ -306,21 +317,21 @@ public sealed class AudioPlayerService(
             if (voiceChannel is not null)
             {
                 // Ensure voice channel have at least one user
-                if(voiceChannel.ConnectedUsers.Count(u => !u.IsBot) == 0)
+                if (voiceChannel.ConnectedUsers.Count(u => !u.IsBot) == 0)
                 {
                     _logger.LogWarning("Voice channel {ChannelId} has no users, cannot connect", voiceChannel.Id);
                     var messageComponent = _globalStore.Get<SocketMessageComponent>();
                     if (messageComponent != null)
                     {
-                        await ReplyToChannel.FollowupAsync(messageComponent, 
+                        await ReplyToChannel.FollowupAsync(messageComponent,
                             $"Can't connect to '{voiceChannel.Name}' — no users are in the channel. It looks like this command was used in a different voice channel earlier. Please use the command again in the correct channel.");
                     }
-                    
+
                     await SetStoppedStateAsync();
                     await queueService.ClearQueueAsync();
                     return;
                 }
-                
+
                 // Disconnect from current channel first
                 if (_globalStore.TryGet<SocketVoiceChannel>(out var currentVoiceChannel) &&
                     currentVoiceChannel.Id != voiceChannel.Id)
@@ -415,6 +426,7 @@ public sealed class AudioPlayerService(
                 {
                     await bufferedStream.FlushAsync(CancellationToken.None);
                 }
+
                 if (discord != null)
                 {
                     await discord.FlushAsync(CancellationToken.None);
@@ -478,10 +490,10 @@ public sealed class AudioPlayerService(
             {
                 // Cancel the token - Discord streams will detect this and clean up
                 await tokenSource.CancelAsync();
-            
+
                 // Give Discord streams time to detect cancellation and dispose naturally
                 await Task.Delay(200, CancellationToken.None);
-            
+
                 _logger.LogDebug("Cancellation signal sent, Discord streams disposing naturally");
             }
             catch (Exception ex)

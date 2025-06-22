@@ -1,10 +1,10 @@
 namespace Application.Interfaces.Services;
 
-public interface IAudioPlayerService<T>
+public interface IAudioPlayerService<in TSongDtoSocketVoiceChannel, out TSocketVoiceChannel>
 {
-    Task InitiateVoiceChannelAsync(T? voiceChannel, string audioUrl, bool isYt = false);
+    Task InitiateVoiceChannelAsync(TSongDtoSocketVoiceChannel songDto, bool isYt = false);
     Task NextSongAsync();
     Task DestroyVoiceChannelAsync();
     Task OnPlaylistChanged();
-    T? GetBotCurrentVoiceChannel();
+    TSocketVoiceChannel? GetBotCurrentVoiceChannel();
 }

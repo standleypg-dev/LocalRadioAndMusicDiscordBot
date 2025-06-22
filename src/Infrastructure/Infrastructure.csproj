@@ -22,8 +22,4 @@
         <PackageReference Include="Discord.Net" Version="3.17.4"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <Folder Include="Audio\"/>
-    </ItemGroup>
-
 </Project>
