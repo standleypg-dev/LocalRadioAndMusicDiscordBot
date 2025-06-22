@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Infrastructure.Services;
 
 public class InteractionService(
-    IAudioPlayerService<SocketVoiceChannel> audioPlayer,
+    IAudioPlayerService<SongDto<SocketVoiceChannel>, SocketVoiceChannel> audioPlayer,
     DiscordSocketClient client,
     GlobalStore globalStore,
     IQueueService<SongDto<SocketVoiceChannel>> queueService,
@@ -41,7 +41,8 @@ public class InteractionService(
 
                 if (user is not { } guildUser || guildUser.VoiceChannel == null)
                 {
-                    await ReplyToChannel.FollowupAsync(component, "You need to be in a voice channel to use this command.");
+                    await ReplyToChannel.FollowupAsync(component,
+                        "You need to be in a voice channel to use this command.");
                     return;
                 }
 
@@ -53,21 +54,25 @@ public class InteractionService(
                 }
 
                 var componentData = _globalStore.Get<SocketMessageComponent>()!.Data;
-                var radio = configuration.GetConfiguration<List<RadioDto>>("Radios")
+                var radioConfig = configuration.GetConfiguration<List<RadioDto>>("Radios")
                     .Find(x => x.Name == componentData.CustomId);
                 if (componentData.CustomId.Contains("FM") && componentData.CustomId.Length < 20)
                 {
-                    if (radio != null)
+                    if (radioConfig != null)
                     {
-                        await ReplyToChannel.FollowupAsync(component, $"Playing {radio.Name} radio station.");
-                        await audioPlayer.InitiateVoiceChannelAsync(
-                            (interaction.User as SocketGuildUser)?.VoiceChannel, radio.Url);
+                        await ReplyToChannel.FollowupAsync(component, $"Playing {radioConfig.Name} radio station.");
+                        var radio = new SongDto<SocketVoiceChannel>
+                        {
+                            Url = radioConfig.Url,
+                            VoiceChannel = user.VoiceChannel,
+                            UserId = interaction.User.Id,
+                        };
+                        await audioPlayer.InitiateVoiceChannelAsync(radio);
                     }
                 }
                 else
                 {
                     using var scope = serviceProvider.CreateScope();
-                    var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
                     var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
 
                     // Check if the song is blacklisted, if so, do not add it to the queue
@@ -76,11 +81,13 @@ public class InteractionService(
                         await ReplyToChannel.FollowupAsync(component, "This song is blacklisted and cannot be played.");
                         return;
                     }
-                    
-                    var song = new SongDto<SocketVoiceChannel>
-                        { Url = componentData.CustomId, VoiceChannel = user.VoiceChannel };
 
-                    await statisticsService.LogSongPlayAsync(component.User, song);
+                    var song = new SongDto<SocketVoiceChannel>
+                    {
+                        Url = componentData.CustomId,
+                        VoiceChannel = user.VoiceChannel,
+                        UserId = interaction.User.Id,
+                    };
 
                     await queueService.AddSongAsync(song);
                     await audioPlayer.OnPlaylistChanged();

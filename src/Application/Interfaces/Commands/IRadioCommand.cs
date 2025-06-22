@@ -4,6 +4,7 @@ namespace Application.Interfaces.Commands;
 public interface IRadioCommand<in TCommand>
 {
     Task PlayCommand(TCommand command);
+    Task PlayFromPlaylistCommand(TCommand command);
     Task HelpCommand();
     Task StopCommand();
     Task NextCommand();

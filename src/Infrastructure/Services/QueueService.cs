@@ -5,20 +5,21 @@ using Application.Store;
 using Discord.WebSocket;
 using Infrastructure.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 
 namespace Infrastructure.Services;
 
-
 public class QueueService(
     GlobalStore globalStore,
+    ILogger<QueueService> logger,
     IServiceProvider serviceProvider) : IQueueService<SongDto<SocketVoiceChannel>>
 {
     private readonly GlobalStore _globalStore = globalStore ?? throw new ArgumentNullException(nameof(globalStore));
     public event OnSongAdded? SongAdded;
 
-    public async Task AddSongAsync(SongDto<SocketVoiceChannel> songDto)
+    public async Task AddSongAsync(SongDto<SocketVoiceChannel> songDto, bool followup = true)
     {
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
@@ -32,11 +33,19 @@ public class QueueService(
                 songDto.Url = videos[0].Url;
             }
 
-            var songTitle = await youtubeService.GetVideoTitleAsync(songDto.Url);
-            songDto.Title = songTitle;
+            string songTitle = songDto.Title;
+            if (songTitle is null or "")
+            {
+                songTitle = await youtubeService.GetVideoTitleAsync(songDto.Url);
+                songDto.Title = songTitle;
+            }
 
-            await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                $"Added {songTitle} to the queue.");
+            if (_globalStore.TryGet<SocketMessageComponent>(out _) && followup)
+            {
+                await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
+                    $"Added {songTitle} to the queue.");
+            }
+
             SongAdded?.Invoke(songTitle);
 
             // if the store doesn't have a queue, create a new instance of the Queue store
@@ -52,7 +61,8 @@ public class QueueService(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error on AddSongAsync: {ex.Message}");
+            logger.LogError(ex, "Error adding song to queue: {Message}", ex.Message);
+            throw new InvalidOperationException("Failed to add song to queue.", ex);
         }
     }
 

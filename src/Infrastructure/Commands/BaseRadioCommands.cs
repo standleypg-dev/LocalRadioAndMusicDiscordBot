@@ -10,18 +10,20 @@ using Discord.WebSocket;
 using Infrastructure.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 
 namespace Infrastructure.Commands;
 
 public class BaseRadioCommands(
-    IAudioPlayerService<SocketVoiceChannel> audioPlayer,
+    IAudioPlayerService<SongDto<SocketVoiceChannel>, SocketVoiceChannel> audioPlayer,
     IJokeService jokeService,
     IQuoteService quoteService,
     IQueueService<SongDto<SocketVoiceChannel>> queueService,
     IServiceProvider serviceProvider,
     GlobalStore globalStore,
+    ILogger<BaseRadioCommands> logger,
     IConfiguration configuration)
     : ModuleBase<SocketCommandContext>, IRadioCommand<string>
 {
@@ -32,7 +34,7 @@ public class BaseRadioCommands(
         {
             return;
         }
-        
+
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
         if (command.Equals("radio"))
@@ -72,6 +74,60 @@ public class BaseRadioCommands(
                 .Build();
 
             await ReplyAsync(embed: embed, components: MessageComponentGenerator.GenerateComponents(videos.ToList()));
+        }
+    }
+
+    public async Task PlayFromPlaylistCommand([Remainder] string command)
+    {
+        if (!IsUserEligibleForCommand(Context.User))
+        {
+            return;
+        }
+
+        try
+        {
+            using var scope = serviceProvider.CreateScope();
+            var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
+
+            if (Uri.TryCreate(command, UriKind.Absolute, out var playlistUrl))
+            {
+                var playlist = await youtubeClient.Playlists.GetAsync(playlistUrl.ToString());
+                var videos = await youtubeClient.Playlists.GetVideosAsync(playlist.Id);
+
+                int idx = 1;
+                foreach (var video in videos)
+                {
+                    var song = new SongDto<SocketVoiceChannel>
+                    {
+                        Url = $"{video.Url}&index={idx}",
+                        Title = video.Title,
+                        VoiceChannel = (Context.User as SocketGuildUser)?.VoiceChannel,
+                        UserId = Context.User.Id
+                    };
+
+                    await queueService.AddSongAsync(song, followup: false);
+                    idx++;
+                }
+
+                var embed = new EmbedBuilder()
+                    .WithTitle($"Added {videos.Count} songs from playlist: {playlist.Title}")
+                    .WithDescription(string.Join(Environment.NewLine, videos.Select(v => v.Title)))
+                    .WithFooter("Powered by Not So Smart Music Bot")
+                    .Build();
+
+                await ReplyAsync(embed: embed);
+
+                await audioPlayer.OnPlaylistChanged().ConfigureAwait(false);
+            }
+            else
+            {
+                await ReplyAsync("Invalid playlist URL.");
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error in PlayFromPlaylistCommand: {Message}", e.Message);
+            throw;
         }
     }
 
@@ -138,19 +194,13 @@ public class BaseRadioCommands(
     [Summary("Tells a random joke.")]
     public async Task TellJoke([Remainder] string command)
     {
-        if (command.Equals("joke"))
-        {
-            await ReplyAsync(await jokeService.GetJokeAsync(), isTTS: true);
-        }
+        await ReplyAsync(await jokeService.GetJokeAsync(), isTTS: true);
     }
-    
+
     [Summary("Tells a random motivational quote.")]
     public async Task TellQuote([Remainder] string command)
     {
-        if (command.Equals("me"))
-        {
-            await ReplyAsync(await quoteService.GetQuoteAsync(), isTTS: true);
-        }
+        await ReplyAsync(await quoteService.GetQuoteAsync(), isTTS: true);
     }
 
     [Summary("Displays user statistics.")]
@@ -158,7 +208,8 @@ public class BaseRadioCommands(
     {
         command = command.ToLowerInvariant().Trim();
         using var scope = serviceProvider.CreateScope();
-        var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
+        var statisticsService = scope.ServiceProvider
+            .GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
         var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
         UserStatsDto? userStats;
@@ -225,19 +276,21 @@ public class BaseRadioCommands(
                     .WithAuthor(Context.User.Username,
                         Context.User.GetAvatarUrl() ?? Context.User.GetDefaultAvatarUrl());
             }
-            
+
             embed.WithTitle($"Stats for {userStats.Username}")
                 .AddField("Your first play", userStats.MemberSince.ToLocalTime().ToString("MM/dd/yyyy HH:mm"))
                 .AddField("Total Plays", userStats.TotalPlays)
                 .AddField("Unique Songs", userStats.UniqueSongs)
                 .AddField("Top Songs",
-                    string.Join(Environment.NewLine, topSongs.Select(ts => $"{ts.Title} - {ts.PlayCount} plays")))
+                    string.Join(Environment.NewLine,
+                        topSongs.Select((ts, index) => $"{index + 1}. {ts.Title} - {ts.PlayCount} plays")))
                 .AddField("Recent Plays",
                     string.Join(Environment.NewLine,
-                        recentPlays.Select(rp => $"{rp.Title} at {rp.PlayedAt.ToLocalTime():MM/dd/yyyy HH:mm}")));
+                        recentPlays.Select((rp, index) =>
+                            $"{index + 1}. {rp.Title} at {rp.PlayedAt.ToLocalTime():MM/dd/yyyy HH:mm}")));
         }
     }
-    
+
     [Summary("Blacklists a song from the queue.")]
     public async Task BlacklistCommand([Remainder] string command)
     {
@@ -257,11 +310,11 @@ public class BaseRadioCommands(
                 await ReplyAsync("No songs in queue to blacklist.");
                 return;
             }
-            
+
             var song = songs.Peek();
             await blacklistService.AddToBlacklistAsync(song.Url);
             await ReplyAsync($"Blacklisted {song.Title} ({song.Url}) from the queue.");
-            
+
             // if the the queue has only one song, stop it
             if (songs.Count == 1)
             {
@@ -273,7 +326,7 @@ public class BaseRadioCommands(
             }
         }
     }
-    
+
     [Summary("Unblacklists a song from the queue.")]
     public async Task UnblacklistCommand([Remainder] string command)
     {
@@ -289,10 +342,11 @@ public class BaseRadioCommands(
         if (command.Equals(command, StringComparison.OrdinalIgnoreCase))
         {
             await blacklistService.RemoveFromBlacklistAsync(command);
-            await ReplyAsync($"Unblacklisted ({command}) from the queue. This will take effect only if the song have been blacklisted before.");
+            await ReplyAsync(
+                $"Unblacklisted ({command}) from the queue. This will take effect only if the song have been blacklisted before.");
         }
     }
-    
+
     // get list of blacklisted songs
     [Summary("Lists all blacklisted songs.")]
     public async Task BlacklistListCommand()
@@ -334,7 +388,7 @@ public class BaseRadioCommands(
 
         return true;
     }
-    
+
     private static bool IsAdminUser(SocketUser user)
     {
         // Check if the user is an admin (you can customize this logic)
