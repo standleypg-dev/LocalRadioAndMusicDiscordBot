@@ -228,8 +228,7 @@ public sealed class AudioPlayerService(
                 var messageComponent = _globalStore.Get<SocketMessageComponent>();
                 if (messageComponent != null)
                 {
-                    await ReplyToChannel.FollowupAsync(messageComponent,
-                        $"Error stopping audio: {ex.Message}");
+                    await messageComponent.FollowupAsync($"Error stopping audio: {ex.Message}");
                 }
             }
             catch (Exception notifyEx)
@@ -323,7 +322,7 @@ public sealed class AudioPlayerService(
                     var messageComponent = _globalStore.Get<SocketMessageComponent>();
                     if (messageComponent != null)
                     {
-                        await ReplyToChannel.FollowupAsync(messageComponent,
+                        await messageComponent.FollowupAsync(
                             $"Can't connect to '{voiceChannel.Name}' — no users are in the channel. It looks like this command was used in a different voice channel earlier. Please use the command again in the correct channel.");
                     }
 

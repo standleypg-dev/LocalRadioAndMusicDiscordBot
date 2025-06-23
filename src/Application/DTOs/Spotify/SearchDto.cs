@@ -5,5 +5,5 @@ namespace Application.DTOs.Spotify;
 public class SearchDto
 {
     [JsonPropertyName("tracks")] 
-    public TracksDto? Tracks { get; set; }
+    public TracksDto Tracks { get; set; } = new();
 }

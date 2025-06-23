@@ -28,7 +28,8 @@ public class QueueService(
         {
             if (!Uri.TryCreate(songDto.Url, UriKind.Absolute, out _))
             {
-                var item = _globalStore.Get<Items[]>()?.ToList().Find(x => x.Id == songDto.Url);
+                var item = _globalStore.Get<Items[]>()?.ToList().Find(x => x.Id == songDto.Url) ??
+                           throw new ArgumentException("Invalid song URL or ID.");
                 var videos = await youtubeClient.Search.GetVideosAsync(item.Name).CollectAsync(1);
                 songDto.Url = videos[0].Url;
             }
@@ -40,9 +41,9 @@ public class QueueService(
                 songDto.Title = songTitle;
             }
 
-            if (_globalStore.TryGet<SocketMessageComponent>(out _) && followup)
+            if (_globalStore.TryGet<SocketMessageComponent>(out var component) && followup)
             {
-                await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
+                await component.FollowupAsync(
                     $"Added {songTitle} to the queue.");
             }
 
@@ -68,11 +69,15 @@ public class QueueService(
 
     public async Task SkipSongAsync()
     {
-        if (_globalStore.Get<Queue<SongDto<SocketVoiceChannel>>>()?.Count > 0)
-            _globalStore.Get<Queue<SongDto<SocketVoiceChannel>>>()?.Dequeue();
-        else
-            await ReplyToChannel.FollowupAsync(_globalStore.Get<SocketMessageComponent>()!,
-                "There are no songs in the queue.");
+        if (_globalStore.TryGet<Queue<SongDto<SocketVoiceChannel>>>(out var queue) && queue.Count > 0)
+        {
+            queue.Dequeue();
+        }
+        else if (_globalStore.TryGet<SocketMessageComponent>(out var component))
+        {
+            await component.FollowupAsync("There are no songs in the queue.");
+        }
+
     }
 
     public async Task ClearQueueAsync()

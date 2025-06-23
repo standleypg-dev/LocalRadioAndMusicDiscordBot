@@ -41,15 +41,14 @@ public class InteractionService(
 
                 if (user is not { } guildUser || guildUser.VoiceChannel == null)
                 {
-                    await ReplyToChannel.FollowupAsync(component,
-                        "You need to be in a voice channel to use this command.");
+                    await component.FollowupAsync("You need to be in a voice channel to use this command.");
                     return;
                 }
 
                 // check if user is self deafened or deafened
                 if (guildUser.IsSelfDeafened || guildUser.IsDeafened)
                 {
-                    await ReplyToChannel.FollowupAsync(component, "You cannot use this command while deafened.");
+                    await component.FollowupAsync("You cannot use this command while deafened.");
                     return;
                 }
 
@@ -60,7 +59,7 @@ public class InteractionService(
                 {
                     if (radioConfig != null)
                     {
-                        await ReplyToChannel.FollowupAsync(component, $"Playing {radioConfig.Name} radio station.");
+                        await component.FollowupAsync($"Playing {radioConfig.Name} radio station.");
                         var radio = new SongDto<SocketVoiceChannel>
                         {
                             Url = radioConfig.Url,
@@ -78,7 +77,7 @@ public class InteractionService(
                     // Check if the song is blacklisted, if so, do not add it to the queue
                     if (await blacklistService.IsBlacklistedAsync(componentData.CustomId))
                     {
-                        await ReplyToChannel.FollowupAsync(component, "This song is blacklisted and cannot be played.");
+                        await component.FollowupAsync("This song is blacklisted and cannot be played.");
                         return;
                     }
 

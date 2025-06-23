@@ -15,13 +15,14 @@ public class DiscordBot(
     IInteractionService interactionService,
     Startup appStartup,
     IQueueService<SongDto<SocketVoiceChannel>> queueService,
-    GlobalStore globalStore,
+    // GlobalStore globalStore,
     IConfiguration configuration) : BackgroundService
 {
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         queueService.SongAdded += async title =>
         {
+            await Task.CompletedTask;
             // Disable Spotify recommendation for now
             // _ = Task.Run(async () =>
             // {
