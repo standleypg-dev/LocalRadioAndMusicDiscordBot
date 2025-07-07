@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>, StatisticsService>();
         services.AddScoped<IBlacklistService, BlacklistService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IRadioSourceService, RadioSourceService>();
         
         services.AddTransient<ISpotifyService, SpotifyService>();
     }

@@ -8,6 +8,7 @@ public class DiscordBotContext(DbContextOptions<DiscordBotContext> options) : Db
     public DbSet<User> Users { get; set; }
     public DbSet<Song> Songs { get; set; }
     public DbSet<PlayHistory> PlayHistory { get; set; }
+    public DbSet<RadioSource> RadioSources { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +25,11 @@ public class DiscordBotContext(DbContextOptions<DiscordBotContext> options) : Db
         });
         
         modelBuilder.Entity<PlayHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+        });
+        
+        modelBuilder.Entity<RadioSource>(entity =>
         {
             entity.HasKey(e => e.Id);
         });
