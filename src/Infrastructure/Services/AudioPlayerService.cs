@@ -41,7 +41,7 @@ public sealed class AudioPlayerService(
                 .GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
 
             var user = voiceChannel?.GetUser(userId);
-            if (user is not null)
+            if (user is not null && !isYt)
             {
                 await statisticsService.LogSongPlayAsync(user.Id, user.Username, user.GlobalName, song);
             }

@@ -37,19 +37,18 @@ public class BaseRadioCommands(
 
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
+        var radioSourceService = scope.ServiceProvider.GetRequiredService<IRadioSourceService>();
         if (command.Equals("radio"))
         {
-            MessageComponentGenerator.GenerateComponents(
-                configuration.GetConfiguration<List<RadioDto>>("Radios"),
-                colInRow: 2);
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your favorite radio station:")
                 .WithFooter("Powered by RMT & Astro")
                 .Build();
 
+            var radiosSourceList = await radioSourceService.GetAllRadioSourcesAsync();
+            
             await ReplyAsync(embed: embed,
-                components: MessageComponentGenerator.GenerateComponents(
-                    configuration.GetConfiguration<List<RadioDto>>("Radios"), colInRow: 3));
+                components: MessageComponentGenerator.GenerateComponents(radiosSourceList.ToList(), colInRow: 3));
         }
         else if (Uri.TryCreate(command, UriKind.Absolute, out _))
         {

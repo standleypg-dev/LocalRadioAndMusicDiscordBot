@@ -53,16 +53,22 @@ public class InteractionService(
                 }
 
                 var componentData = _globalStore.Get<SocketMessageComponent>()!.Data;
-                var radioConfig = configuration.GetConfiguration<List<RadioDto>>("Radios")
-                    .Find(x => x.Name == componentData.CustomId);
-                if (componentData.CustomId.Contains("FM") && componentData.CustomId.Length < 20)
+                
+                using var scope = serviceProvider.CreateScope();
+                var radioSourceService = scope.ServiceProvider.GetRequiredService<IRadioSourceService>();
+                var isRadioSource = Guid.TryParse(componentData.CustomId, out var radioSourceId);
+                if (isRadioSource)
                 {
-                    if (radioConfig != null)
+                    var radioSource =
+                        (await radioSourceService.GetAllRadioSourcesAsync()).FirstOrDefault(x =>
+                            x.Id == radioSourceId);
+                    
+                    if (radioSource != null)
                     {
-                        await component.FollowupAsync($"Playing {radioConfig.Name} radio station.");
+                        await component.FollowupAsync($"Playing {radioSource.Name} radio station.");
                         var radio = new SongDto<SocketVoiceChannel>
                         {
-                            Url = radioConfig.Url,
+                            Url = radioSource.SourceUrl,
                             VoiceChannel = user.VoiceChannel,
                             UserId = interaction.User.Id,
                         };
@@ -71,10 +77,8 @@ public class InteractionService(
                 }
                 else
                 {
-                    using var scope = serviceProvider.CreateScope();
-                    var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
-
                     // Check if the song is blacklisted, if so, do not add it to the queue
+                    var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
                     if (await blacklistService.IsBlacklistedAsync(componentData.CustomId))
                     {
                         await component.FollowupAsync("This song is blacklisted and cannot be played.");

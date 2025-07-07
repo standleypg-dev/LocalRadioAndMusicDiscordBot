@@ -1,6 +1,7 @@
 using Application.DTOs;
 using Application.DTOs.Spotify;
 using Discord;
+using Domain.Entities;
 using YoutubeExplode.Search;
 
 namespace Infrastructure.Utils;
@@ -18,10 +19,10 @@ public static class MessageComponentGenerator
             var button = new ButtonBuilder()
                 .WithStyle(ButtonStyle.Primary);
 
-            if (item is RadioDto radio)
+            if (item is RadioSource radio)
             {
                 button.WithLabel($"{idx}. {radio.Name}")
-                      .WithCustomId($"{radio.Name}");
+                      .WithCustomId($"{radio.Id}");
             }
             else if (item is VideoSearchResult ytVideo)
             {
