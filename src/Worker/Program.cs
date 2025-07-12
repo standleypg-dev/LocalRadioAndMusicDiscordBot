@@ -10,7 +10,7 @@ builder.Services.AddCors();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDiscordServices();
-// builder.Services.AddHostedService<DiscordBot>();
+builder.Services.AddHostedService<DiscordBot>();
 
 builder.Services.AddDbContext<DiscordBotContext>(options =>
 {
@@ -25,25 +25,13 @@ builder.Services.AddDbContext<DiscordBotContext>(options =>
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-var env = app.Environment;
-var wwwrootPath = env.WebRootPath;
-logger.LogInformation("WebRootPath: {WebRootPath}", wwwrootPath);
-logger.LogInformation("ContentRootPath: {ContentRootPath}", env.ContentRootPath);
-
-if (Directory.Exists(wwwrootPath))
-{
-    var files = Directory.GetFiles(wwwrootPath, "*", SearchOption.AllDirectories);
-    logger.LogInformation("Files in wwwroot: {Files}", string.Join(", ", files));
-}
-else
-{
-    logger.LogWarning("wwwroot directory does not exist at: {WebRootPath}", wwwrootPath);
-}
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseHttpsRedirection();
 
 app.UseCors(policyBuilder =>
 {

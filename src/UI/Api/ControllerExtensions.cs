@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Builder;
 
 namespace Api;
 
-public static class Main
+public static class ControllerExtensions
 {
     public static void AddApiController(this WebApplication app)
     {
         app.MapGet("/statistics-all",
             async (IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>> statisticsService) =>
-                await statisticsService.GetTopSongsAsync()).WithName("GetStatisticsAll");
+                await statisticsService.GetAllSongsAsync()).WithName("GetStatisticsAll");
     }
 }

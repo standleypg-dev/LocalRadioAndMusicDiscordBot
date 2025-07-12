@@ -11,4 +11,5 @@ public interface IStatisticsService<in TSocketUser, in TSongDtoVoiceChannel>
     Task<UserStatsDto?> GetUserStatsAsync(ulong userId);
     Task<List<RecentPlayDto>> GetUserRecentPlaysAsync(ulong userId, int limit = 10);
     Task<List<TopSongDto>> GetTopSongsAsync(bool isToday = false, int limit = 10);
+    Task<List<TopSongDto>> GetAllSongsAsync();
 }

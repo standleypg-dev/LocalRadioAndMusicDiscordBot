@@ -35,7 +35,14 @@
               DestinationFolder="$(OutputPath)"/>
     </Target>
 
-    <!-- Build frontend before building the main project -->
+    <!-- Clean wwwroot before building frontend -->
+    <Target Name="CleanWwwroot" BeforeTargets="BuildFrontend">
+        <Message Text="Cleaning wwwroot..." Importance="high" />
+        <RemoveDir Directories="wwwroot" Condition="Exists('wwwroot')" />
+        <MakeDir Directories="wwwroot" />
+    </Target>
+
+    <!-- Build frontend -->
     <Target Name="BuildFrontend" BeforeTargets="Build">
         <Message Text="Building frontend..." Importance="high" />
         <Exec Command="npm install" WorkingDirectory="../UI/App" />
@@ -53,10 +60,5 @@
               SkipUnchangedFiles="true" />
         <Message Text="Copied frontend files to wwwroot" Importance="high" />
     </Target>
-
-    <!-- Include wwwroot files in publish -->
-    <ItemGroup>
-        <Content Include="wwwroot/**/*" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
 
 </Project>
