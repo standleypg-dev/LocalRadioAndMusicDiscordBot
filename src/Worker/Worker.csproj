@@ -25,6 +25,12 @@
     <ItemGroup>
       <Folder Include="Models\" />
     </ItemGroup>
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\assets\index-CceUKHhc.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\assets\index-wCvp2Xat.js" />
+      <_ContentIncludedByDefault Remove="wwwroot\index.html" />
+      <_ContentIncludedByDefault Remove="wwwroot\logo.png" />
+    </ItemGroup>
     <Target Name="CopyLibsAfterBuild" AfterTargets="Build" Condition="'$(OS)' == 'Unix'">
         <Message Text="Copying native libraries..." Importance="high"/>
         <Copy SourceFiles="/usr/lib64/libsodium.so"

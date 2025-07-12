@@ -138,7 +138,7 @@ export class SongStats extends LitElement {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                ${songs.map((song, index) => html`
+                                ${songs.slice(0, 10).map((song, index) => html`
                                     <tr>
                                         <td>${index + 1}</td>
                                         <td>

@@ -1,12 +1,11 @@
-import {DetailedHTMLProps, HTMLAttributes} from "react";
+import {DashboardApp} from "./src/views/dashboard/dashboard-app";
+import {LoadingSpinner} from "./src/components/loading-spinner/loading-spinner";
 
 export {};
 
 declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            'dashboard-app': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>;
-            'loading-spinner': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>;
-        }
+    interface HTMLElementTagNameMap {
+        'dashboard-app': DashboardApp;
+        'loading-spinner': LoadingSpinner;
     }
 }
