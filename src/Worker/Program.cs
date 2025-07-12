@@ -1,15 +1,16 @@
-﻿using Infrastructure.Data;
+﻿using Api;
+using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Worker;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors();
+builder.Services.AddOpenApi();
 
 builder.Services.AddDiscordServices();
-builder.Services.AddHostedService<DiscordBot>();
+// builder.Services.AddHostedService<DiscordBot>();
 
 builder.Services.AddDbContext<DiscordBotContext>(options =>
 {
@@ -24,10 +25,32 @@ builder.Services.AddDbContext<DiscordBotContext>(options =>
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
+var env = app.Environment;
+var wwwrootPath = env.WebRootPath;
+logger.LogInformation("WebRootPath: {WebRootPath}", wwwrootPath);
+logger.LogInformation("ContentRootPath: {ContentRootPath}", env.ContentRootPath);
 
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
+if (Directory.Exists(wwwrootPath))
+{
+    var files = Directory.GetFiles(wwwrootPath, "*", SearchOption.AllDirectories);
+    logger.LogInformation("Files in wwwroot: {Files}", string.Join(", ", files));
+}
+else
+{
+    logger.LogWarning("wwwroot directory does not exist at: {WebRootPath}", wwwrootPath);
+}
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+app.UseCors(policyBuilder =>
+{
+    policyBuilder.AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader();
+});
 
 // Run database migrations
 using (var scope = app.Services.CreateScope())
@@ -51,4 +74,11 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-await app.RunAsync();
+app.AddApiController();
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapFallbackToFile("index.html");
+
+await app.RunAsync("http://0.0.0.0:5000");

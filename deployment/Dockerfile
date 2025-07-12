@@ -4,8 +4,9 @@ WORKDIR /deps
 
 RUN dnf upgrade -y && \
     dnf install -y libsodium-devel opus-devel yt-dlp \
-                   ffmpeg dotnet-runtime-9.0 dotnet-sdk-9.0 tzdata && \
-                   ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
+                   ffmpeg dotnet-runtime-9.0 dotnet-sdk-9.0 tzdata \
+                   nodejs npm && \
+    ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
 
 FROM lib-build AS build
 
@@ -15,6 +16,13 @@ ARG PROJECT_PATH=src/Worker/Worker.csproj
 WORKDIR /app
 
 COPY . .
+
+# Install npm dependencies for the frontend
+WORKDIR /app/src/UI/App
+RUN npm install
+
+# Go back to app root for dotnet commands
+WORKDIR /app
 
 RUN dotnet restore "$PROJECT_PATH"
 
@@ -37,7 +45,6 @@ RUN dotnet publish "$PROJECT_PATH" \
     --self-contained false \
     --no-restore
 
-
 FROM lib-build AS final
 
 WORKDIR /app/run
@@ -46,11 +53,14 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 ENV DOTNET_ENVIRONMENT=Production
 ENV TZ=Asia/Singapore
 
-
 COPY --from=publish /app/publish .
 
 RUN cp /usr/lib64/libsodium.so* . && \
     cp /usr/bin/yt-dlp . && \
     cp /usr/lib64/libopus.so* . || true
 
+# Ensure wwwroot directory exists
+RUN mkdir -p wwwroot
+
+EXPOSE 5000
 ENTRYPOINT ["dotnet", "Worker.dll"]

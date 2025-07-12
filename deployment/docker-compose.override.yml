@@ -1,11 +1,8 @@
 services:
   radio-discord-bot:
+    ports:
+      - "5000:5000"
     build:
       args:
         BUILD_CONFIGURATION: Debug
-    volumes:
-      - ../src/Worker:/app/Worker
-      - ../src/Data:/app/Data
-      - ../src/Domain:/app/Domain
-      - ../src/Infrastructure:/app/Infrastructure
     entrypoint: ["dotnet", "Worker.dll", "--wait-for-debugger"]

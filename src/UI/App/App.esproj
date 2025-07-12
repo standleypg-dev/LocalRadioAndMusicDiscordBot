@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.3350272">
+
+    <PropertyGroup>
+        <ProjectType>web</ProjectType>
+        <NodePackageManager>npm</NodePackageManager>
+        <JavaScriptRoot>./</JavaScriptRoot>
+        <OutputPath>dist</OutputPath>
+        <BuildCommand>run build</BuildCommand>
+        <CleanCommand>run clean</CleanCommand>
+    </PropertyGroup>
+
+</Project>
