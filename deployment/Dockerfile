@@ -17,10 +17,6 @@ WORKDIR /app
 
 COPY . .
 
-# Install npm dependencies for the frontend
-WORKDIR /app/src/UI/App
-RUN npm install
-
 # Go back to app root for dotnet commands
 WORKDIR /app
 
@@ -59,7 +55,6 @@ RUN cp /usr/lib64/libsodium.so* . && \
     cp /usr/bin/yt-dlp . && \
     cp /usr/lib64/libopus.so* . || true
 
-# Ensure wwwroot directory exists
 RUN mkdir -p wwwroot
 
 EXPOSE 5000
