@@ -3,6 +3,7 @@
         <RootNamespace>Worker</RootNamespace>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <UserSecretsId>e2fb2202-35a6-45f6-88ad-5961cbfb63d7</UserSecretsId>
+        <UseStaticWebAssets>false</UseStaticWebAssets>
     </PropertyGroup>
     <ItemGroup>
         <None Update="appsettings.json">
@@ -10,20 +11,25 @@
         </None>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6"/>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.6" />
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.6" />
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.7" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\Application\Application.csproj" />
       <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+      <ProjectReference Include="..\UI\Api\Api.csproj" />
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Models\" />
+    </ItemGroup>
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\assets\index-CceUKHhc.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\assets\index-wCvp2Xat.js" />
+      <_ContentIncludedByDefault Remove="wwwroot\index.html" />
+      <_ContentIncludedByDefault Remove="wwwroot\logo.png" />
     </ItemGroup>
     <Target Name="CopyLibsAfterBuild" AfterTargets="Build" Condition="'$(OS)' == 'Unix'">
         <Message Text="Copying native libraries..." Importance="high"/>
@@ -33,6 +39,32 @@
               DestinationFolder="$(OutputPath)"/>
         <Copy SourceFiles="/usr/bin/yt-dlp"
               DestinationFolder="$(OutputPath)"/>
+    </Target>
+
+    <!-- Clean wwwroot before building frontend -->
+    <Target Name="CleanWwwroot" BeforeTargets="BuildFrontend">
+        <Message Text="Cleaning wwwroot..." Importance="high" />
+        <RemoveDir Directories="wwwroot" Condition="Exists('wwwroot')" />
+        <MakeDir Directories="wwwroot" />
+    </Target>
+
+    <!-- Build frontend -->
+    <Target Name="BuildFrontend" BeforeTargets="Build">
+        <Message Text="Building frontend..." Importance="high" />
+        <Exec Command="npm install" WorkingDirectory="../UI/App" />
+        <Exec Command="npm run build" WorkingDirectory="../UI/App" />
+        <Message Text="Frontend build complete" Importance="high" />
+    </Target>
+
+    <!-- Copy frontend files to wwwroot -->
+    <Target Name="CopyFrontendFiles" AfterTargets="BuildFrontend" BeforeTargets="Build">
+        <ItemGroup>
+            <FrontendFiles Include="../UI/App/dist/**/*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(FrontendFiles)"
+              DestinationFolder="wwwroot/%(RecursiveDir)"
+              SkipUnchangedFiles="true" />
+        <Message Text="Copied frontend files to wwwroot" Importance="high" />
     </Target>
 
 </Project>

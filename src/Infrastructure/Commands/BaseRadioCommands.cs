@@ -45,7 +45,7 @@ public class BaseRadioCommands(
                 .WithFooter("Powered by RMT & Astro")
                 .Build();
 
-            var radiosSourceList = await radioSourceService.GetAllRadioSourcesAsync();
+            var radiosSourceList = (await radioSourceService.GetAllRadioSourcesAsync()).Where(rs => rs.IsActive);
             
             await ReplyAsync(embed: embed,
                 components: MessageComponentGenerator.GenerateComponents(radiosSourceList.ToList(), colInRow: 3));

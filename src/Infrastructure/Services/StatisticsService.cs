@@ -153,4 +153,18 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
             .Take(limit)
             .ToListAsync();
     }
+
+    public async Task<List<TopSongDto>> GetAllSongsAsync()
+    {
+        return await context.PlayHistory
+            .GroupBy(ph => new { ph.SongId, ph.Song.Title })
+            .Select(g => new TopSongDto
+            {
+                Title = g.Key.Title,
+                PlayCount = g.Sum(ph => ph.TotalPlays),
+                LastPlayed = g.Max(ph => ph.PlayedAt)
+            })
+            .OrderByDescending(ts => ts.PlayCount)
+            .ToListAsync();
+    }
 }

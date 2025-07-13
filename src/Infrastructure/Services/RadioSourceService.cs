@@ -9,7 +9,7 @@ public class RadioSourceService(DiscordBotContext context): IRadioSourceService
 {
     public async Task<IReadOnlyCollection<RadioSource>> GetAllRadioSourcesAsync(CancellationToken cancellationToken = default)
     {
-        return await context.RadioSources.ToListAsync(cancellationToken);
+        return await context.RadioSources.OrderBy(r => r.Name).ToListAsync(cancellationToken);
     }
 
     public async Task<RadioSource> GetRadioSourceByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -18,7 +18,7 @@ public class RadioSourceService(DiscordBotContext context): IRadioSourceService
                throw new KeyNotFoundException($"Radio source with ID {id} not found.");
     }
 
-    public async Task UpdateRadioSourceUrlAsync(Guid id, string newSourceUrl, CancellationToken cancellationToken = default)
+    public async Task UpdateRadioSourceUrlAsync(Guid id, string newSourceUrl, bool isActive, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(newSourceUrl))
         {
@@ -31,10 +31,37 @@ public class RadioSourceService(DiscordBotContext context): IRadioSourceService
             throw new KeyNotFoundException($"Radio source with ID {id} not found.");
         }
         
-        RadioSource.UpdateSourceUrl(radioSource, newSourceUrl);
+        RadioSource.UpdateSourceUrl(radioSource, newSourceUrl, isActive);
         
         context.RadioSources.Update(radioSource);
 
         await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<Guid> AddRadioSourceAsync(string name, string sourceUrl, CancellationToken cancellationToken = default)
+    {
+        var limitCount = await context.RadioSources.CountAsync(cancellationToken);
+        if (limitCount >= 12)
+        {
+            throw new InvalidOperationException("Cannot add more than 12 radio sources.");
+        }
+        
+        var radioSource = RadioSource.Create(name, sourceUrl);
+        context.RadioSources.Add(radioSource);
+        await context.SaveChangesAsync(cancellationToken);
+        
+        return radioSource.Id;
+    }
+
+    public async Task<int> DeleteRadioSourceAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var radioSource = await context.RadioSources.FirstOrDefaultAsync(rs => rs.Id == id, cancellationToken: cancellationToken);
+        if (radioSource == null)
+        {
+            throw new KeyNotFoundException($"Radio source with ID {id} not found.");
+        }
+
+        context.RadioSources.Remove(radioSource);
+        return await context.SaveChangesAsync(cancellationToken);
     }
 }

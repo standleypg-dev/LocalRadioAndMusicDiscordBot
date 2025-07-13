@@ -1,12 +1,13 @@
-﻿using Infrastructure.Data;
+﻿using Api;
+using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Worker;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddCors();
+builder.Services.AddOpenApi();
 
 builder.Services.AddDiscordServices();
 builder.Services.AddHostedService<DiscordBot>();
@@ -25,9 +26,19 @@ builder.Services.AddDbContext<DiscordBotContext>(options =>
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
 app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
+
+app.UseCors(policyBuilder =>
+{
+    policyBuilder.WithOrigins("http://localhost:5000", "http://localhost:5173", "http://192.168.50.243")
+           .AllowAnyMethod()
+           .AllowAnyHeader();
+});
 
 // Run database migrations
 using (var scope = app.Services.CreateScope())
@@ -51,4 +62,11 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-await app.RunAsync();
+app.AddApiController();
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapFallbackToFile("index.html");
+
+await app.RunAsync("http://0.0.0.0:5000");

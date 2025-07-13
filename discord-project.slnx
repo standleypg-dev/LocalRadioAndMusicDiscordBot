@@ -1,9 +1,13 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/Application/Application.csproj" Type="Classic C#" />
-    <Project Path="src/Domain/Domain.csproj" Type="Classic C#" />
-    <Project Path="src/Infrastructure/Infrastructure.csproj" Type="Classic C#" />
+    <Project Path="src/Application/Application.csproj" />
+    <Project Path="src/Domain/Domain.csproj" />
+    <Project Path="src/Infrastructure/Infrastructure.csproj" />
     <Project Path="src/Worker/Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/UI/">
+    <Project Path="src/UI/Api/Api.csproj" />
+    <Project Path="src/UI/App/App.esproj" />
   </Folder>
   <Project Path="deployment/docker-compose.dcproj" />
 </Solution>
