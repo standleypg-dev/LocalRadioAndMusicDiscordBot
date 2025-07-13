@@ -72,8 +72,13 @@ export class RadioAdmin extends LitElement {
             }
         } else {
             // Add new station
-            const newStation = await this.radioSourceService.addRadioSource(name, sourceUrl);
-            this.radioStations.push(newStation);
+            try {
+                const newStation = await this.radioSourceService.addRadioSource(name, sourceUrl);
+                this.radioStations.push(newStation);
+            } catch(e) {
+                alert(`Failed to add radio station: ${e instanceof Error ? e.message : 'Unknown error'}`);
+                return;
+            }
         }
 
         this.radioStations = [...this.radioStations];
@@ -186,7 +191,7 @@ export class RadioAdmin extends LitElement {
                                                 @click=${this.hideModal}>
                                             Cancel
                                         </button>
-                                        <button type="submit" class="form-button glass-card">
+                                        <button type="submit" class="form-button glass-card" style="color: white">
                                             ${this.editingStation ? 'Update Station' : 'Add Station'}
                                         </button>
                                     </div>

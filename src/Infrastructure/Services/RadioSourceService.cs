@@ -40,6 +40,12 @@ public class RadioSourceService(DiscordBotContext context): IRadioSourceService
 
     public async Task<Guid> AddRadioSourceAsync(string name, string sourceUrl, CancellationToken cancellationToken = default)
     {
+        var limitCount = await context.RadioSources.CountAsync(cancellationToken);
+        if (limitCount >= 12)
+        {
+            throw new InvalidOperationException("Cannot add more than 12 radio sources.");
+        }
+        
         var radioSource = RadioSource.Create(name, sourceUrl);
         context.RadioSources.Add(radioSource);
         await context.SaveChangesAsync(cancellationToken);

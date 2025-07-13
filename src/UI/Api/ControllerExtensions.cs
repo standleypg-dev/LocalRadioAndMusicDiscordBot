@@ -43,13 +43,25 @@ public static class ControllerExtensions
             .WithName("GetRadioSourceById");
         
         app.MapPost("/api/radio-sources/add",
-            async (IRadioSourceService radioSourceService, [FromBody] AddRadioSourceRequest request) =>
-            {
-                var id = await radioSourceService.AddRadioSourceAsync(request.Name, request.SourceUrl);
-                var result = await radioSourceService.GetRadioSourceByIdAsync(id);
-                return Results.Created($"/api/radio-sources/{id}", result);
-            })
+                async (IRadioSourceService radioSourceService, [FromBody] AddRadioSourceRequest request) =>
+                {
+                    try
+                    {
+                        var id = await radioSourceService.AddRadioSourceAsync(request.Name, request.SourceUrl);
+                        var result = await radioSourceService.GetRadioSourceByIdAsync(id);
+                        return Results.Created($"/api/radio-sources/{id}", result);
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        return Results.BadRequest(new { error = ex.Message });
+                    }
+                    catch (Exception)
+                    {
+                        return Results.Problem("An unexpected error occurred.");
+                    }
+                })
             .WithName("AddRadioSource");
+
         
         app.MapDelete("/api/radio-sources/{id:guid}",
             async (IRadioSourceService radioSourceService, Guid id) =>

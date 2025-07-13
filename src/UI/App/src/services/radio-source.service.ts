@@ -2,6 +2,7 @@ import type {RadioSource} from "../interfaces/common.interfaces.ts";
 import {createContext} from "@lit/context";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export class RadioSourceService {
     public async loadRadioSources(): Promise<RadioSource[]> {
         const response = await fetch(`${API_BASE_URL}/radio-sources`);
@@ -28,7 +29,7 @@ export class RadioSourceService {
     }
 
     public async deleteRadioSource(sourceId: string): Promise<void> {
-        const response = await fetch(`${API_BASE_URL}/api/radio-sources/${sourceId}`, {
+        const response = await fetch(`${API_BASE_URL}/radio-sources/${sourceId}`, {
             method: 'DELETE',
         });
         if (!response.ok) {
@@ -49,10 +50,11 @@ export class RadioSourceService {
                 }
             ),
         });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.ok) {
+            return await response.json();
         }
-        return await response.json();
+        const errorText = await response.json();
+        throw new Error(JSON.stringify(errorText));
     }
 }
 
