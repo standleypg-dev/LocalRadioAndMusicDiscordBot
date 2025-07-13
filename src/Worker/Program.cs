@@ -35,7 +35,7 @@ app.UseHttpsRedirection();
 
 app.UseCors(policyBuilder =>
 {
-    policyBuilder.WithOrigins("http://localhost:5000", "http://localhost:5173", "http://192.168.50.243")
+    policyBuilder.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
            .AllowAnyMethod()
            .AllowAnyHeader();
 });

@@ -42,7 +42,7 @@ public class BaseRadioCommands(
         {
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your favorite radio station:")
-                .WithFooter("Powered by RMT & Astro")
+                .WithFooter($"Visit us at {configuration.GetValue<string>("WebsiteSettings:Url")}")
                 .Build();
 
             var radiosSourceList = (await radioSourceService.GetAllRadioSourcesAsync()).Where(rs => rs.IsActive);
@@ -58,6 +58,7 @@ public class BaseRadioCommands(
 
             var embed = new EmbedBuilder()
                 .WithTitle("Click to play or to add to the queue:")
+                .WithFooter($"Visit us at {configuration.GetValue<string>("WebsiteSettings:Url")}")
                 .Build();
 
             await ReplyAsync(embed: embed, components: MessageComponentGenerator.GenerateComponents(videos.ToList()));
@@ -70,6 +71,7 @@ public class BaseRadioCommands(
 
             var embed = new EmbedBuilder()
                 .WithTitle("Choose your song")
+                .WithFooter($"Visit us at {configuration.GetValue<string>("WebsiteSettings:Url")}")
                 .Build();
 
             await ReplyAsync(embed: embed, components: MessageComponentGenerator.GenerateComponents(videos.ToList()));
@@ -111,7 +113,7 @@ public class BaseRadioCommands(
                 var embed = new EmbedBuilder()
                     .WithTitle($"Added {videos.Count} songs from playlist: {playlist.Title}")
                     .WithDescription(string.Join(Environment.NewLine, videos.Select(v => v.Title)))
-                    .WithFooter("Powered by Not So Smart Music Bot")
+                    .WithFooter($"Visit us at {configuration.GetValue<string>("WebsiteSettings:Url")}")
                     .Build();
 
                 await ReplyAsync(embed: embed);
@@ -137,6 +139,7 @@ public class BaseRadioCommands(
         var embed = new EmbedBuilder()
             .WithTitle(helpMessage.Title)
             .WithDescription(helpMessage.Description)
+            .WithFooter($"Visit us at {configuration.GetValue<string>("WebsiteSettings:Url")}")
             .Build();
 
         await ReplyAsync(embed: embed);
@@ -257,7 +260,7 @@ public class BaseRadioCommands(
             await BuildUserStatsEmbed();
         }
 
-        embed.WithFooter("Powered by Not So Smart Music Bot");
+        embed.WithFooter($"Visit us at {configuration.GetValue<string>("WebsiteSettings:Url")}");
         await ReplyAsync(embed: embed.Build());
 
         async Task BuildUserStatsEmbed(bool self = false)
@@ -286,7 +289,8 @@ public class BaseRadioCommands(
                 .AddField("Recent Plays",
                     string.Join(Environment.NewLine,
                         recentPlays.Select((rp, index) =>
-                            $"{index + 1}. {rp.Title} at {rp.PlayedAt.ToLocalTime():MM/dd/yyyy HH:mm}")));
+                            $"{index + 1}. {rp.Title} at {rp.PlayedAt.ToLocalTime():MM/dd/yyyy HH:mm}")))
+                .WithFooter($"Visit us at {configuration.GetValue<string>("WebsiteSettings:Url")}");
         }
     }
 

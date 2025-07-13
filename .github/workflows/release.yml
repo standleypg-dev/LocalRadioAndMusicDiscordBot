@@ -34,6 +34,8 @@ jobs:
           echo "SPOTIFY_CLIENT_ID=${{ secrets.SPOTIFY_CLIENT_ID }}" >> .env
           echo "SPOTIFY_CLIENT_SECRET=${{ secrets.SPOTIFY_CLIENT_SECRET }}" >> .env
           echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> .env
+          echo "WEBSITE_URL=${{ secrets.WEBSITE_URL }}" >> .env
+          echo "CORS_ALLOWED_ORIGINS=[${{ secrets.CORS_ALLOWED_ORIGINS }}]" >> .env
 
       - name: Build and run with Docker Compose
         run: |
