@@ -34,6 +34,8 @@ services:
       - SpotifySettings__ClientSecret=${SPOTIFY_CLIENT_SECRET}
       - Discord__Token=${DISCORD_TOKEN}
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Trust Server Certificate=true;
+      - WebsiteSettings__Url=${WEBSITE_URL}
+      - Cors__AllowedOrigins=[${CORS_ALLOWED_ORIGINS}]
     deploy:
       restart_policy:
         condition: on-failure
