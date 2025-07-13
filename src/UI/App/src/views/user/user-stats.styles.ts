@@ -55,7 +55,7 @@ export const UserStatsStyles = [
             color: rgba(255, 255, 255, 0.5);
         }
 
-        .genre-tag {
+        .unique-song {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             color: rgba(255, 255, 255, 0.8);

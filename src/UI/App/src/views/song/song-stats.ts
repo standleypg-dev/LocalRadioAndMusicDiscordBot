@@ -3,15 +3,17 @@ import {customElement, state} from 'lit/decorators.js';
 import {Chart, registerables} from 'chart.js';
 import {SongStatsStyles} from "./song-stats.styles.ts";
 import {Task} from '@lit/task';
-import '../../components/loading-spinner/loading-spinner';
 import {provide} from '@lit/context';
-import {type SongStat, SongStatsService, userServiceContext} from "./song-stats.service.ts";
+import type { SongStat } from '../../interfaces/common.interfaces.ts';
+import {SongStatsService, songStatsServiceCtx} from "../../services/song-stats.service.ts";
+import '../../components/loading-spinner/loading-spinner.ts'
+import '../../components/error/app-error.ts'
 
 Chart.register(...registerables);
 
 @customElement('song-stats')
 export class SongStats extends LitElement {
-    @provide({context: userServiceContext}) songStatsService = new SongStatsService();
+    @provide({context: songStatsServiceCtx}) songStatsService = new SongStatsService();
     @state() viewMode: 'table' | 'chart' = 'table';
 
     static readonly styles = SongStatsStyles;
@@ -162,6 +164,9 @@ export class SongStats extends LitElement {
                     </div>
                 `;
             },
+            error: (e) => html`
+                <app-error message=${e}></app-error>
+            `
         })
     }
 }

@@ -1,11 +1,6 @@
 import {createContext} from "@lit/context";
-
-export interface SongStat {
-    title: string;
-    artist: string;
-    playCount: number;
-    lastPlayed: Date;
-}
+import type {SongStat} from "../interfaces/common.interfaces.ts";
+import {API_BASE_URL} from "./radio-source.service.ts";
 
 export class SongStatsService {
 
@@ -18,16 +13,11 @@ export class SongStatsService {
     }
 
     public async loadSongStats(): Promise<SongStat[]> {
-        try {
-            const response = await fetch('http://localhost:5000/statistics-all');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.error('Error loading song stats:', error);
-            return [];
+        const response = await fetch(`${API_BASE_URL}/statistics-all`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        return await response.json();
     }
 
     private removeFancyUnicode(input: string): string {
@@ -52,4 +42,4 @@ export class SongStatsService {
     }
 }
 
-export const userServiceContext = createContext<SongStatsService>('song-stats-service');
+export const songStatsServiceCtx = createContext<SongStatsService>('song-stats-service');

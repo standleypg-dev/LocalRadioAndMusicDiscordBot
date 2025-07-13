@@ -95,6 +95,14 @@ export const DashboardAppStyles = [
             opacity: 0;
             animation: fadeIn 0.5s ease forwards;
         }
+        
+        .login {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            width: 20px;
+        }
 
         @keyframes fadeIn {
             to {

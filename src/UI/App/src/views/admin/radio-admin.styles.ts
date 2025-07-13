@@ -18,12 +18,12 @@ export const RadioAdminStyles = [
             font-size: 0.9rem;
             background: rgba(76, 175, 80, 0.3);
             color: white;
-            
+
             &:hover {
                 background: rgba(76, 175, 80, 0.8);
             }
         }
-        
+
         .radio-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -38,7 +38,7 @@ export const RadioAdminStyles = [
             padding: 1.5rem;
             transition: all 0.3s ease;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-            
+
             &:hover {
                 background: rgba(255, 255, 255, 0.1);
                 transform: translateY(-3px);
@@ -46,7 +46,7 @@ export const RadioAdminStyles = [
                 border-color: rgba(255, 255, 255, 0.2);
             }
         }
-        
+
         .radio-header {
             display: flex;
             justify-content: space-between;
@@ -98,7 +98,7 @@ export const RadioAdminStyles = [
                 font-size: 0.9rem;
             }
         }
-        
+
         .radio-url {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
@@ -110,6 +110,9 @@ export const RadioAdminStyles = [
             color: rgba(255, 255, 255, 0.9);
             word-break: break-all;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            white-space: wrap;
+            max-height: 30px;
+            overflow: hidden;
         }
 
         .radio-actions {
@@ -128,42 +131,42 @@ export const RadioAdminStyles = [
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            
+
             &:hover {
                 transform: translateY(-1px);
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             }
-            
+
             &.edit {
                 background: rgba(0, 122, 255, 0.7);
                 color: white;
-                
+
                 &:hover {
                     background: rgba(0, 122, 255, 0.9);
                 }
             }
-            
+
             &.delete {
                 background: rgba(255, 59, 48, 0.7);
                 color: white;
-                
+
                 &:hover {
                     background: rgba(255, 59, 48, 0.9);
                 }
             }
         }
-        
+
         .form-checkbox {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             color: rgba(255, 255, 255, 0.8);
-            
+
             input {
                 width: auto;
             }
         }
-        
+
         .form-actions {
             display: flex;
             gap: 1rem;
@@ -174,14 +177,14 @@ export const RadioAdminStyles = [
         .form-button {
             padding: 0.75rem 1.5rem;
             font-size: 0.9rem;
-            
+
             &.secondary {
                 background: rgba(255, 255, 255, 0.1);
                 color: rgba(255, 255, 255, 0.8);
                 border-color: rgba(255, 255, 255, 0.2);
             }
         }
-        
+
         @media (max-width: 768px) {
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);

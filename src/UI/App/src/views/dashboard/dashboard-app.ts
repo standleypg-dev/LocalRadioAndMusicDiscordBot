@@ -9,7 +9,7 @@ import {DashboardAppStyles} from "./dashboard-app.styles.ts";
 
 @customElement('dashboard-app')
 export class DashboardApp extends LitElement {
-    static styles = DashboardAppStyles;
+    static readonly styles = DashboardAppStyles;
 
     @state()
     private currentPath = window.location.pathname;
@@ -20,7 +20,7 @@ export class DashboardApp extends LitElement {
     }
 
     firstUpdated() {
-        const router = new Router(this.renderRoot.querySelector('#outlet')!);
+        const router = new Router(this.renderRoot.querySelector('#outlet'));
         router.setRoutes([
             {path: '/', redirect: '/songs'},
             {path: '/songs', component: 'song-stats'},
@@ -37,6 +37,14 @@ export class DashboardApp extends LitElement {
             {
                 path: '/login',
                 component: 'login-page'
+            },
+            {
+                path: '(.*)',
+                action: async () => {
+                    // Handle 404 or redirect to home
+                    console.warn('Page not found, redirecting to home');
+                    Router.go('/');
+                }
             }
         ]).catch((error) => {
             console.error('Router error:', error);
@@ -61,6 +69,11 @@ export class DashboardApp extends LitElement {
     private handleNavigation(path: string) {
         this.currentPath = path;
         Router.go(path);
+    }
+    
+    private handleLogout() {
+        localStorage.removeItem('authToken');
+        Router.go('/');
     }
 
     render() {
@@ -87,12 +100,20 @@ export class DashboardApp extends LitElement {
                                     class="nav-button glass-button ${this.isActive('/admin')}"
                                     @click=${() => this.handleNavigation('/admin')}
                             >Radio Admin
-                            </button>` : html`
-                            <button
-                                    class="nav-button glass-button ${this.isActive('/login')}"
+                            </button>` : html``}
+                        ${!this.isLoggedIn() ? html`
+                            <div
+                                    class="login ${this.isActive('/login')}"
                                     @click=${() => this.handleNavigation('/login')}
-                            >Login
-                            </button>`}
+                            >
+                                <img src="/log-in.svg" alt="Login" title="Login"/>
+                            </div>` : html`
+                            <div
+                                    class="login"
+                                    @click=${() => this.handleLogout()}
+                            >
+                                <img src="/log-out.svg" alt="Logout" title="Logout"/>
+                            </div>`}
                     </nav>
                 </div>
             </div>
