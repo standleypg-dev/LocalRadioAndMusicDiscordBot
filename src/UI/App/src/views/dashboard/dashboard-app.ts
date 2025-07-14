@@ -1,6 +1,6 @@
 import {LitElement, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
-import {Router, type Route} from '@vaadin/router';
+import {Router} from '@vaadin/router';
 import '../song/song-stats';
 import '../user/user-stats';
 import '../admin/radio-admin';
@@ -13,8 +13,6 @@ export class DashboardApp extends LitElement {
 
     @state()
     private currentPath = window.location.pathname;
-    @state()
-    private isLocal: boolean = false;
 
     isLoggedIn(): boolean {
         // Replace this with your real login logic (e.g., check token, session, etc.)
@@ -23,48 +21,33 @@ export class DashboardApp extends LitElement {
 
     firstUpdated() {
         const router = new Router(this.renderRoot.querySelector('#outlet'));
-        const routes: Route[] = [
+        router.setRoutes([
             {path: '/', redirect: '/songs'},
             {path: '/songs', component: 'song-stats'},
             {path: '/users', component: 'user-stats'},
-        ];
-
-        const hostname = window.location.hostname;
-        this.isLocal =
-            hostname === 'localhost' ||
-            hostname === '127.0.0.1' ||
-            hostname.startsWith('192.168.') ||
-            hostname.endsWith('.local');
-
-        if (this.isLocal) {
-            routes.push(
-                {
-                    path: '/admin',
-                    component: 'radio-admin',
-                    action: async (_context, commands) => {
-                        if (!this.isLoggedIn()) {
-                            return commands.redirect('/login');
-                        }
-                    },
+            {
+                path: '/admin',
+                component: 'radio-admin',
+                action: async (_context, commands) => {
+                    if (!this.isLoggedIn()) {
+                        return commands.redirect('/login');
+                    }
                 },
-                {
-                    path: '/login',
-                    component: 'login-page',
-                }
-            );
-        }
-
-        routes.push({
-            path: '(.*)',
-            action: async () => {
-                console.warn('Page not found, redirecting to home');
-                Router.go('/');
             },
-        });
-
-        router.setRoutes(routes).catch((error) => {
+            {
+                path: '/login',
+                component: 'login-page'
+            },
+            {
+                path: '(.*)',
+                action: async () => {
+                    console.warn('Page not found, redirecting to home');
+                    Router.go('/');
+                }
+            }
+        ]).catch((error) => {
             console.error('Router error:', error);
-            Router.go('/');
+            Router.go('/login');
         });
 
         window.addEventListener('popstate', () => {
@@ -92,41 +75,7 @@ export class DashboardApp extends LitElement {
         Router.go('/');
     }
 
-
     render() {
-        let localContent = html``;
-
-        if (this.isLocal) {
-            let content;
-
-            if (this.isLoggedIn()) {
-                content = html`
-                    <button
-                            class="nav-button glass-button ${this.isActive('/admin')}"
-                            @click=${() => this.handleNavigation('/admin')}
-                    >
-                        Radio Admin
-                    </button>
-                    <div
-                            class="login"
-                            @click=${() => this.handleLogout()}
-                    >
-                        <img src="/log-out.svg" alt="Logout" title="Logout"/>
-                    </div>
-                `;
-            } else {
-                content = html`
-                    <div
-                            class="login ${this.isActive('/login')}"
-                            @click=${() => this.handleNavigation('/login')}
-                    >
-                        <img src="/log-in.svg" alt="Login" title="Login"/>
-                    </div>
-                `;
-            }
-
-            localContent = content;
-        }
         return html`
             <div class="header-container">
                 <div class="header-content">
@@ -145,7 +94,25 @@ export class DashboardApp extends LitElement {
                                 @click=${() => this.handleNavigation('/users')}
                         >User Statistics
                         </button>
-                        ${localContent}
+                        ${this.isLoggedIn() ? html`
+                            <button
+                                    class="nav-button glass-button ${this.isActive('/admin')}"
+                                    @click=${() => this.handleNavigation('/admin')}
+                            >Radio Admin
+                            </button>` : html``}
+                        ${!this.isLoggedIn() ? html`
+                            <div
+                                    class="login ${this.isActive('/login')}"
+                                    @click=${() => this.handleNavigation('/login')}
+                            >
+                                <img src="/log-in.svg" alt="Login" title="Login"/>
+                            </div>` : html`
+                            <div
+                                    class="login"
+                                    @click=${() => this.handleLogout()}
+                            >
+                                <img src="/log-out.svg" alt="Logout" title="Logout"/>
+                            </div>`}
                     </nav>
                 </div>
             </div>

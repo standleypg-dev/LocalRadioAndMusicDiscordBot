@@ -3,8 +3,8 @@ export interface UserStatsDto {
     totalPlays: number;
     uniqueSongs: number;
     memberSince: Date;
-    lastPlayed: Date;
-    displayName: string;
+    lastPlayed?: Date | null;
+    displayName?: string | null;
 }
 export interface SongStat {
     title: string;

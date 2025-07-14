@@ -236,6 +236,13 @@ export const commonStyles = css`
         z-index: 1000;
     }
 
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
     .modal-content {
         background: rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(40px) saturate(180%);
@@ -267,6 +274,35 @@ export const commonStyles = css`
         
         &:hover {
             color: rgba(255, 255, 255, 0.9);
+        }
+    }
+
+    .form-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: rgba(255, 255, 255, 0.8);
+
+        input {
+            width: auto;
+        }
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+    }
+
+    .form-button {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+
+        &.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            border-color: rgba(255, 255, 255, 0.2);
         }
     }
     

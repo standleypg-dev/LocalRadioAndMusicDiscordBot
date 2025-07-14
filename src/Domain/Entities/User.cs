@@ -7,7 +7,7 @@ public class User: EntityBase
 {
     public ulong Id { get; init; }
     public string Username { get; init; }
-    public string DisplayName { get; init; }
+    public string? DisplayName { get; init; }
     public int TotalSongsPlayed { get; set; }
     
     public ICollection<PlayHistory> PlayHistories { get; set; } = new List<PlayHistory>();

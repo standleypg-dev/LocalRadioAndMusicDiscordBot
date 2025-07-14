@@ -25,6 +25,7 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
             {
                 user = User.Create(id, userName, globalName);
                 context.Users.Add(user);
+                await context.SaveChangesAsync();
             }
 
             // Find or create song

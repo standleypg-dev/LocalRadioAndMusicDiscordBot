@@ -6,6 +6,7 @@ using Worker;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddApiDependencies(builder.Configuration);
 builder.Services.AddCors();
 builder.Services.AddOpenApi();
 
@@ -22,6 +23,8 @@ builder.Services.AddDbContext<DiscordBotContext>(options =>
             errorCodesToAdd: null);
     });
 });
+
+builder.Services.AddAuthorization(); 
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
@@ -62,6 +65,8 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.AddApiController();
 
 app.UseDefaultFiles();

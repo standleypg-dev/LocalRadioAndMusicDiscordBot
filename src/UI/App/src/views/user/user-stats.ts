@@ -137,10 +137,10 @@ export class UserStats extends LitElement {
                                         <td>${index + 1}</td>
                                         <td>
                                             <div class="user-info">
-                                                <div class="user-avatar">${user.displayName.slice(0,2)}</div>
+                                                <div class="user-avatar">${user.username.slice(0,2)}</div>
                                                 <div class="user-details">
-                                                    <div class="username">${user.displayName}</div>
-                                                    <div class="discriminator">#${user.username}</div>
+                                                    <div class="username">${user.username}</div>
+                                                    <div class="discriminator">#${user.displayName}</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -151,7 +151,7 @@ export class UserStats extends LitElement {
                                             <span class="unique-song">${user.uniqueSongs}</span>
                                         </td>
                                         <td>${user.memberSince.toLocaleString().split('T')[0]}</td>
-                                        <td>${user.lastPlayed.toLocaleString().split('T')[0]}</td>
+                                        <td>${user.lastPlayed?.toLocaleString().split('T')[0]}</td>
                                     </tr>
                                 `)}
                                 </tbody>
