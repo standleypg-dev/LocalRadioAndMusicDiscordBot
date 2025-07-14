@@ -3,6 +3,18 @@ import type {SongStat} from "../interfaces/common.interfaces.ts";
 import {API_BASE_URL} from "./radio-source.service.ts";
 
 export class SongStatsService {
+    public async loadSongStats(): Promise<SongStat[]> {
+        const response = await fetch(`${API_BASE_URL}/statistics-all`,{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    }
 
     public cleanTitle(title: string): string {
         const normalized = this.removeFancyUnicode(title);
@@ -10,14 +22,6 @@ export class SongStatsService {
             .replace(/[\s|]*[([|]?\s*(official|lirik)[^)\]|]*[)\]|]?[\s|]*/gi, '')
             .replace(/[\s|]+$/, '')
             .trim();
-    }
-
-    public async loadSongStats(): Promise<SongStat[]> {
-        const response = await fetch(`${API_BASE_URL}/statistics-all`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return await response.json();
     }
 
     private removeFancyUnicode(input: string): string {

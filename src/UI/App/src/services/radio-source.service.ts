@@ -5,7 +5,13 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export class RadioSourceService {
     public async loadRadioSources(): Promise<RadioSource[]> {
-        const response = await fetch(`${API_BASE_URL}/radio-sources`);
+        const response = await fetch(`${API_BASE_URL}/radio-sources`,{
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                'Content-Type': 'application/json',
+            }
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -16,6 +22,7 @@ export class RadioSourceService {
         const response = await fetch(`${API_BASE_URL}/radio-sources/${sourceId}`, {
             method: 'PUT',
             headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -31,6 +38,9 @@ export class RadioSourceService {
     public async deleteRadioSource(sourceId: string): Promise<void> {
         const response = await fetch(`${API_BASE_URL}/radio-sources/${sourceId}`, {
             method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            }
         });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

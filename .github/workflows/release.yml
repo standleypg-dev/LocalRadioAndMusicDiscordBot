@@ -36,6 +36,10 @@ jobs:
           echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> .env
           echo "WEBSITE_URL=${{ secrets.WEBSITE_URL }}" >> .env
           echo "CORS_ALLOWED_ORIGINS=${{ secrets.CORS_ALLOWED_ORIGINS }}" >> .env
+          echo "JWT_SETTINGS_SECRET=${{ secrets.JWT_SETTINGS_SECRET }}" >> .env
+          echo "JWT_SETTINGS_INTERNAL_PASSWORD=${{ secrets.JWT_SETTINGS_INTERNAL_PASSWORD }}" >> .env
+          echo "JWT_SETTINGS_ISSUER=${{ secrets.WEBSITE_URL }}" >> .env
+          echo "JWT_SETTINGS_AUDIENCE=${{ secrets.WEBSITE_URL }}" >> .env
 
       - name: Build and run with Docker Compose
         run: |
