@@ -70,6 +70,7 @@ export const commonStyles = css`
     .content-card {
         padding: 2rem;
         min-height: 400px;
+        overflow: auto;
     }
 
     .glass-button {
@@ -311,6 +312,10 @@ export const commonStyles = css`
             flex-direction: column;
             gap: 1rem;
             align-items: stretch;
+        }
+
+        .toggle-button {
+            width: 100%;
         }
 
         .stats-grid {
