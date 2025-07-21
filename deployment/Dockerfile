@@ -1,11 +1,16 @@
-FROM fedora:latest AS lib-build
+# Keep your original structure but optimize base image
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS lib-build
 
 WORKDIR /deps
 
-RUN dnf upgrade -y && \
-    dnf install -y libsodium-devel opus-devel yt-dlp \
-                   ffmpeg dotnet-runtime-9.0 dotnet-sdk-9.0 tzdata \
-                   nodejs npm && \
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    ffmpeg \
+    libsodium-dev \
+    opus-dev \
+    yt-dlp \
+    tzdata && \
     ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
 
 FROM lib-build AS build
@@ -16,9 +21,6 @@ ARG PROJECT_PATH=src/Worker/Worker.csproj
 WORKDIR /app
 
 COPY . .
-
-# Go back to app root for dotnet commands
-WORKDIR /app
 
 RUN dotnet restore "$PROJECT_PATH"
 
@@ -41,8 +43,13 @@ RUN dotnet publish "$PROJECT_PATH" \
     --self-contained false \
     --no-restore
 
-FROM lib-build AS final
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS final
 
+RUN apk add --no-cache \
+    ffmpeg \
+    tzdata && \
+    ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
+    
 WORKDIR /app/run
 
 ENV ASPNETCORE_ENVIRONMENT=Production
@@ -50,10 +57,6 @@ ENV DOTNET_ENVIRONMENT=Production
 ENV TZ=Asia/Singapore
 
 COPY --from=publish /app/publish .
-
-RUN cp /usr/lib64/libsodium.so* . && \
-    cp /usr/bin/yt-dlp . && \
-    cp /usr/lib64/libopus.so* . || true
 
 RUN mkdir -p wwwroot
 
