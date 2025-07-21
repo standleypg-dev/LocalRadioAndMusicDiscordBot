@@ -1,4 +1,6 @@
 using Application.Configs;
+using Application.DTOs;
+using Application.Interfaces.Services;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -6,7 +8,7 @@ using Infrastructure.Commands;
 
 namespace Worker;
 
-public class Startup(DiscordSocketClient client, CommandService commands, IServiceProvider serviceProvider, ILogger<Startup> logger, IWebHostEnvironment environment, IConfiguration configuration)
+public class Startup(DiscordSocketClient client, CommandService commands, IServiceProvider serviceProvider, ILogger<Startup> logger, IWebHostEnvironment environment, IConfiguration configuration, IQueueService<SongDto<SocketVoiceChannel>> queueService)
 {
     public async Task SetupLoggingAndReadyEvents()
     {
@@ -60,7 +62,7 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
         });
     }
     
-    private Task LogAsync(LogMessage log)
+    private async Task LogAsync(LogMessage log)
     {
         var logLevel = log.Severity switch
         {
@@ -75,6 +77,11 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
 
         logger.Log(logLevel, log.Exception, "[{Source}] {Message}", log.Source, log.Message);
         
+        if(log.Exception is TaskCanceledException _)
+        {
+            await queueService.SkipSongAsync();
+        }  
+        
         foreach (var module in commands.Modules)
         {
             logger.LogInformation("Module: {ModuleName}", module.Name);
@@ -83,6 +90,5 @@ public class Startup(DiscordSocketClient client, CommandService commands, IServi
                 logger.LogInformation("Command: {CmdName} | Aliases: {Join}", cmd.Name, string.Join(", ", cmd.Aliases));
             }
         }
-        return Task.CompletedTask;
     }
 }

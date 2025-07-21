@@ -23,22 +23,45 @@
       <ProjectReference Include="..\UI\Api\Api.csproj" />
     </ItemGroup>
     <ItemGroup>
-      <Folder Include="Models\" />
-    </ItemGroup>
-    <ItemGroup>
       <_ContentIncludedByDefault Remove="wwwroot\assets\index-CceUKHhc.css" />
       <_ContentIncludedByDefault Remove="wwwroot\assets\index-wCvp2Xat.js" />
       <_ContentIncludedByDefault Remove="wwwroot\index.html" />
       <_ContentIncludedByDefault Remove="wwwroot\logo.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\assets\index-B5YVgdP7.css" />
+      <_ContentIncludedByDefault Remove="wwwroot\assets\index-Ch8xG_BO.js" />
+      <_ContentIncludedByDefault Remove="wwwroot\log-in.svg" />
+      <_ContentIncludedByDefault Remove="wwwroot\log-out.svg" />
     </ItemGroup>
     <Target Name="CopyLibsAfterBuild" AfterTargets="Build" Condition="'$(OS)' == 'Unix'">
         <Message Text="Copying native libraries..." Importance="high"/>
-        <Copy SourceFiles="/usr/lib64/libsodium.so"
+        <Copy SourceFiles="/usr/lib/libsodium.so"
               DestinationFolder="$(OutputPath)"/>
-        <Copy SourceFiles="/usr/lib64/libopus.so"
+        <Copy SourceFiles="/usr/lib/libopus.so"
               DestinationFolder="$(OutputPath)"/>
         <Copy SourceFiles="/usr/bin/yt-dlp"
               DestinationFolder="$(OutputPath)"/>
+    </Target>
+
+    <PropertyGroup>
+        <IsUnix Condition="'$(OS)' == 'Unix'">true</IsUnix>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(IsUnix)' == 'true'">
+        <NativeLibs Include="/usr/lib/libsodium.so" />
+        <NativeLibs Include="/usr/lib/libopus.so" />
+        <NativeLibs Include="/usr/bin/yt-dlp" />
+    </ItemGroup>
+
+    <!-- Copy after build -->
+    <Target Name="CopyNativeLibsAfterBuild" AfterTargets="Build" Condition="'$(IsUnix)' == 'true'">
+        <Message Text="Copying native libraries after build (Unix)..." Importance="high" />
+        <Copy SourceFiles="@(NativeLibs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- Copy after publish -->
+    <Target Name="CopyNativeLibsAfterPublish" AfterTargets="Publish" Condition="'$(IsUnix)' == 'true'">
+        <Message Text="Copying native libraries after publish (Unix)..." Importance="high" />
+        <Copy SourceFiles="@(NativeLibs)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
     </Target>
 
     <!-- Clean wwwroot before building frontend -->
