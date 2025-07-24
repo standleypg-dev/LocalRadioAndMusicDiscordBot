@@ -47,7 +47,8 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS final
 
 RUN apk add --no-cache \
     ffmpeg \
-    tzdata && \
+    tzdata \
+    yt-dlp && \
     ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
     
 WORKDIR /app/run
