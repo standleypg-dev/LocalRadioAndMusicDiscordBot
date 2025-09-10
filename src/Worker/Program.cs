@@ -39,8 +39,8 @@ app.UseHttpsRedirection();
 app.UseCors(policyBuilder =>
 {
     policyBuilder.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
-           .AllowAnyMethod()
-           .AllowAnyHeader();
+        .WithMethods("GET", "POST", "PUT", "DELETE")
+        .WithHeaders("Content-Type", "Authorization");
 });
 
 // Run database migrations
@@ -70,7 +70,7 @@ app.UseAuthorization();
 app.AddApiController();
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.MapStaticAssets();
 
 app.MapFallbackToFile("index.html");
 

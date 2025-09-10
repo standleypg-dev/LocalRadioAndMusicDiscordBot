@@ -35,7 +35,7 @@ public static class MessageComponentGenerator
                       .WithCustomId($"{baseSearch.Id}");
             }
 
-            currentRow.AddComponent(button.Build());
+            currentRow.AddComponent(button.Build().ToBuilder());
 
             if (idx % colInRow == 0)
             {
