@@ -1,7 +1,6 @@
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Discord.WebSocket;
-using Domain.Entities;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -105,5 +104,22 @@ public static class ControllerExtensions
                 })
             .AllowAnonymous()
             .WithName("Login");
+        
+        app.MapGet("/api/auth/validate-token", (HttpContext context) =>
+            {
+                // Check if user is authenticated (JWT middleware already validated the token)
+                if (context.User.Identity?.IsAuthenticated == true)
+                {
+                    return Results.Ok(new { 
+                        valid = true, 
+                        username = context.User.Identity.Name,
+                        expires = context.User.FindFirst("exp")?.Value
+                    });
+                }
+                
+                return Results.Unauthorized();
+            })
+            .RequireAuthorization()
+            .WithName("ValidateToken");
     }
 }

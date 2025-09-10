@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Infrastructure.CompiledModels;
 
 namespace Infrastructure.Data;
 
@@ -9,6 +10,11 @@ public class DiscordBotContext(DbContextOptions<DiscordBotContext> options) : Db
     public DbSet<Song> Songs { get; set; }
     public DbSet<PlayHistory> PlayHistory { get; set; }
     public DbSet<RadioSource> RadioSources { get; set; }
+    
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseModel(DiscordBotContextModel.Instance);
+    }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
