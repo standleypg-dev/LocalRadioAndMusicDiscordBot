@@ -14,12 +14,35 @@ export class DashboardApp extends LitElement {
     @state()
     private currentPath = window.location.pathname;
 
-    isLoggedIn(): boolean {
-        // Replace this with your real login logic (e.g., check token, session, etc.)
-        return localStorage.getItem('authToken') !== null;
+    @state()
+    private isAuthenticated = false;
+
+    async isLoggedIn(): Promise<boolean> {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            this.isAuthenticated = false;
+            return false;
+        }
+        try {
+            const response = await fetch('/api/auth/validate-token', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            this.isAuthenticated = response.ok;
+            return response.ok;
+        } catch {
+            this.isAuthenticated = false;
+            return false;
+        }
     }
 
-    firstUpdated() {
+    async firstUpdated() {
+        // Initialize authentication state
+        await this.isLoggedIn();
+        
         const router = new Router(this.renderRoot.querySelector('#outlet'));
         router.setRoutes([
             {path: '/', redirect: '/songs'},
@@ -29,7 +52,7 @@ export class DashboardApp extends LitElement {
                 path: '/admin',
                 component: 'radio-admin',
                 action: async (_context, commands) => {
-                    if (!this.isLoggedIn()) {
+                    if (!await this.isLoggedIn()) {
                         return commands.redirect('/login');
                     }
                 },
@@ -65,13 +88,18 @@ export class DashboardApp extends LitElement {
         return this.currentPath === path ? 'active' : '';
     }
 
-    private handleNavigation(path: string) {
+    private async handleNavigation(path: string) {
+        // Refresh auth state before navigation
+        if (path === '/admin') {
+            await this.isLoggedIn();
+        }
         this.currentPath = path;
         Router.go(path);
     }
 
     private handleLogout() {
         localStorage.removeItem('authToken');
+        this.isAuthenticated = false;
         Router.go('/');
     }
 
@@ -94,13 +122,13 @@ export class DashboardApp extends LitElement {
                                 @click=${() => this.handleNavigation('/users')}
                         >User Statistics
                         </button>
-                        ${this.isLoggedIn() ? html`
+                        ${this.isAuthenticated ? html`
                             <button
                                     class="nav-button glass-button ${this.isActive('/admin')}"
                                     @click=${() => this.handleNavigation('/admin')}
                             >Radio Admin
                             </button>` : html``}
-                        ${!this.isLoggedIn() ? html`
+                        ${!this.isAuthenticated ? html`
                             <div
                                     class="login ${this.isActive('/login')}"
                                     @click=${() => this.handleNavigation('/login')}
