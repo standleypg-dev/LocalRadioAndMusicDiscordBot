@@ -1,6 +1,6 @@
 namespace Application.Interfaces.Services;
 
-public interface IYoutubeService
+public interface IStreamService
 {
     Task<string> GetAudioStreamUrlAsync(string url);
     Task<string> GetVideoTitleAsync(string url);

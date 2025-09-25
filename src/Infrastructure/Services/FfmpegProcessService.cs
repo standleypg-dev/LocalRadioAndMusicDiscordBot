@@ -4,82 +4,92 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
-public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger) : INativePlaceMusicProcessorService, IDisposable
+public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger)
+    : INativePlaceMusicProcessorService, IDisposable
 {
+    private readonly SemaphoreSlim _processLock = new(1, 1);
+
     private Process? _ffmpegProcess;
     private CancellationTokenRegistration _cancellationRegistration;
-    private readonly SemaphoreSlim _processLock = new(1, 1);
     private bool _disposed;
 
-    public async Task<Process> CreateStream(string audioUrl, CancellationToken cancellationToken)
+    public async Task<Process> CreateStreamAsync(string audioUrl, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        // Ensure any previous process is gone before starting a new one
+        await TerminateFFmpegProcessAsync().ConfigureAwait(false);
 
-        await TerminateFFmpegProcessAsync();
-
-        await _processLock.WaitAsync(cancellationToken);
+        await _processLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            _ffmpegProcess = new Process()
+            // Safety: kill any leftover registration before creating a new one
+            await _cancellationRegistration.DisposeAsync();
+
+            _ffmpegProcess = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "/usr/bin/ffmpeg",
-                    Arguments =
-                        $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i \"{audioUrl}\" -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
+                    Arguments = $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i \"{audioUrl}\" -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
                     RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    RedirectStandardInput = true, // needed to send 'q'
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    RedirectStandardError = true,
+                },
+                EnableRaisingEvents = true
+            };
+
+            // Register exit handler before Start to avoid missing an immediate exit race
+            _ffmpegProcess.Exited += (_, _) =>
+            {
+                try
+                {
+                    var code = _ffmpegProcess?.ExitCode;
+                    logger.LogInformation("FFmpeg process exited with code: {ExitCode}", code);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Error reading FFmpeg exit code");
                 }
             };
 
-            // Register cancellation BEFORE starting the process
+            // Cancellation handler (never block here)
             _cancellationRegistration = cancellationToken.Register(() =>
             {
                 logger.LogInformation("Cancellation requested for FFmpeg process");
-                // Use async termination to avoid blocking
-                _ = Task.Run(async () => await TerminateFFmpegProcessAsync());
+                _ = Task.Run(TerminateFFmpegProcessAsync, cancellationToken);
             });
 
-            _ffmpegProcess.Start();
+            // Start process
+            if (!_ffmpegProcess.Start())
+                throw new InvalidOperationException("Failed to start ffmpeg process.");
 
-            // Capture error output for debugging
+            // Wire stderr logging
             _ffmpegProcess.ErrorDataReceived += (_, e) =>
             {
-                if (!string.IsNullOrEmpty(e.Data))
+                if (string.IsNullOrEmpty(e.Data)) return;
+
+                var msg = e.Data;
+                if (msg.Contains("error", StringComparison.OrdinalIgnoreCase) ||
+                    msg.Contains("warning", StringComparison.OrdinalIgnoreCase) ||
+                    msg.Contains("failed", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Only log important messages to avoid spam
-                    if (e.Data.Contains("error", StringComparison.OrdinalIgnoreCase) ||
-                        e.Data.Contains("warning", StringComparison.OrdinalIgnoreCase) ||
-                        e.Data.Contains("failed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        logger.LogWarning("FFmpeg: {Message}", e.Data);
-                    }
-                    else
-                    {
-                        logger.LogDebug("FFmpeg: {Message}", e.Data);
-                    }
+                    logger.LogWarning("FFmpeg: {Message}", msg);
+                }
+                else
+                {
+                    logger.LogDebug("FFmpeg: {Message}", msg);
                 }
             };
             _ffmpegProcess.BeginErrorReadLine();
 
-            // Handle process exit
-            _ffmpegProcess.EnableRaisingEvents = true;
-            _ffmpegProcess.Exited += (_, _) =>
-            {
-                logger.LogInformation("FFmpeg process exited with code: {ExitCode}", _ffmpegProcess?.ExitCode);
-            };
-
             logger.LogInformation("FFmpeg process started for URL: {AudioUrl}", audioUrl);
             return _ffmpegProcess;
         }
-        catch (Exception e)
+        catch
         {
-            logger.LogError(e, "Error creating FFmpeg process for URL: {AudioUrl}", audioUrl);
-
-            // Clean up on error
-            await TerminateFFmpegProcessAsync();
+            // If start failed, make sure we clean up
+            await TerminateFFmpegProcessAsync().ConfigureAwait(false);
             throw;
         }
         finally
@@ -90,14 +100,15 @@ public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger) :
 
     private async Task TerminateFFmpegProcessAsync()
     {
-        Process? processToKill = null;
+        Process? p = null;
 
-        await _processLock.WaitAsync();
+        // Snapshot the current process under lock (don't hold the lock while waiting on the process)
+        await _processLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            if (_ffmpegProcess != null && !_ffmpegProcess.HasExited)
+            if (_ffmpegProcess is { HasExited: false } current)
             {
-                processToKill = _ffmpegProcess;
+                p = current;
             }
         }
         finally
@@ -105,91 +116,114 @@ public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger) :
             _processLock.Release();
         }
 
-        if (processToKill != null)
+        if (p is null)
         {
+            // Nothing to do; small delay to avoid hot loops when called repeatedly
+            await Task.Delay(50).ConfigureAwait(false);
+            return;
+        }
+
+        logger.LogInformation("Terminating FFmpeg process...");
+
+        try
+        {
+            // 1) Try graceful shutdown by sending 'q' on stdin
             try
             {
-                logger.LogInformation("Terminating FFmpeg process...");
+                if (p.StartInfo.RedirectStandardInput && !p.HasExited)
+                {
+                    // Some ffmpeg builds exit on 'q' (then newline for safety)
+                    await p.StandardInput.WriteLineAsync("q").ConfigureAwait(false);
+                    await p.StandardInput.FlushAsync().ConfigureAwait(false);
+                    p.StandardInput.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Failed to send 'q' to ffmpeg stdin; will fall back to Kill if needed");
+            }
 
-                // First try graceful shutdown
+            // 2) Give it a short window to exit gracefully
+            var waitTask = p.WaitForExitAsync();
+            _ = await Task.WhenAny(waitTask, Task.Delay(1500)).ConfigureAwait(false) == waitTask;
+
+            // 3) If still alive, force kill (entire tree)
+            if (!p.HasExited)
+            {
                 try
                 {
-                    processToKill.StandardInput.Close();
-
-                    // Wait a short time for graceful exit
-                    if (!processToKill.WaitForExit(1000))
-                    {
-                        // Force kill if it doesn't exit gracefully
-                        processToKill.Kill(entireProcessTree: true);
-
-                        // Wait for kill to complete
-                        if (!processToKill.WaitForExit(3000))
-                        {
-                            logger.LogWarning("FFmpeg process did not exit after kill command");
-                        }
-                    }
-                }
-                catch (InvalidOperationException)
-                {
-                    // Process already exited
-                    logger.LogDebug("FFmpeg process already exited");
+                    p.Kill(entireProcessTree: true);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error during FFmpeg process termination");
+                    logger.LogWarning(ex, "Error sending Kill to ffmpeg");
                 }
+
+                // Wait a bit for kill to complete
+                try
+                {
+                    var killWait = p.WaitForExitAsync();
+                    await Task.WhenAny(killWait, Task.Delay(3000)).ConfigureAwait(false);
+                }
+                catch { /* ignore */ }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error during FFmpeg process termination");
+        }
+        finally
+        {
+            // Cleanup & null out shared fields under lock
+            await _processLock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                _cancellationRegistration.Dispose();
+
+                try { p.Dispose(); } catch { /* ignore */ }
+
+                if (_ffmpegProcess == p)
+                {
+                    _ffmpegProcess = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Error disposing FFmpeg process resources");
             }
             finally
             {
-                await _processLock.WaitAsync();
-                try
-                {
-                    _cancellationRegistration.Dispose();
-                    processToKill.Dispose();
-
-                    if (_ffmpegProcess == processToKill)
-                    {
-                        _ffmpegProcess = null;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Error disposing FFmpeg process resources");
-                }
-                finally
-                {
-                    _processLock.Release();
-                }
+                _processLock.Release();
             }
         }
 
-        // Small delay to ensure process cleanup completes
-        await Task.Delay(100);
+        await Task.Delay(50).ConfigureAwait(false);
     }
 
     public void Dispose()
     {
-        _ = Dispose(true);
+        _ = DisposeAsyncCore(true);
         GC.SuppressFinalize(this);
     }
 
-    private async Task Dispose(bool disposing)
+    private async Task DisposeAsyncCore(bool disposing)
     {
         if (_disposed) return;
 
         if (disposing)
         {
-            await _processLock.WaitAsync();
+            await _processLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 _cancellationRegistration.Dispose();
 
-                if (_ffmpegProcess != null && !_ffmpegProcess.HasExited)
+                if (_ffmpegProcess is { HasExited: false })
                 {
                     try
                     {
                         _ffmpegProcess.Kill(entireProcessTree: true);
-                        _ffmpegProcess.WaitForExit(3000);
+                        var wait = _ffmpegProcess.WaitForExitAsync();
+                        await Task.WhenAny(wait, Task.Delay(3000)).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -215,6 +249,6 @@ public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger) :
 
     ~FfmpegProcessService()
     {
-        _ = Dispose(false);
+        _ = DisposeAsyncCore(false);
     }
 }

@@ -4,5 +4,5 @@ namespace Application.Interfaces.Services;
 
 public interface INativePlaceMusicProcessorService
 {
-    Task<Process> CreateStream(string audioUrl, CancellationToken cancellationToken);
+    Task<Process> CreateStreamAsync(string audioUrl, CancellationToken cancellationToken);
 }

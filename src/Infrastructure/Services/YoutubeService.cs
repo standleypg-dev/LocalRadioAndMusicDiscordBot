@@ -10,7 +10,7 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Infrastructure.Services;
 
-public class YoutubeService: IYoutubeService
+public class YoutubeService: IStreamService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<YoutubeService> _logger;
