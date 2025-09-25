@@ -36,7 +36,7 @@ public sealed class AudioPlayerService(
         try
         {
             using var scope = serviceProvider.CreateScope();
-            var youtubeService = scope.ServiceProvider.GetRequiredService<IYoutubeService>();
+            var youtubeService = scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
             var statisticsService = scope.ServiceProvider
                 .GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
 
@@ -363,7 +363,7 @@ public sealed class AudioPlayerService(
             }
 
             // Create FFmpeg process and streams
-            var process = await ffmpegProcessService.CreateStream(audioUrl, cancellationToken);
+            var process = await ffmpegProcessService.CreateStreamAsync(audioUrl, cancellationToken);
             audioOutStream = process.StandardOutput.BaseStream;
             discord = audioClient.CreatePCMStream(AudioApplication.Music);
             bufferedStream = new BufferedStream(discord, 4096); // Increased buffer size

@@ -23,7 +23,7 @@ public class QueueService(
     {
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
-        var youtubeService = scope.ServiceProvider.GetRequiredService<IYoutubeService>();
+        var youtubeService = scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
         try
         {
             if (!Uri.TryCreate(songDto.Url, UriKind.Absolute, out _))
