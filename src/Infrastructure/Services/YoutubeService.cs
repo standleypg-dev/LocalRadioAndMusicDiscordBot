@@ -33,7 +33,7 @@ public class YoutubeService: IStreamService
         ];
     }
 
-    public async Task<string> GetAudioStreamUrlAsync(string url)
+    public async Task<string> GetAudioStreamUrlAsync(string url, CancellationToken cancellationToken)
     {
         foreach (var strategy in _providerStrategy)
         {
@@ -134,7 +134,7 @@ public class YoutubeService: IStreamService
         }
     }
     
-    public async Task<string> GetVideoTitleAsync(string url)
+    public async Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();

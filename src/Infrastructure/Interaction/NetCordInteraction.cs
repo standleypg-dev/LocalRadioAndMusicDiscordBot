@@ -17,27 +17,20 @@ namespace Infrastructure.Interaction;
 public class NetCordInteraction(
     ILogger<NetCordInteraction> logger,
     IEventDispatcher eventDispatcher,
-    Channel<PlayRequest<StringMenuInteractionContext>> channel) : ComponentInteractionModule<StringMenuInteractionContext>
+    IMusicQueueService queueService) : ComponentInteractionModule<StringMenuInteractionContext>
 {
     [ComponentInteraction(Constants.CustomIds.Play)]
-    public async Task<string> Play()
+    public string Play()
     {
         logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
             Context.Guild?.Id);
 
-        await channel.Writer.WriteAsync(new PlayRequest<StringMenuInteractionContext>(Context, (Func<Task<InteractionCallbackResponse?>>?)NotInVoiceChannelCallback));
+        var playRequest = new PlayRequest<StringMenuInteractionContext>(Context, (Func<Task<InteractionCallbackResponse>>)NotInVoiceChannelCallback);
+        queueService.Enqueue(playRequest);
         eventDispatcher.Dispatch(new EventType.Play());
 
         return $"Added {Context.SelectedValues[0]} to the queue!";
 
-        Task<InteractionCallbackResponse?> NotInVoiceChannelCallback() => RespondAsync(InteractionCallback.Message("You are not connected to any voice channel!"));
-    }
-    
-    [ComponentInteraction(Constants.CustomIds.Skip)]
-    public string Skip()
-    {
-        eventDispatcher.Dispatch(new EventType.Skip());
-        
-        return "Skip Requested";
+        Task<InteractionCallbackResponse> NotInVoiceChannelCallback() => RespondAsync(InteractionCallback.Message("You are not connected to any voice channel!"))!;
     }
 }

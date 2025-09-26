@@ -1,5 +1,8 @@
 using Application.Interfaces.Services;
+using Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NetCord.Gateway;
 using NetCord.Gateway.Voice;
 using NetCord.Logging;
 using NetCord.Services.ComponentInteractions;
@@ -8,25 +11,25 @@ namespace Infrastructure.Services;
 
 public class NetCordAudioPlayerService(
     INativePlaceMusicProcessorService ffmpegProcessService,
-    IServiceProvider serviceProvider) : INetCordAudioPlayerService
+    IServiceProvider serviceProvider,
+    ILogger<NetCordAudioPlayerService> logger) : INetCordAudioPlayerService
 {
     public async Task Play<T>(T ctx, Func<Task> notInVoiceChannelCallback,
-        CancellationToken cancellationToken)
+        Action<Func<Task>> onDisconnectAsync,
+        TokenContainer tokens)
     {
         if (ctx is not StringMenuInteractionContext context)
         {
             throw new ArgumentException("Invalid context type. Expected StringMenuInteractionContext.", nameof(ctx));
         }
 
-        while (cancellationToken.IsCancellationRequested)
-        {
-            await HandleMusicPlayingAsync(context, notInVoiceChannelCallback, cancellationToken);
-        }
-
+        await HandleMusicPlayingAsync(context, notInVoiceChannelCallback, onDisconnectAsync, tokens);
     }
 
     private async Task HandleMusicPlayingAsync(StringMenuInteractionContext context,
-        Func<Task> notInVoiceChannelCallback, CancellationToken cancellationToken)
+        Func<Task> notInVoiceChannelCallback,
+        Action<Func<Task>> onDisconnectAsync,
+        TokenContainer tokens)
     {
         var guild = context.Guild!;
         // Get the user voice state
@@ -44,12 +47,16 @@ public class NetCordAudioPlayerService(
             new VoiceClientConfiguration
             {
                 Logger = new ConsoleLogger(),
-            }, cancellationToken: cancellationToken);
+            }, cancellationToken: tokens.StopToken);
 
-        await voiceClient.StartAsync(cancellationToken);
-
+        await voiceClient.StartAsync(tokens.StopToken);
+        
+        // Register the disconnect callback
+        // This will be called when the cancellation token is triggered or when the voice client is closed
+        onDisconnectAsync(DisconnectAsync);
+        
         await voiceClient.EnterSpeakingStateAsync(new SpeakingProperties(SpeakingFlags.Microphone),
-            cancellationToken: cancellationToken);
+            cancellationToken: tokens.StopToken);
 
         var outStream = voiceClient.CreateOutputStream();
 
@@ -57,14 +64,24 @@ public class NetCordAudioPlayerService(
 
         // From KeyedService
         var scope = serviceProvider.CreateScope();
-        var soundCloudService = scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(SoundCloudService));
-        var url = await soundCloudService.GetAudioStreamUrlAsync(context.SelectedValues[0]);
+        var soundCloudService =
+            scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(SoundCloudService));
+        var url = await soundCloudService.GetAudioStreamUrlAsync(context.SelectedValues[0], tokens.StopToken);
 
-        var ffmpeg = await ffmpegProcessService.CreateStreamAsync(url, cancellationToken);
+        var ffmpeg = await ffmpegProcessService.CreateStreamAsync(url, tokens.SkipToken);
 
-        await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream, cancellationToken);
+        await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream, tokens.StopToken);
 
         // Flush 'stream' to make sure all the data has been sent and to indicate to Discord that we have finished sending
-        await stream.FlushAsync(cancellationToken);
+        await stream.FlushAsync(tokens.StopToken);
+
+        async Task DisconnectAsync()
+        {
+            await client.UpdateVoiceStateAsync(
+                new VoiceStateProperties(context.Guild!.Id, null),
+                null,
+                tokens.StopToken);
+            await voiceClient.CloseAsync(cancellationToken: tokens.StopToken);
+        }
     }
 }

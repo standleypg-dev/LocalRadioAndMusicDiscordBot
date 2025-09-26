@@ -56,7 +56,7 @@ public sealed class AudioPlayerService(
             string outputUrl;
             if (isYt)
             {
-                outputUrl = await youtubeService.GetAudioStreamUrlAsync(audioUrl);
+                outputUrl = await youtubeService.GetAudioStreamUrlAsync(audioUrl, CancellationToken.None);
             }
             else
             {

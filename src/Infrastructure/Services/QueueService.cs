@@ -37,7 +37,7 @@ public class QueueService(
             string songTitle = songDto.Title;
             if (songTitle is null or "")
             {
-                songTitle = await youtubeService.GetVideoTitleAsync(songDto.Url);
+                songTitle = await youtubeService.GetVideoTitleAsync(songDto.Url, CancellationToken.None);
                 songDto.Title = songTitle;
             }
 

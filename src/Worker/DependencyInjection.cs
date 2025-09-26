@@ -6,6 +6,7 @@ using Application.Services;
 using Application.Store;
 using Discord.Commands;
 using Discord.WebSocket;
+using Domain.Common;
 using Infrastructure.Commands;
 using Infrastructure.Interaction;
 using Infrastructure.Interfaces.Services;
@@ -91,11 +92,16 @@ public static class DependencyInjection
         {
             var options = new BoundedChannelOptions(capacity: 100)
             {
-                FullMode = BoundedChannelFullMode.Wait
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleReader = true,
+                SingleWriter = false
             };
 
             return Channel.CreateBounded<PlayRequest<StringMenuInteractionContext>>(options);
         });
+        
+        services.AddSingleton<PlayerState>();
+        services.AddSingleton<IMusicQueueService, MusicQueueService>();
     }
 
     public static void AddNetCordWebApplication(this WebApplication app)

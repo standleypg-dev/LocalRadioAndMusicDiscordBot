@@ -38,7 +38,7 @@ public class StatisticsService(DiscordBotContext context, [FromKeyedServices(nam
 
             if (song == null)
             {
-                var songTitle = await streamService.GetVideoTitleAsync(songDto.Url);
+                var songTitle = await streamService.GetVideoTitleAsync(songDto.Url, CancellationToken.None);
                 song = Song.Create(songDto.Url, songTitle);
                 context.Songs.Add(song);
             }
