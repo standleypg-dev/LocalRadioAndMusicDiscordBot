@@ -7,7 +7,7 @@ namespace Infrastructure.Services;
 
 public class SoundCloudService(ILogger<SoundCloudService> logger, SoundCloudClient soundCloudClient): IStreamService
 {
-    public async Task<string> GetAudioStreamUrlAsync(string url)
+    public async Task<string> GetAudioStreamUrlAsync(string url, CancellationToken cancellationToken)
     {
         try
         {
@@ -23,7 +23,7 @@ public class SoundCloudService(ILogger<SoundCloudService> logger, SoundCloudClie
         }
     }
 
-    public Task<string> GetVideoTitleAsync(string url)
+    public Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

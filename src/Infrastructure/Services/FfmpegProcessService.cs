@@ -17,7 +17,9 @@ public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger)
     {
         // Ensure any previous process is gone before starting a new one
         await TerminateFFmpegProcessAsync().ConfigureAwait(false);
-
+        
+        cancellationToken.Register(()=> logger.LogDebug("CreateStreamAsync cancellation requested"));
+        
         await _processLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {

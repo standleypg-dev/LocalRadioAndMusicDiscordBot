@@ -15,7 +15,7 @@ namespace Infrastructure.Commands;
 public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration configuration, SoundCloudClient soundCloudClient): CommandModule<CommandContext>
 {
     [RequireUserPermissions<CommandContext>(Permissions.Administrator)]
-    [Command("ping")]
+    [Command("play")]
     public async Task PingAsync([CommandParameter(Remainder = true)] string command)
     {
         await soundCloudClient.InitializeAsync();
@@ -37,8 +37,17 @@ public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration con
         await SendAsync(message);
     }
     
-    [Command("halt")]
-    public async Task HaltAsync()
+    [Command("stop")]
+    public async Task Stop()
+    {
+        using var scope = serviceProvider.CreateScope();
+        var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
+        eventDispatcher.Dispatch(new EventType.Stop());
+        await SendAsync(CreateMessage<MessageProperties>());
+    }
+    
+    [Command("next", "skip")]
+    public async Task Skip()
     {
         using var scope = serviceProvider.CreateScope();
         var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
