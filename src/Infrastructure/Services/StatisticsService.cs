@@ -5,11 +5,12 @@ using Discord.WebSocket;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Song = Domain.Entities.Song;
 
 namespace Infrastructure.Services;
 
-public class StatisticsService(DiscordBotContext context, IYoutubeService youtubeService)
+public class StatisticsService(DiscordBotContext context, [FromKeyedServices(nameof(YoutubeService))] IStreamService streamService)
     : IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>
 {
     // Log when a user plays a song
@@ -37,7 +38,7 @@ public class StatisticsService(DiscordBotContext context, IYoutubeService youtub
 
             if (song == null)
             {
-                var songTitle = await youtubeService.GetVideoTitleAsync(songDto.Url);
+                var songTitle = await streamService.GetVideoTitleAsync(songDto.Url, CancellationToken.None);
                 song = Song.Create(songDto.Url, songTitle);
                 context.Songs.Add(song);
             }

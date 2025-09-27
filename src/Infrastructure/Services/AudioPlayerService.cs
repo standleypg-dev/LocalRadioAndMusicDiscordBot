@@ -4,7 +4,6 @@ using Application.Store;
 using Discord;
 using Discord.Audio;
 using Discord.WebSocket;
-using Infrastructure.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -36,7 +35,7 @@ public sealed class AudioPlayerService(
         try
         {
             using var scope = serviceProvider.CreateScope();
-            var youtubeService = scope.ServiceProvider.GetRequiredService<IYoutubeService>();
+            var youtubeService = scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
             var statisticsService = scope.ServiceProvider
                 .GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
 
@@ -56,7 +55,7 @@ public sealed class AudioPlayerService(
             string outputUrl;
             if (isYt)
             {
-                outputUrl = await youtubeService.GetAudioStreamUrlAsync(audioUrl);
+                outputUrl = await youtubeService.GetAudioStreamUrlAsync(audioUrl, CancellationToken.None);
             }
             else
             {
@@ -363,7 +362,7 @@ public sealed class AudioPlayerService(
             }
 
             // Create FFmpeg process and streams
-            var process = await ffmpegProcessService.CreateStream(audioUrl, cancellationToken);
+            var process = await ffmpegProcessService.CreateStreamAsync(audioUrl, async () => await Task.CompletedTask, cancellationToken);
             audioOutStream = process.StandardOutput.BaseStream;
             discord = audioClient.CreatePCMStream(AudioApplication.Music);
             bufferedStream = new BufferedStream(discord, 4096); // Increased buffer size

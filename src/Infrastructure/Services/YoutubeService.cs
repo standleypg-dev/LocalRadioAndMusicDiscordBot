@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Discord.WebSocket;
@@ -10,7 +9,7 @@ using YoutubeExplode.Videos.Streams;
 
 namespace Infrastructure.Services;
 
-public class YoutubeService: IYoutubeService
+public class YoutubeService: IStreamService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<YoutubeService> _logger;
@@ -33,7 +32,7 @@ public class YoutubeService: IYoutubeService
         ];
     }
 
-    public async Task<string> GetAudioStreamUrlAsync(string url)
+    public async Task<string> GetAudioStreamUrlAsync(string url, CancellationToken cancellationToken)
     {
         foreach (var strategy in _providerStrategy)
         {
@@ -85,13 +84,11 @@ public class YoutubeService: IYoutubeService
             var result = await ytdl.RunVideoDataFetch(url);
             result.EnsureSuccess();
 
-            var formats = result.Data.Formats;
-            var httpsFormats = formats
-                .Where(f => f.ManifestUrl == null && f.Protocol == "https")
+            var httpsFormats = result.Data.Formats
+                .Where(f => f.Protocol != "mhtml")
                 .AsQueryable();
 
             var bestAudio = httpsFormats
-                                .Where(f => f.Resolution == "audio only")
                                 .MaxBy(f => f.AudioBitrate ?? 0)
                             ?? httpsFormats
                                 .MaxBy(f => f.Bitrate ?? 0);
@@ -134,7 +131,7 @@ public class YoutubeService: IYoutubeService
         }
     }
     
-    public async Task<string> GetVideoTitleAsync(string url)
+    public async Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
     {
         using var scope = _serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();

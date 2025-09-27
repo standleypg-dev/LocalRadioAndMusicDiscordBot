@@ -16,6 +16,7 @@ using YoutubeExplode.Common;
 
 namespace Infrastructure.Commands;
 
+[Obsolete("Use NetCord implementation instead.")]
 public class BaseRadioCommands(
     IAudioPlayerService<SongDto<SocketVoiceChannel>, SocketVoiceChannel> audioPlayer,
     IJokeService jokeService,

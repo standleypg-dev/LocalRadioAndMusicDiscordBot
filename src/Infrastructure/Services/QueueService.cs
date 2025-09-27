@@ -23,7 +23,7 @@ public class QueueService(
     {
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
-        var youtubeService = scope.ServiceProvider.GetRequiredService<IYoutubeService>();
+        var youtubeService = scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
         try
         {
             if (!Uri.TryCreate(songDto.Url, UriKind.Absolute, out _))
@@ -37,7 +37,7 @@ public class QueueService(
             string songTitle = songDto.Title;
             if (songTitle is null or "")
             {
-                songTitle = await youtubeService.GetVideoTitleAsync(songDto.Url);
+                songTitle = await youtubeService.GetVideoTitleAsync(songDto.Url, CancellationToken.None);
                 songDto.Title = songTitle;
             }
 

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Commands;
 
+[Obsolete("Use NetCordInteraction instead")]
 public class DevRadioCommands(
     IAudioPlayerService<SongDto<SocketVoiceChannel>, SocketVoiceChannel> audioPlayer,
     IJokeService jokeService,
@@ -22,24 +23,8 @@ public class DevRadioCommands(
             configuration),
         IRadioCommand<string>
 {
-    [Command("playdev")]
-    public new async Task PlayCommand([Remainder] string command) => await base.PlayCommand(command);
-
-    [Command("playfromdev")]
-    public new async Task PlayFromPlaylistCommand([Remainder] string command) =>
-        await base.PlayFromPlaylistCommand(command);
-
     [Command("helpdev")]
     public new async Task HelpCommand() => await base.HelpCommand();
-
-    [Command("stopdev")]
-    public new async Task StopCommand() => await base.StopCommand();
-
-    [Command("nextdev")]
-    public new async Task NextCommand() => await base.NextCommand();
-
-    [Command("playlistdev")]
-    public new async Task QueueCommand() => await base.QueueCommand();
 
     [Command("jokedev")]
     public new async Task TellJoke([Remainder] string command) => await base.TellJoke(command);
