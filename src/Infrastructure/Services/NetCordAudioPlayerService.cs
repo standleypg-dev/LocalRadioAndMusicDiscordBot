@@ -16,20 +16,18 @@ public class NetCordAudioPlayerService(
     PlayerState<VoiceClient> playerState,
     IMusicQueueService queue) : INetCordAudioPlayerService
 {
-    private Func<Task> DisconnectVoiceClient { get; set; } = () => Task.CompletedTask;
+    public event Func<Task>? DisconnectedVoiceClientEvent;
+    public event Func<Task>? NotInVoiceChannelCallback;
     private Action<Func<Task>> OnDisconnectAsync { get; set; } = _ => { };
-    private Func<Task> NotInVoiceChannelCallback { get; set; } = () => Task.CompletedTask;
     private StringMenuInteractionContext CurrentContext { get; set; } = null!;
-    public async Task Play<T>(T ctx, Func<Task> notInVoiceChannelCallback,
-        Action<Func<Task>> onDisconnectAsync, Func<Task> disconnectVoiceClient)
+    
+    public async Task Play<T>(T ctx, Action<Func<Task>> onDisconnectAsync)
     {
         if (ctx is not StringMenuInteractionContext context)
         {
             throw new ArgumentException("Invalid context type. Expected StringMenuInteractionContext.", nameof(ctx));
         }
-        NotInVoiceChannelCallback = notInVoiceChannelCallback;
         OnDisconnectAsync = onDisconnectAsync;
-        DisconnectVoiceClient = disconnectVoiceClient;
         CurrentContext = context;
 
         await HandleMusicPlayingAsync();
@@ -41,7 +39,7 @@ public class NetCordAudioPlayerService(
         // Get the user voice state
         if (!guild.VoiceStates.TryGetValue(CurrentContext.User.Id, out var voiceState))
         {
-            await NotInVoiceChannelCallback.Invoke();
+            await (NotInVoiceChannelCallback?.Invoke() ?? Task.CompletedTask);
             return;
         }
 
@@ -59,7 +57,7 @@ public class NetCordAudioPlayerService(
             
             playerState.CurrentVoiceClient.Disconnect += async _ =>
             {
-                await DisconnectVoiceClient();
+                await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
             };
             
             await playerState.CurrentVoiceClient.StartAsync(playerState.StopCts?.Token ?? CancellationToken.None);
@@ -101,7 +99,15 @@ public class NetCordAudioPlayerService(
             playerState.SkipCts?.Token ?? CancellationToken.None);
 
         var ffmpeg =
-            await ffmpegProcessService.CreateStreamAsync(url, DisconnectVoiceClient, playerState.SkipCts?.Token ?? CancellationToken.None);
+            await ffmpegProcessService.CreateStreamAsync(url, playerState.SkipCts?.Token ?? CancellationToken.None);
+
+        ffmpegProcessService.OnExitProcess += async () =>
+        {
+            if (queue.Count == 0)
+            {
+                await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+            }
+        };
 
         playerState.CurrentAction = PlayerAction.Play;
 

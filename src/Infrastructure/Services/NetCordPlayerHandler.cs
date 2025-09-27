@@ -88,7 +88,19 @@ public class NetCordPlayerHandler(
                     }
                 });
 
-                await playerService.Play(context, callbacks, SetDisconnectCallback, DisconnectVoiceClient);
+                playerService.NotInVoiceChannelCallback += async () =>
+                {
+                    await callbacks.Invoke();
+                };
+                
+                playerService.DisconnectedVoiceClientEvent += async () =>
+                {
+                    logger.LogInformation("Voice client disconnected - stopping playback");
+                    await DisconnectVoiceClient();
+                };
+                
+                await playerService.Play(context, SetDisconnectCallback);
+                
                 
                 queue.DequeueAsync(CancellationToken.None);
             } while (!playerState.StopCts.Token.IsCancellationRequested && queue.Count > 0);
