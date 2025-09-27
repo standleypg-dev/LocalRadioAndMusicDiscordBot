@@ -4,5 +4,6 @@ namespace Application.Interfaces.Services;
 
 public interface INativePlaceMusicProcessorService
 {
-    Task<Process> CreateStreamAsync(string audioUrl, Func<Task> disconnectVoiceClient, CancellationToken cancellationToken);
+    event Func<Task>? OnExitProcess;
+    Task<Process> CreateStreamAsync(string audioUrl, CancellationToken cancellationToken);
 }

@@ -2,5 +2,7 @@ namespace Application.Interfaces.Services;
 
 public interface INetCordAudioPlayerService
 {
-    Task Play<T>(T ctx, Func<Task> notInVoiceChannelCallback, Action<Func<Task>> disconnectAsync, Func<Task> disconnectVoiceClient);
+    event Func<Task>? DisconnectedVoiceClientEvent;
+    event Func<Task>? NotInVoiceChannelCallback;
+    Task Play<T>(T ctx, Action<Func<Task>> disconnectAsync);
 }
