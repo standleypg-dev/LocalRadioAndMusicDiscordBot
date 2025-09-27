@@ -1,6 +1,6 @@
 namespace Domain.Common;
 
-public class PlayerState
+public class PlayerState<TVoiceClient>
 {
     /// <summary>
     /// Cancellation token source for stop event.
@@ -12,5 +12,14 @@ public class PlayerState
     public CancellationTokenSource? SkipCts { get; set; }
 
     public Func<Task>? DisconnectAsyncCallback { get; set; }
-    public bool IsPlaying { get; set; }
+    public PlayerAction CurrentAction { get; set; } = PlayerAction.Stop;
+    
+    public TVoiceClient? CurrentVoiceClient { get; set; }
+}
+
+public enum PlayerAction
+{
+    Play,
+    Stop,
+    Skip
 }

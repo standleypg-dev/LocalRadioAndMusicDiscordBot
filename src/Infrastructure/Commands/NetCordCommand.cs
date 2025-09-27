@@ -1,72 +1,73 @@
+using Application.Interfaces.Services;
 using Domain.Common;
 using Domain.Eventing;
+using Infrastructure.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using NetCord;
 using NetCord.Rest;
-using NetCord.Services;
+using NetCord.Services.ApplicationCommands;
 using NetCord.Services.Commands;
-using SoundCloudExplode;
-using SoundCloudExplode.Common;
+using YoutubeExplode;
+using YoutubeExplode.Common;
 using Constants = Domain.Common.Constants;
-using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
 namespace Infrastructure.Commands;
 
-public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration configuration, SoundCloudClient soundCloudClient): CommandModule<CommandContext>
+public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration configuration): ApplicationCommandModule<ApplicationCommandContext>
 {
-    [RequireUserPermissions<CommandContext>(Permissions.Administrator)]
-    [Command("play")]
+    [SlashCommand("play", "Play a track from SoundCloud")]
     public async Task PingAsync([CommandParameter(Remainder = true)] string command)
     {
-        await soundCloudClient.InitializeAsync();
+        // await soundCloudClient.InitializeAsync();
+        // var source =
+        //     await soundCloudClient.Search.GetTracksAsync(command)
+        //         .CollectAsync(6); 
+        
+        using var scope = serviceProvider.CreateScope();
+        var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
         var source =
-            await soundCloudClient.Search.GetTracksAsync(command)
-                .CollectAsync(6); 
-
-        var message = CreateMessage<MessageProperties>();
+            await youtubeClient.Search.GetVideosAsync(command)
+                .CollectAsync(5); 
+        
+        var message = CreateMessage<InteractionMessageProperties>("Select a track to play:");
         message.Components =
         [
             new StringMenuProperties(Constants.CustomIds.Play)
             {
                 Options = source.Select(s => new StringMenuSelectOptionProperties(s.Title!, s.Url!)
                 {
-                    Description = s.User?.FullName
+                    Description = s.Author.ChannelTitle
                 }).ToList()
             }
         ];
-        await SendAsync(message);
+        await RespondAsync(InteractionCallback.Message(message));
     }
     
-    [Command("stop")]
+    [SlashCommand("stop", "Stop playing and clear the queue")]
     public async Task Stop()
     {
         using var scope = serviceProvider.CreateScope();
         var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
         eventDispatcher.Dispatch(new EventType.Stop());
-        await SendAsync(CreateMessage<MessageProperties>());
+        var message = CreateMessage<InteractionMessageProperties>("Stopping playback and clearing the queue.");
+        await RespondAsync(InteractionCallback.Message(message));
     }
     
-    [Command("next", "skip")]
+    [SlashCommand("skip", "Skip the current track")]
     public async Task Skip()
     {
         using var scope = serviceProvider.CreateScope();
         var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
         eventDispatcher.Dispatch(new EventType.Skip());
-        await SendAsync(CreateMessage<MessageProperties>());
+        var message = CreateMessage<InteractionMessageProperties>("Skipping the current track.");
+        await RespondAsync(InteractionCallback.Message(message));
     }
     
-    [Command("username")]
-    public string Username(User? user = null)
+    static T CreateMessage<T>(string message) where T : IMessageProperties, new()
     {
-        user ??= Context.User;
-        return user.Username;
-    }
-    
-    static T CreateMessage<T>() where T : IMessageProperties, new()
-    {
-        return new()
+        return new ()
         {
-            Content = "Hello, World!",
+            Content = message,
             Components = [],
         };
     }

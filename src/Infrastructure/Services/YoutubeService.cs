@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Discord.WebSocket;
@@ -85,13 +84,11 @@ public class YoutubeService: IStreamService
             var result = await ytdl.RunVideoDataFetch(url);
             result.EnsureSuccess();
 
-            var formats = result.Data.Formats;
-            var httpsFormats = formats
-                .Where(f => f.ManifestUrl == null && f.Protocol == "https")
+            var httpsFormats = result.Data.Formats
+                .Where(f => f.Protocol != "mhtml")
                 .AsQueryable();
 
             var bestAudio = httpsFormats
-                                .Where(f => f.Resolution == "audio only")
                                 .MaxBy(f => f.AudioBitrate ?? 0)
                             ?? httpsFormats
                                 .MaxBy(f => f.Bitrate ?? 0);

@@ -29,9 +29,10 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
 
         lock (_lock)
         {
-            if (_queue.Peek() is not PlayRequest<T> currentRequest)
+            if (!_queue.TryPeek(out var result) || result is not PlayRequest<T> currentRequest)
             {
-                throw new InvalidOperationException($"Invalid request type in queue. Expected {typeof(PlayRequest<StringMenuInteractionContext>)}");
+                logger.LogWarning("Peeked request is not of the expected type {ExpectedType}", typeof(PlayRequest<T>));
+                return null;
             }
             
             return _queue.Count > 0 ? currentRequest : null;

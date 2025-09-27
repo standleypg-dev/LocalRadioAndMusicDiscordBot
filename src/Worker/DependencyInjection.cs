@@ -13,8 +13,9 @@ using Infrastructure.Interfaces.Services;
 using Infrastructure.Services;
 using NetCord;
 using NetCord.Gateway;
+using NetCord.Gateway.Voice;
 using NetCord.Hosting.Gateway;
-using NetCord.Hosting.Services.Commands;
+using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using SoundCloudExplode;
@@ -80,7 +81,7 @@ public static class DependencyInjection
                 options.Intents = intents;
             })
             .AddGatewayHandlers(typeof(Program).Assembly)
-            .AddCommands()
+            .AddApplicationCommands()
             .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>();
 
         // Assembly markers to locate assemblies for eventing
@@ -100,13 +101,13 @@ public static class DependencyInjection
             return Channel.CreateBounded<PlayRequest<StringMenuInteractionContext>>(options);
         });
         
-        services.AddSingleton<PlayerState>();
+        services.AddSingleton<PlayerState<VoiceClient>>();
         services.AddSingleton<IMusicQueueService, MusicQueueService>();
     }
 
     public static void AddNetCordWebApplication(this WebApplication app)
     {
-        app.AddCommandModule<NetCordCommand>()
+        app.AddApplicationCommandModule<NetCordCommand>()
             .AddComponentInteractionModule<NetCordInteraction>();
     }
 }
