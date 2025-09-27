@@ -4,22 +4,24 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
-public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger,  IMusicQueueService queue)
+public class FfmpegProcessService(ILogger<FfmpegProcessService> logger, IMusicQueueService queue)
     : INativePlaceMusicProcessorService, IDisposable
 {
     private Process? _ffmpegProcess;
     private bool _disposed;
-
-    public async Task<Process> CreateStreamAsync(string audioUrl, Func<Task> disconnectVoiceClient, CancellationToken cancellationToken)
+    public event Func<Task>? OnExitProcess;
+    
+    public async Task<Process> CreateStreamAsync(string audioUrl, CancellationToken cancellationToken)
     {
         DisposeCurrentProcess();
-        
+
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "/usr/bin/ffmpeg",
-                Arguments = $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i \"{audioUrl}\" -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
+                Arguments =
+                    $"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i \"{audioUrl}\" -f s16le -ar 48000 -ac 2 -bufsize 120k pipe:1",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 RedirectStandardInput = true,
@@ -33,12 +35,13 @@ public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger,  
         process.ErrorDataReceived += (_, e) =>
         {
             if (string.IsNullOrEmpty(e.Data)) return;
-            
+
             var level = e.Data.Contains("error", StringComparison.OrdinalIgnoreCase) ||
-                       e.Data.Contains("warning", StringComparison.OrdinalIgnoreCase) ||
-                       e.Data.Contains("failed", StringComparison.OrdinalIgnoreCase) 
-                       ? LogLevel.Warning : LogLevel.Debug;
-                       
+                        e.Data.Contains("warning", StringComparison.OrdinalIgnoreCase) ||
+                        e.Data.Contains("failed", StringComparison.OrdinalIgnoreCase)
+                ? LogLevel.Warning
+                : LogLevel.Debug;
+
             logger.Log(level, "FFmpeg: {Message}", e.Data);
         };
 
@@ -48,11 +51,8 @@ public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger,  
             {
                 var exitCode = ((Process)sender!).ExitCode;
                 logger.LogInformation("FFmpeg process exited with code: {ExitCode}", exitCode);
-                
-                if(queue.Count == 0)
-                {
-                    await disconnectVoiceClient();
-                }
+
+                await (OnExitProcess?.Invoke() ?? Task.CompletedTask);
             }
             catch (Exception ex)
             {
@@ -127,7 +127,7 @@ public sealed class FfmpegProcessService(ILogger<FfmpegProcessService> logger,  
     {
         if (_disposed) return;
         _disposed = true;
-        
+
         DisposeCurrentProcess();
     }
 }

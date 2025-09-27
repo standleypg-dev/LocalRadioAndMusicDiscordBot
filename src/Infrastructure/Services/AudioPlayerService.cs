@@ -362,7 +362,7 @@ public sealed class AudioPlayerService(
             }
 
             // Create FFmpeg process and streams
-            var process = await ffmpegProcessService.CreateStreamAsync(audioUrl, async () => await Task.CompletedTask, cancellationToken);
+            var process = await ffmpegProcessService.CreateStreamAsync(audioUrl, cancellationToken);
             audioOutStream = process.StandardOutput.BaseStream;
             discord = audioClient.CreatePCMStream(AudioApplication.Music);
             bufferedStream = new BufferedStream(discord, 4096); // Increased buffer size
