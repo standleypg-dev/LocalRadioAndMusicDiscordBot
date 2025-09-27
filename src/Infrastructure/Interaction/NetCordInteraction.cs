@@ -1,26 +1,23 @@
-using System.Threading.Channels;
-using AngleSharp.Common;
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Domain.Common;
 using Domain.Eventing;
+using Infrastructure.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NetCord;
-using NetCord.Gateway.Voice;
-using NetCord.Logging;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
-using static System.Text.Json.JsonSerializer;
 
 namespace Infrastructure.Interaction;
 
 public class NetCordInteraction(
     ILogger<NetCordInteraction> logger,
     IEventDispatcher eventDispatcher,
-    IMusicQueueService queueService) : ComponentInteractionModule<StringMenuInteractionContext>
+    IMusicQueueService queueService,
+    [FromKeyedServices(nameof(YoutubeService))] IStreamService youtubeService) : ComponentInteractionModule<StringMenuInteractionContext>
 {
     [ComponentInteraction(Constants.CustomIds.Play)]
-    public string Play()
+    public async Task<string> Play()
     {
         logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
             Context.Guild?.Id);
@@ -28,8 +25,10 @@ public class NetCordInteraction(
         var playRequest = new PlayRequest<StringMenuInteractionContext>(Context, (Func<Task<InteractionCallbackResponse>>)NotInVoiceChannelCallback);
         queueService.Enqueue(playRequest);
         eventDispatcher.Dispatch(new EventType.Play());
+        
+        var title = await youtubeService.GetVideoTitleAsync(Context.SelectedValues[0], CancellationToken.None);
 
-        return $"Added {Context.SelectedValues[0]} to the queue!";
+        return $"Added {title} to the queue!";
 
         Task<InteractionCallbackResponse> NotInVoiceChannelCallback() => RespondAsync(InteractionCallback.Message("You are not connected to any voice channel!"))!;
     }
