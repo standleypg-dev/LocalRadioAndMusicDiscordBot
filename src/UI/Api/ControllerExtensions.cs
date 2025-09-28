@@ -13,7 +13,7 @@ public static class ControllerExtensions
     public static void AddApiController(this WebApplication app)
     {
         app.MapGet("/api/statistics-all",
-                async (IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>> statisticsService) =>
+                async (IStatisticsService statisticsService) =>
                     await statisticsService.GetAllSongsAsync())
             .WithName("GetStatisticsAll");
 

@@ -11,12 +11,12 @@ using Song = Domain.Entities.Song;
 namespace Infrastructure.Services;
 
 public class StatisticsService(DiscordBotContext context, [FromKeyedServices(nameof(YoutubeService))] IStreamService streamService)
-    : IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>
+    : IStatisticsService
 {
     // Log when a user plays a song
 
 
-    public async Task LogSongPlayAsync(ulong id, string userName, string globalName, SongDto<SocketVoiceChannel> songDto)
+    public async Task LogSongPlayAsync(ulong id, string userName, string globalName, SongDtoBase songDto)
     {
         try
         {

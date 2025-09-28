@@ -59,7 +59,7 @@ public static class DependencyInjection
         services.AddScoped<SoundCloudClient>();
         services.AddKeyedScoped<IStreamService, YoutubeService>(nameof(YoutubeService));
         services.AddKeyedScoped<IStreamService, SoundCloudService>(nameof(SoundCloudService));
-        services.AddScoped<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>, StatisticsService>();
+        services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IBlacklistService, BlacklistService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRadioSourceService, RadioSourceService>();
@@ -109,16 +109,5 @@ public static class DependencyInjection
     {
         app.AddApplicationCommandModule<NetCordCommand>()
             .AddComponentInteractionModule<NetCordInteraction>();
-    }
-}
-
-public record PlayRequest(StringMenuInteractionContext Ctx, params Func<Task>[] Callbacks);
-
-public class MessageCreateHandler(ILogger<MessageCreateHandler> logger) : IMessageCreateGatewayHandler
-{
-    public ValueTask HandleAsync(Message message)
-    {
-        logger.LogInformation("{}", message.Content);
-        return default;
     }
 }

@@ -10,6 +10,7 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger, IMusicQu
     private Process? _ffmpegProcess;
     private bool _disposed;
     public event Func<Task>? OnExitProcess;
+    public event Func<Task>? OnProcessStart;
     
     public async Task<Process> CreateStreamAsync(string audioUrl, CancellationToken cancellationToken)
     {
@@ -59,7 +60,7 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger, IMusicQu
                 logger.LogDebug(ex, "Error reading FFmpeg exit code");
             }
         };
-
+        
         // Handle cancellation
         cancellationToken.Register(() =>
         {
@@ -78,6 +79,7 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger, IMusicQu
         _ffmpegProcess = process;
 
         logger.LogInformation("FFmpeg process started for URL: {AudioUrl}", audioUrl);
+        await (OnProcessStart?.Invoke() ?? Task.CompletedTask);
         return process;
     }
 
