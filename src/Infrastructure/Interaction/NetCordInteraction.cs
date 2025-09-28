@@ -22,13 +22,23 @@ public class NetCordInteraction(
         logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
             Context.Guild?.Id);
 
-        var playRequest = new PlayRequest<StringMenuInteractionContext>(Context, (Func<Task<InteractionCallbackResponse>>)NotInVoiceChannelCallback);
+        var playRequest = new PlayRequest<StringMenuInteractionContext>(Context, NotInVoiceChannelCallback);
         queueService.Enqueue(playRequest);
         eventDispatcher.Dispatch(new EventType.Play());
-        
-        var title = await youtubeService.GetVideoTitleAsync(Context.SelectedValues[0], CancellationToken.None);
+        var selectedValue = Context.SelectedValues[0];
 
-        return $"Added {title} to the queue!";
+        string message;
+        if (!Guid.TryParse(selectedValue, out _))
+        {
+            var title = await youtubeService.GetVideoTitleAsync(Context.SelectedValues[0], CancellationToken.None);
+            message = $"Added {title} to the queue!";
+        }
+        else
+        {
+            message = $"Added radio source to the queue!";
+        }
+        
+        return message;
 
         Task<InteractionCallbackResponse> NotInVoiceChannelCallback() => RespondAsync(InteractionCallback.Message("You are not connected to any voice channel!"))!;
     }

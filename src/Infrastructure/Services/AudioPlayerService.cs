@@ -37,7 +37,7 @@ public sealed class AudioPlayerService(
             using var scope = serviceProvider.CreateScope();
             var youtubeService = scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
             var statisticsService = scope.ServiceProvider
-                .GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
+                .GetRequiredService<IStatisticsService>();
 
             var user = voiceChannel?.GetUser(userId);
             if (user is not null && isYt)

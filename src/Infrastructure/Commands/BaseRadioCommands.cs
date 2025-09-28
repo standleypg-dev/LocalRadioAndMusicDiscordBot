@@ -212,7 +212,7 @@ public class BaseRadioCommands(
         command = command.ToLowerInvariant().Trim();
         using var scope = serviceProvider.CreateScope();
         var statisticsService = scope.ServiceProvider
-            .GetRequiredService<IStatisticsService<SocketUser, SongDto<SocketVoiceChannel>>>();
+            .GetRequiredService<IStatisticsService>();
         var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
         UserStatsDto? userStats;

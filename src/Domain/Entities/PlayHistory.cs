@@ -27,6 +27,7 @@ public class PlayHistory(DateTimeOffset playedAt, ulong userId, Guid songId)
         ArgumentNullException.ThrowIfNull(playHistory);
 
         playHistory.PlayedAt = DateTimeOffset.UtcNow;
+        playHistory.UpdatedAt = DateTimeOffset.UtcNow;
         playHistory.TotalPlays += 1;
         return playHistory;
     }
