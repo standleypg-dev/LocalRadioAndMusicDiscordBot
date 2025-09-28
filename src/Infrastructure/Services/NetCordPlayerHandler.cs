@@ -101,7 +101,6 @@ public class NetCordPlayerHandler(
                 
                 await playerService.Play(context, SetDisconnectCallback);
                 
-                
                 queue.DequeueAsync(CancellationToken.None);
             } while (!playerState.StopCts.Token.IsCancellationRequested && queue.Count > 0);
             

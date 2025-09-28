@@ -18,3 +18,11 @@ public class EventType
     public record Stop : IEvent;
     public record Skip : IEvent;
 }
+
+public enum AudioSource
+{
+    Youtube,
+    SoundCloud,
+    Url,
+    Radio
+}
