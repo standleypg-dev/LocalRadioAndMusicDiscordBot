@@ -21,6 +21,8 @@ public class NetCordAudioPlayerService(
     public event Func<Task>? NotInVoiceChannelCallback;
     private Action<Func<Task>> OnDisconnectAsync { get; set; } = _ => { };
     private StringMenuInteractionContext Context { get; set; } = null!;
+    
+    private int _retryCount = 0;
 
     public async Task Play<T>(T ctx, Action<Func<Task>> onDisconnectAsync)
     {
@@ -80,39 +82,9 @@ public class NetCordAudioPlayerService(
             }
 
             var selectedValue = currentTrack.Context.SelectedValues[0];
-            string sourceUrl;
+            var sourceUrl = await GetSourceUrl(selectedValue, radioSourceService, youTubeService, currentTrack);
 
-            if (Guid.TryParse(selectedValue, out var radioId))
-            {
-                sourceUrl = (await radioSourceService.GetRadioSourceByIdAsync(radioId)).SourceUrl;
-            }
-            else
-            {
-                sourceUrl = await youTubeService.GetAudioStreamUrlAsync(selectedValue,
-                    playerState.SkipCts?.Token ?? CancellationToken.None);
-                
-                var song = new SongDtoBase
-                {
-                    Url = selectedValue,
-                    Title = await youTubeService.GetVideoTitleAsync(selectedValue,
-                        playerState.SkipCts?.Token ?? CancellationToken.None),
-                    UserId = currentTrack.Context.User.Id
-                };
-                ffmpegProcessService.OnProcessStart += () => HandleOnProcessStartAsync(song);
-            }
-
-            var ffmpeg =
-                await ffmpegProcessService.CreateStreamAsync(sourceUrl,
-                    playerState.SkipCts?.Token ?? CancellationToken.None);
-            
-
-            ffmpegProcessService.OnExitProcess += HandleOnProcessExitAsync;
-
-            await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream,
-                playerState.SkipCts?.Token ?? CancellationToken.None);
-
-            // Flush 'stream' to make sure all the data has been sent and to indicate to Discord that we have finished sending
-            await stream.FlushAsync(playerState.SkipCts?.Token ?? CancellationToken.None);
+            await StartFfmpegStream(sourceUrl, stream);
         }
 
         async Task StartVoiceClientAsync()
@@ -146,7 +118,52 @@ public class NetCordAudioPlayerService(
                 playerState.StopCts?.Token ?? CancellationToken.None);
             await playerState.CurrentVoiceClient.CloseAsync(
                 cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+            
+            _retryCount = 0;
         }
+    }
+
+    private async Task StartFfmpegStream(string sourceUrl, OpusEncodeStream stream)
+    {
+        var ffmpeg =
+            await ffmpegProcessService.CreateStreamAsync(sourceUrl,
+                playerState.SkipCts?.Token ?? CancellationToken.None);
+            
+        ffmpegProcessService.ErrorDataReceived += HandleFfmpegErrorAsync;
+        ffmpegProcessService.OnExitProcess += HandleOnProcessExitAsync;
+
+        await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream,
+            playerState.SkipCts?.Token ?? CancellationToken.None);
+
+        // Flush 'stream' to make sure all the data has been sent and to indicate to Discord that we have finished sending
+        await stream.FlushAsync(playerState.SkipCts?.Token ?? CancellationToken.None);
+    }
+
+    private async Task<string> GetSourceUrl(string selectedValue, IRadioSourceService radioSourceService,
+        IStreamService youTubeService, PlayRequest<StringMenuInteractionContext> currentTrack)
+    {
+        string sourceUrl;
+
+        if (Guid.TryParse(selectedValue, out var radioId))
+        {
+            sourceUrl = (await radioSourceService.GetRadioSourceByIdAsync(radioId)).SourceUrl;
+        }
+        else
+        {
+            sourceUrl = await youTubeService.GetAudioStreamUrlAsync(selectedValue,
+                playerState.SkipCts?.Token ?? CancellationToken.None);
+                
+            var song = new SongDtoBase
+            {
+                Url = selectedValue,
+                Title = await youTubeService.GetVideoTitleAsync(selectedValue,
+                    playerState.SkipCts?.Token ?? CancellationToken.None),
+                UserId = currentTrack.Context.User.Id
+            };
+            ffmpegProcessService.OnProcessStart += () => HandleOnProcessStartAsync(song);
+        }
+
+        return sourceUrl;
     }
 
     private async Task HandleOnProcessStartAsync(SongDtoBase song)
@@ -173,5 +190,19 @@ public class NetCordAudioPlayerService(
     private async ValueTask HandleOnVoiceClientDisconnectedAsync(DisconnectEventArgs args)
     {
         await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+    }
+    
+    private async Task HandleFfmpegErrorAsync()
+    {
+        // Retry to get new stream URL and play again
+        logger.LogWarning("Ffmpeg error received, retrying to play the stream");
+        _retryCount++;
+        if(_retryCount > 3)
+        {
+            logger.LogError("Ffmpeg error received, maximum retry count reached, stopping playback");
+            await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+            return;
+        }
+        await HandleMusicPlayingAsync();
     }
 }
