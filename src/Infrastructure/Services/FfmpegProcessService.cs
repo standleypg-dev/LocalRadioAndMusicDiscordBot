@@ -11,7 +11,8 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger, IMusicQu
     private bool _disposed;
     public event Func<Task>? OnExitProcess;
     public event Func<Task>? OnProcessStart;
-    
+    public event Func<Task>? ErrorDataReceived;
+
     public async Task<Process> CreateStreamAsync(string audioUrl, CancellationToken cancellationToken)
     {
         DisposeCurrentProcess();
@@ -33,17 +34,23 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger, IMusicQu
         };
 
         // Set up logging
-        process.ErrorDataReceived += (_, e) =>
+        process.ErrorDataReceived += async (_, e) =>
         {
             if (string.IsNullOrEmpty(e.Data)) return;
 
             var level = e.Data.Contains("error", StringComparison.OrdinalIgnoreCase) ||
-                        e.Data.Contains("warning", StringComparison.OrdinalIgnoreCase) ||
                         e.Data.Contains("failed", StringComparison.OrdinalIgnoreCase)
-                ? LogLevel.Warning
-                : LogLevel.Debug;
+                ? LogLevel.Error
+                : e.Data.Contains("warning", StringComparison.OrdinalIgnoreCase)
+                    ? LogLevel.Warning
+                    : LogLevel.Debug;
 
             logger.Log(level, "FFmpeg: {Message}", e.Data);
+
+            if (level == LogLevel.Error)
+            {
+                await (ErrorDataReceived?.Invoke() ?? Task.CompletedTask);
+            }
         };
 
         process.Exited += async (sender, _) =>
@@ -60,7 +67,7 @@ public class FfmpegProcessService(ILogger<FfmpegProcessService> logger, IMusicQu
                 logger.LogDebug(ex, "Error reading FFmpeg exit code");
             }
         };
-        
+
         // Handle cancellation
         cancellationToken.Register(() =>
         {
