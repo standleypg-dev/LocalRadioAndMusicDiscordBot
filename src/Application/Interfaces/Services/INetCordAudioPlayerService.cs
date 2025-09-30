@@ -4,5 +4,5 @@ public interface INetCordAudioPlayerService
 {
     event Func<Task>? DisconnectedVoiceClientEvent;
     event Func<Task>? NotInVoiceChannelCallback;
-    Task Play<T>(T ctx, Action<Func<Task>> disconnectAsync);
+    Task Play(Action<Func<Task>> disconnectAsync);
 }

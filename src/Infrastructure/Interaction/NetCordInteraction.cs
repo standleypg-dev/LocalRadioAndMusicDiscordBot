@@ -19,10 +19,21 @@ public class NetCordInteraction(
     [ComponentInteraction(Constants.CustomIds.Play)]
     public async Task<string> Play()
     {
+        var context = Context;
+        if (!NotInVoiceChannel())
+        {
+            return "You must be in a voice channel to use this command.";
+        }
+        
+        if (!NotDeafened())
+        {
+            return "You must be deafened to use this command.";
+        }
+        
         logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
             Context.Guild?.Id);
 
-        var playRequest = new PlayRequest<StringMenuInteractionContext>(Context, NotInVoiceChannelCallback);
+        var playRequest = new PlayRequest<StringMenuInteractionContext>(Context, RespondAsyncCallback);
         queueService.Enqueue(playRequest);
         eventDispatcher.Dispatch(new EventType.Play());
         var selectedValue = Context.SelectedValues[0];
@@ -40,6 +51,29 @@ public class NetCordInteraction(
         
         return message;
 
-        Task<InteractionCallbackResponse> NotInVoiceChannelCallback() => RespondAsync(InteractionCallback.Message("You are not connected to any voice channel!"))!;
     }
+    
+    private bool NotInVoiceChannel()
+    {
+        return Context.Guild!.VoiceStates.TryGetValue(Context.User.Id, out _);
+    }
+    
+    private bool NotDeafened()
+    {
+        var voiceState = Context.Guild!.VoiceStates[Context.User.Id];
+        return !(voiceState.IsDeafened || voiceState.IsSelfDeafened);
+    }
+    
+    private bool UserAndBotInSameVoiceChannel()
+    {
+        var voiceState = Context.Guild!.VoiceStates[Context.User.Id];
+        if (!Context.Guild.VoiceStates.TryGetValue(Context.Client.Id, out var botVoiceState))
+        {
+            return false;
+        }
+        
+        return voiceState.ChannelId == botVoiceState.ChannelId;
+    }
+
+    private Task<InteractionCallbackResponse> RespondAsyncCallback(string message) => RespondAsync(InteractionCallback.Message(message))!;
 }
