@@ -22,7 +22,6 @@ public class NetCordAudioPlayerService(
     private Action<Func<Task>> OnDisconnectAsync { get; set; } = _ => { };
     
     private int _retryCount;
-    private bool _retrying;
 
     public async Task Play(Action<Func<Task>> onDisconnectAsync)
     {
@@ -174,10 +173,11 @@ public class NetCordAudioPlayerService(
 
     private async Task HandleOnProcessExitAsync()
     {
-        if (queue.Count == 0 && !_retrying)
-        {
-            await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
-        }
+        // Temporarily disable this event to avoid unexpected behavior
+        // if (queue.Count == 0)
+        // {
+        //     await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+        // }
     }
 
     private async ValueTask HandleOnVoiceClientDisconnectedAsync(DisconnectEventArgs args)
@@ -189,7 +189,6 @@ public class NetCordAudioPlayerService(
     {
         // Retry to get new stream URL and play again
         logger.LogWarning("Ffmpeg error received, retrying to play the stream");
-        _retrying = true;
         _retryCount++;
         if(_retryCount > 3)
         {
@@ -197,7 +196,6 @@ public class NetCordAudioPlayerService(
             if(queue.Count == 0)
             {
                 await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
-                _retrying = false;
                 return;
             }
         }
