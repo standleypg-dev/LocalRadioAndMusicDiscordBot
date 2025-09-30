@@ -90,16 +90,17 @@ public class NetCordPlayerHandler(
 
                 playerService.NotInVoiceChannelCallback += async () =>
                 {
-                    await callbacks.Invoke();
+                    await callbacks.Invoke("You are not connected to any voice channel!");
                 };
                 
                 playerService.DisconnectedVoiceClientEvent += async () =>
                 {
                     logger.LogInformation("Voice client disconnected - stopping playback");
                     await DisconnectVoiceClient();
+                    await callbacks.Invoke("Disconnected from voice channel either due to inactivity or error encountered.");
                 };
                 
-                await playerService.Play(context, SetDisconnectCallback);
+                await playerService.Play(SetDisconnectCallback);
                 
                 queue.DequeueAsync(CancellationToken.None);
             } while (!playerState.StopCts.Token.IsCancellationRequested && queue.Count > 0);
