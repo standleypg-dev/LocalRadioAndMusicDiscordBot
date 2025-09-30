@@ -20,34 +20,34 @@ public class NetCordAudioPlayerService(
     public event Func<Task>? DisconnectedVoiceClientEvent;
     public event Func<Task>? NotInVoiceChannelCallback;
     private Action<Func<Task>> OnDisconnectAsync { get; set; } = _ => { };
-    private StringMenuInteractionContext Context { get; set; } = null!;
     
-    private int _retryCount = 0;
+    private int _retryCount;
+    private bool _retrying;
 
-    public async Task Play<T>(T ctx, Action<Func<Task>> onDisconnectAsync)
+    public async Task Play(Action<Func<Task>> onDisconnectAsync)
     {
-        if (ctx is not StringMenuInteractionContext context)
-        {
-            throw new ArgumentException("Invalid context type. Expected StringMenuInteractionContext.", nameof(ctx));
-        }
-
         OnDisconnectAsync = onDisconnectAsync;
-        Context = context;
-
         await HandleMusicPlayingAsync();
     }
 
     private async Task HandleMusicPlayingAsync()
     {
-        var guild = Context.Guild!;
+        var currentTrack = queue.Peek<StringMenuInteractionContext>();
+        
+        if (currentTrack is null)
+        {
+            logger.LogError("Current track is null");
+            return;
+        }
+        var guild = currentTrack.Context.Guild!;
         // Get the user voice state
-        if (!guild.VoiceStates.TryGetValue(Context.User.Id, out var voiceState))
+        if (!guild.VoiceStates.TryGetValue(currentTrack.Context.User.Id, out var voiceState))
         {
             await (NotInVoiceChannelCallback?.Invoke() ?? Task.CompletedTask);
             return;
         }
 
-        var client = Context.Client;
+        var client = currentTrack.Context.Client;
 
         if (playerState.CurrentAction == PlayerAction.Stop)
         {
@@ -73,13 +73,6 @@ public class NetCordAudioPlayerService(
                 scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
             var radioSourceService = scope.ServiceProvider
                 .GetRequiredService<IRadioSourceService>();
-
-            var currentTrack = queue.Peek<StringMenuInteractionContext>();
-            if (currentTrack is null)
-            {
-                logger.LogError("Current track is null");
-                return;
-            }
 
             var selectedValue = currentTrack.Context.SelectedValues[0];
             var sourceUrl = await GetSourceUrl(selectedValue, radioSourceService, youTubeService, currentTrack);
@@ -113,7 +106,7 @@ public class NetCordAudioPlayerService(
         async Task DisconnectVoiceClientAsync()
         {
             await client.UpdateVoiceStateAsync(
-                new VoiceStateProperties(Context.Guild!.Id, null),
+                new VoiceStateProperties(currentTrack.Context.Guild!.Id, null),
                 null,
                 playerState.StopCts?.Token ?? CancellationToken.None);
             await playerState.CurrentVoiceClient.CloseAsync(
@@ -160,19 +153,19 @@ public class NetCordAudioPlayerService(
                     playerState.SkipCts?.Token ?? CancellationToken.None),
                 UserId = currentTrack.Context.User.Id
             };
-            ffmpegProcessService.OnProcessStart += () => HandleOnProcessStartAsync(song);
+            ffmpegProcessService.OnProcessStart += () => HandleOnProcessStartAsync(song, currentTrack.Context);
         }
 
         return sourceUrl;
     }
 
-    private async Task HandleOnProcessStartAsync(SongDtoBase song)
+    private async Task HandleOnProcessStartAsync(SongDtoBase song, StringMenuInteractionContext currentContext)
     {
         using var scope = serviceProvider.CreateScope();
         var statisticsService = scope.ServiceProvider
             .GetRequiredService<IStatisticsService>();
         await statisticsService
-            .LogSongPlayAsync(Context.User.Id, Context.User.Username, Context.User.GlobalName ?? string.Empty, song)
+            .LogSongPlayAsync(currentContext.User.Id, currentContext.User.Username, currentContext.User.GlobalName ?? string.Empty, song)
             .ConfigureAwait(false);
 
         playerState.CurrentAction = PlayerAction.Play;
@@ -181,7 +174,7 @@ public class NetCordAudioPlayerService(
 
     private async Task HandleOnProcessExitAsync()
     {
-        if (queue.Count == 0)
+        if (queue.Count == 0 && !_retrying)
         {
             await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
         }
@@ -196,12 +189,17 @@ public class NetCordAudioPlayerService(
     {
         // Retry to get new stream URL and play again
         logger.LogWarning("Ffmpeg error received, retrying to play the stream");
+        _retrying = true;
         _retryCount++;
         if(_retryCount > 3)
         {
             logger.LogError("Ffmpeg error received, maximum retry count reached, stopping playback");
-            await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
-            return;
+            if(queue.Count == 0)
+            {
+                await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+                _retrying = false;
+                return;
+            }
         }
         await HandleMusicPlayingAsync();
     }
