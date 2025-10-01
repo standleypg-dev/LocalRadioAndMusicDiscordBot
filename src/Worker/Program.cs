@@ -10,8 +10,7 @@ builder.Services.AddApiDependencies(builder.Configuration);
 builder.Services.AddCors();
 builder.Services.AddOpenApi();
 
-builder.Services.AddDiscordServices();
-builder.Services.AddNetCordServices(builder.Configuration);
+builder.Services.AddDiscordServices(builder.Configuration);
 
 // builder.Services.AddHostedService<DiscordBot>();
 
@@ -29,7 +28,7 @@ builder.Services.AddDbContext<DiscordBotContext>(options =>
 builder.Services.AddAuthorization(); 
 
 var app = builder.Build();
-app.AddNetCordWebApplication();
+app.AddWebApplication();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
 if (app.Environment.IsDevelopment())

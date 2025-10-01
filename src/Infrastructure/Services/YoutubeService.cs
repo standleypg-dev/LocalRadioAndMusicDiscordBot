@@ -1,6 +1,4 @@
-using Application.DTOs;
 using Application.Interfaces.Services;
-using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using YoutubeDLSharp;
@@ -13,18 +11,15 @@ public class YoutubeService: IStreamService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<YoutubeService> _logger;
-    private readonly IQueueService<SongDto<SocketVoiceChannel>> _queueService;
     private readonly List<Func<string, Task<(bool Success, string? Url)>>> _providerStrategy;
     private readonly YoutubeClient _youtubeClient;
 
     public YoutubeService(
         IServiceProvider serviceProvider,
         ILogger<YoutubeService> logger,
-        IQueueService<SongDto<SocketVoiceChannel>> queueService,
         YoutubeClient youtubeClient)
     {
         _serviceProvider = serviceProvider;
-        _queueService = queueService;
         _logger = logger;
         _youtubeClient = youtubeClient;
 

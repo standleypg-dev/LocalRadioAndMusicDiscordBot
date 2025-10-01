@@ -1,7 +1,6 @@
 using Application.DTOs;
 using Application.DTOs.Stats;
 using Application.Interfaces.Services;
-using Discord.WebSocket;
 using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
