@@ -143,7 +143,7 @@ public class NetCordPlayerHandler(
         {
             await playerState.StopCts?.CancelAsync()!;
             playerState.StopCts?.Dispose();
-            playerState.StopCts = null;
+            playerState.StopCts = null!;
             playerState.CurrentAction = PlayerAction.Stop;
             playerState.DisconnectAsyncCallback = null;
             playerState.CurrentVoiceClient = null;
