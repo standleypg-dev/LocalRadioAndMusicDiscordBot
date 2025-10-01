@@ -1,6 +1,4 @@
-using Application.DTOs;
 using Application.Interfaces.Services;
-using Discord.WebSocket;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

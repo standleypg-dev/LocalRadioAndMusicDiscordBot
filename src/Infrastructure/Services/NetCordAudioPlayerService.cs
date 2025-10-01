@@ -99,11 +99,11 @@ public class NetCordAudioPlayerService(
                     new VoiceClientConfiguration
                     {
                         Logger = new ConsoleLogger(),
-                    }, cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+                    }, cancellationToken: playerState.StopCts.Token);
 
                 playerState.CurrentVoiceClient.Disconnect += HandleOnVoiceClientDisconnectedAsync;
 
-                await playerState.CurrentVoiceClient.StartAsync(playerState.StopCts?.Token ?? CancellationToken.None);
+                await playerState.CurrentVoiceClient.StartAsync(playerState.StopCts.Token);
 
                 // Register the disconnect callback
                 // This will be called when the cancellation token is triggered or when the voice client is closed
@@ -111,7 +111,7 @@ public class NetCordAudioPlayerService(
 
                 await playerState.CurrentVoiceClient.EnterSpeakingStateAsync(
                     new SpeakingProperties(SpeakingFlags.Microphone),
-                    cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+                    cancellationToken: playerState.StopCts.Token);
             }
 
             async Task DisconnectVoiceClientAsync()
@@ -121,9 +121,9 @@ public class NetCordAudioPlayerService(
                     await client.UpdateVoiceStateAsync(
                         new VoiceStateProperties(_currentTrack.Context.Guild!.Id, null),
                         null,
-                        playerState.StopCts?.Token ?? CancellationToken.None);
+                        playerState.StopCts.Token);
                     await playerState.CurrentVoiceClient.CloseAsync(
-                        cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+                        cancellationToken: playerState.StopCts.Token);
                 }
                 catch (Exception e)
                 {
@@ -147,16 +147,16 @@ public class NetCordAudioPlayerService(
     {
         var ffmpeg =
             await ffmpegProcessService.CreateStreamAsync(sourceUrl,
-                playerState.SkipCts?.Token ?? CancellationToken.None);
+                playerState.SkipCts.Token);
 
         ffmpegProcessService.OnForbiddenUrlRequest += OnForbiddenUrlRequest;
         ffmpegProcessService.OnPlaySongCompleted += OnPlaySongCompleted;
 
         await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream,
-            playerState.SkipCts?.Token ?? CancellationToken.None);
+            playerState.SkipCts.Token);
 
         // Flush 'stream' to make sure all the data has been sent and to indicate to Discord that we have finished sending
-        await stream.FlushAsync(playerState.SkipCts?.Token ?? CancellationToken.None);
+        await stream.FlushAsync(playerState.SkipCts.Token);
     }
 
     private async Task<string> GetSourceUrl(string selectedValue, IRadioSourceService radioSourceService,
@@ -173,7 +173,7 @@ public class NetCordAudioPlayerService(
             try
             {
                 sourceUrl = await youTubeService.GetAudioStreamUrlAsync(selectedValue,
-                    playerState.SkipCts?.Token ?? CancellationToken.None);
+                    playerState.SkipCts.Token);
             }
             catch (Exception ex)
             {
@@ -185,7 +185,7 @@ public class NetCordAudioPlayerService(
             {
                 Url = selectedValue,
                 Title = await youTubeService.GetVideoTitleAsync(selectedValue,
-                    playerState.SkipCts?.Token ?? CancellationToken.None),
+                    playerState.SkipCts.Token),
                 UserId = currentTrack.Context.User.Id
             };
             ffmpegProcessService.OnProcessStart += () => HandleOnProcessStartAsync(song, currentTrack.Context);
@@ -210,12 +210,12 @@ public class NetCordAudioPlayerService(
     private async Task OnPlaySongCompleted()
     {
         var queuePeek = queue.Peek<StringMenuInteractionContext>();
-        if(queuePeek?.Id == _currentTrack?.Id)
+        if (queuePeek?.Id == _currentTrack?.Id)
         {
             logger.LogInformation($"Dequeuing track after completion: {_currentTrack?.Id}");
             queue.DequeueAsync(CancellationToken.None);
         }
-        
+
         if (queue.Count == 0)
         {
             await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);

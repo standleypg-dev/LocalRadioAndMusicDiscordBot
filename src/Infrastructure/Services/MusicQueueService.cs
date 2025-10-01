@@ -73,4 +73,16 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
             return _queue.OfType<PlayRequest>().ToArray();
         }
     }
+
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _queue.Clear();
+            while (_signal.CurrentCount > 0)
+            {
+                _signal.Wait();
+            }
+        }
+    }
 }

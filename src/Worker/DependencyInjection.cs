@@ -1,15 +1,10 @@
-using System.Threading.Channels;
 using Application.Configs;
-using Application.DTOs;
 using Application.Interfaces.Services;
 using Application.Services;
 using Application.Store;
-using Discord.Commands;
-using Discord.WebSocket;
 using Domain.Common;
 using Infrastructure.Commands;
 using Infrastructure.Interaction;
-using Infrastructure.Interfaces.Services;
 using Infrastructure.Services;
 using NetCord;
 using NetCord.Gateway;
@@ -20,60 +15,19 @@ using NetCord.Hosting.Services.ComponentInteractions;
 using NetCord.Services.ComponentInteractions;
 using SoundCloudExplode;
 using YoutubeExplode;
-using Channel = System.Threading.Channels.Channel;
-using GatewayIntents = Discord.GatewayIntents;
+using AssemblyMarker = Application.AssemblyMarker;
 
 namespace Worker;
 
 public static class DependencyInjection
 {
-    public static void AddDiscordServices(this IServiceCollection services)
+    public static void AddDiscordServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var config = new DiscordSocketConfig
-        {
-            GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.GuildVoiceStates |
-                             GatewayIntents.GuildMembers | GatewayIntents.MessageContent | GatewayIntents.DirectMessages
-        };
-
-        services.AddLogging(opts => opts.AddConsole());
-
-        services.AddSingleton(config);
-        services.AddSingleton<DiscordSocketClient>();
-        services.AddSingleton<CommandService>();
-        services.AddSingleton<Startup>();
-        services.AddSingleton<ProdRadioCommands>();
-        services.AddSingleton<DevRadioCommands>();
-        services.AddSingleton<GlobalStore>();
-        services.AddSingleton<IJokeService, JokeService>();
-        services.AddSingleton<IQuoteService, QuoteService>();
-        services.AddSingleton<IHttpRequestService, HttpRequestService>();
-        services.AddSingleton<IInteractionService, InteractionService>();
-        services.AddSingleton<IQueueService<SongDto<SocketVoiceChannel>>, QueueService>();
-        services.AddSingleton<INativePlaceMusicProcessorService, FfmpegProcessService>();
-        services
-            .AddSingleton<IAudioPlayerService<SongDto<SocketVoiceChannel>, SocketVoiceChannel>, AudioPlayerService>();
-        services.AddSingleton<DiscordBot>();
-        services.AddSingleton<INetCordAudioPlayerService, NetCordAudioPlayerService>();
-
-        services.AddScoped<YoutubeClient>();
-        services.AddScoped<SoundCloudClient>();
-        services.AddKeyedScoped<IStreamService, YoutubeService>(nameof(YoutubeService));
-        services.AddKeyedScoped<IStreamService, SoundCloudService>(nameof(SoundCloudService));
-        services.AddScoped<IStatisticsService, StatisticsService>();
-        services.AddScoped<IBlacklistService, BlacklistService>();
-        services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IRadioSourceService, RadioSourceService>();
-
-        services.AddTransient<ISpotifyService, SpotifyService>();
-    }
-
-    public static void AddNetCordServices(this IServiceCollection services, IConfiguration configuration)
-    {
-        var intents = NetCord.Gateway.GatewayIntents.Guilds |
-                      NetCord.Gateway.GatewayIntents.GuildMessages |
-                      NetCord.Gateway.GatewayIntents.GuildVoiceStates |
-                      NetCord.Gateway.GatewayIntents.MessageContent |
-                      NetCord.Gateway.GatewayIntents.DirectMessages;
+        var intents = GatewayIntents.Guilds |
+                      GatewayIntents.GuildMessages |
+                      GatewayIntents.GuildVoiceStates |
+                      GatewayIntents.MessageContent |
+                      GatewayIntents.DirectMessages;
 
         services.AddDiscordGateway(options =>
             {
@@ -86,28 +40,40 @@ public static class DependencyInjection
 
         // Assembly markers to locate assemblies for eventing
         // This is needed for the subscription to work correctly
-        services.AddEventing(typeof(Application.AssemblyMarker).Assembly,
+        services.AddEventing(typeof(AssemblyMarker).Assembly,
             typeof(Infrastructure.Services.AssemblyMarker).Assembly);
 
-        services.AddSingleton(_ =>
-        {
-            var options = new BoundedChannelOptions(capacity: 100)
-            {
-                FullMode = BoundedChannelFullMode.Wait,
-                SingleReader = true,
-                SingleWriter = false
-            };
+        services.AddLogging(opts => opts.AddConsole());
 
-            return Channel.CreateBounded<PlayRequest<StringMenuInteractionContext>>(options);
-        });
-        
+        services.AddSingleton<GlobalStore>();
         services.AddSingleton<PlayerState<VoiceClient>>();
+        services.AddSingleton<IHttpRequestService, HttpRequestService>();
+        services.AddSingleton<INativePlaceMusicProcessorService, FfmpegProcessService>();
+        services.AddSingleton<INetCordAudioPlayerService, NetCordAudioPlayerService>();
         services.AddSingleton<IMusicQueueService, MusicQueueService>();
+        services.AddSingleton<IScopeExecutor, ScopeExecutor>();
+
+        services.AddScoped<YoutubeClient>();
+        services.AddScoped<SoundCloudClient>();
+        services.AddScoped<IStatisticsService, StatisticsService>();
+        services.AddScoped<IBlacklistService, BlacklistService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IRadioSourceService, RadioSourceService>();
+
+        services.AddKeyedScoped<IStreamService, YoutubeService>(nameof(YoutubeService));
+        services.AddKeyedScoped<IStreamService, SoundCloudService>(nameof(SoundCloudService));
+        services.AddKeyedScoped<IRandomService, JokeService>(nameof(JokeService));
+        services.AddKeyedScoped<IRandomService, QuoteService>(nameof(QuoteService));
+
+        services.AddTransient<ISpotifyService, SpotifyService>();
     }
 
-    public static void AddNetCordWebApplication(this WebApplication app)
+    public static void AddWebApplication(this WebApplication app)
     {
-        app.AddApplicationCommandModule<NetCordCommand>()
+        app.AddApplicationCommandModule<PlayCommand>()
+            .AddApplicationCommandModule<MusicActionCommands>()
+            .AddApplicationCommandModule<MiscCommands>()
+            .AddApplicationCommandModule<AdminCommands>()
             .AddComponentInteractionModule<NetCordInteraction>();
     }
 }

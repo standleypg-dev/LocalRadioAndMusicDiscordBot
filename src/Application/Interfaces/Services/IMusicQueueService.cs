@@ -9,4 +9,5 @@ public interface IMusicQueueService
     void DequeueAsync(CancellationToken cancellationToken);
     int Count { get; }
     PlayRequest[] GetAllRequests();
+    void Clear();
 }

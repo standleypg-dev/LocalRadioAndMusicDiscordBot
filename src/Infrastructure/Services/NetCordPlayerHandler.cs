@@ -50,6 +50,7 @@ public class NetCordPlayerHandler(
     public async void Handle(EventType.Stop @event)
     {
         await DisconnectVoiceClient();
+        queue.Clear();
     }
 
 
@@ -65,8 +66,6 @@ public class NetCordPlayerHandler(
                 logger.LogInformation("No next item in queue");
                 return;
             }
-
-           
 
             do
             {
