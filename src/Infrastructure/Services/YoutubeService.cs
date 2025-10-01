@@ -15,15 +15,18 @@ public class YoutubeService: IStreamService
     private readonly ILogger<YoutubeService> _logger;
     private readonly IQueueService<SongDto<SocketVoiceChannel>> _queueService;
     private readonly List<Func<string, Task<(bool Success, string? Url)>>> _providerStrategy;
+    private readonly YoutubeClient _youtubeClient;
 
     public YoutubeService(
         IServiceProvider serviceProvider,
         ILogger<YoutubeService> logger,
-        IQueueService<SongDto<SocketVoiceChannel>> queueService)
+        IQueueService<SongDto<SocketVoiceChannel>> queueService,
+        YoutubeClient youtubeClient)
     {
         _serviceProvider = serviceProvider;
         _queueService = queueService;
         _logger = logger;
+        _youtubeClient = youtubeClient;
 
         _providerStrategy =
         [
@@ -46,7 +49,6 @@ public class YoutubeService: IStreamService
         }
 
         _logger.LogError("All audio stream providers failed for: {Url}", url);
-        await _queueService.SkipSongAsync();
         throw new InvalidOperationException("No suitable audio format found from any provider.");
     }
 
@@ -133,8 +135,6 @@ public class YoutubeService: IStreamService
     
     public async Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
-        return (await youtubeClient.Videos.GetAsync(url)).Title;
+        return (await _youtubeClient.Videos.GetAsync(url, cancellationToken)).Title;
     }
 }

@@ -16,36 +16,37 @@ public class NetCordPlayerHandler(
 {
     public async void Handle(EventType.Play @event)
     {
-        if(playerState.CurrentAction != PlayerAction.Stop)
+        if (playerState.CurrentAction != PlayerAction.Stop)
         {
             logger.LogInformation("Play event received - but already playing");
             return;
         }
+
         await HandlePlayNextAsync();
     }
-    
+
     public async void Handle(EventType.Skip @event)
     {
         logger.LogInformation("Skip event received - cancelling current play");
-        
+
         // 1 indicates only the currently playing item
         // skip action should be ignored
-        if(queue.Count <= 1)
+        if (queue.Count <= 1)
         {
             logger.LogInformation("Skip event received - but queue is empty, ignored");
             return;
         }
-        
+
         await playerState.SkipCts?.CancelAsync()!;
         playerState.SkipCts?.Dispose();
         playerState.SkipCts = null;
-        
+
         queue.DequeueAsync(CancellationToken.None);
-        
+
         playerState.CurrentAction = PlayerAction.Skip;
         await HandlePlayNextAsync();
     }
-    
+
     public async void Handle(EventType.Stop @event)
     {
         await DisconnectVoiceClient();
@@ -65,8 +66,8 @@ public class NetCordPlayerHandler(
                 return;
             }
 
-            var (context, callbacks) = request;
-            
+           
+
             do
             {
                 playerState.SkipCts?.Dispose();
@@ -76,7 +77,7 @@ public class NetCordPlayerHandler(
                 {
                     try
                     {
-                        context.Client.Disconnect += _ =>
+                        request.Context.Client.Disconnect += _ =>
                         {
                             logger.LogInformation("Client disconnected");
                             return default;
@@ -90,21 +91,20 @@ public class NetCordPlayerHandler(
 
                 playerService.NotInVoiceChannelCallback += async () =>
                 {
-                    await callbacks.Invoke("You are not connected to any voice channel!");
+                    await request.Callbacks.Invoke("You are not connected to any voice channel!");
                 };
-                
+
                 playerService.DisconnectedVoiceClientEvent += async () =>
                 {
                     logger.LogInformation("Voice client disconnected - stopping playback");
                     await DisconnectVoiceClient();
-                    await callbacks.Invoke("Disconnected from voice channel either due to inactivity or error encountered.");
+                    await request.Callbacks.Invoke(
+                        "Disconnected from voice channel either due to inactivity or error encountered.");
                 };
-                
+
                 await playerService.Play(SetDisconnectCallback);
-                
-                queue.DequeueAsync(CancellationToken.None);
             } while (!playerState.StopCts.Token.IsCancellationRequested && queue.Count > 0);
-            
+
             if (queue.Count == 0)
             {
                 logger.LogInformation("Queue is empty - stopping playback");
@@ -125,20 +125,29 @@ public class NetCordPlayerHandler(
     {
         playerState.DisconnectAsyncCallback = onDisconnectAsync;
     }
-    
+
     private async Task DisconnectVoiceClient()
     {
-        logger.LogInformation("Stop event received - cancelling loop");
-        if (playerState.DisconnectAsyncCallback is not null)
+        try
         {
-            await playerState.DisconnectAsyncCallback();
+            logger.LogInformation("Stop event received - cancelling loop");
+            if (playerState.DisconnectAsyncCallback is not null)
+            {
+                await playerState.DisconnectAsyncCallback();
+            }
         }
-
-        await playerState.StopCts?.CancelAsync()!;
-        playerState.StopCts?.Dispose();
-        playerState.StopCts = null;
-        playerState.CurrentAction = PlayerAction.Stop;
-        playerState.DisconnectAsyncCallback = null;
-        playerState.CurrentVoiceClient = null;
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error during disconnect");
+        }
+        finally
+        {
+            await playerState.StopCts?.CancelAsync()!;
+            playerState.StopCts?.Dispose();
+            playerState.StopCts = null;
+            playerState.CurrentAction = PlayerAction.Stop;
+            playerState.DisconnectAsyncCallback = null;
+            playerState.CurrentVoiceClient = null;
+        }
     }
 }

@@ -1,11 +1,13 @@
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Domain.Common;
+using Domain.Eventing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Gateway.Voice;
 using NetCord.Logging;
+using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
 
 namespace Infrastructure.Services;
@@ -20,98 +22,124 @@ public class NetCordAudioPlayerService(
     public event Func<Task>? DisconnectedVoiceClientEvent;
     public event Func<Task>? NotInVoiceChannelCallback;
     private Action<Func<Task>> OnDisconnectAsync { get; set; } = _ => { };
-    
-    private int _retryCount;
+
+    private readonly int _maxRetryCount = 3;
+    private PlayRequest<StringMenuInteractionContext>? _currentTrack;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public async Task Play(Action<Func<Task>> onDisconnectAsync)
     {
         OnDisconnectAsync = onDisconnectAsync;
+
         await HandleMusicPlayingAsync();
     }
 
     private async Task HandleMusicPlayingAsync()
     {
-        var currentTrack = queue.Peek<StringMenuInteractionContext>();
-        
-        if (currentTrack is null)
+        logger.LogInformation("Entering semaphore to handle music playing");
+        await _semaphore.WaitAsync();
+        try
         {
-            logger.LogError("Current track is null");
-            return;
-        }
-        var guild = currentTrack.Context.Guild!;
-        // Get the user voice state
-        if (!guild.VoiceStates.TryGetValue(currentTrack.Context.User.Id, out var voiceState))
-        {
-            await (NotInVoiceChannelCallback?.Invoke() ?? Task.CompletedTask);
-            return;
-        }
+            var ct = queue.Peek<StringMenuInteractionContext>();
 
-        var client = currentTrack.Context.Client;
+            if (ct is null)
+            {
+                logger.LogError("Current track is null");
+                return;
+            }
 
-        if (playerState.CurrentAction == PlayerAction.Stop)
-        {
-            await StartVoiceClientAsync();
-        }
+            _currentTrack = ct;
 
-        if (playerState.CurrentVoiceClient is null)
-        {
-            logger.LogError("Voice client is null");
-            return;
-        }
+            var guild = _currentTrack.Context.Guild!;
+            // Get the user voice state
+            if (!guild.VoiceStates.TryGetValue(_currentTrack.Context.User.Id, out var voiceState))
+            {
+                await (NotInVoiceChannelCallback?.Invoke() ?? Task.CompletedTask);
+                return;
+            }
 
-        await HandleVoiceStream();
+            var client = _currentTrack.Context.Client;
 
-        async Task HandleVoiceStream()
-        {
-            var outStream = playerState.CurrentVoiceClient.CreateOutputStream();
+            if (playerState.CurrentAction == PlayerAction.Stop)
+            {
+                await StartVoiceClientAsync();
+            }
 
-            OpusEncodeStream stream = new(outStream, PcmFormat.Short, VoiceChannels.Stereo, OpusApplication.Audio);
+            if (playerState.CurrentVoiceClient is null)
+            {
+                logger.LogError("Voice client is null");
+                return;
+            }
 
-            using var scope = serviceProvider.CreateScope();
-            var youTubeService =
-                scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
-            var radioSourceService = scope.ServiceProvider
-                .GetRequiredService<IRadioSourceService>();
+            await HandleVoiceStream();
 
-            var selectedValue = currentTrack.Context.SelectedValues[0];
-            var sourceUrl = await GetSourceUrl(selectedValue, radioSourceService, youTubeService, currentTrack);
+            async Task HandleVoiceStream()
+            {
+                var outStream = playerState.CurrentVoiceClient.CreateOutputStream();
 
-            await StartFfmpegStream(sourceUrl, stream);
-        }
+                OpusEncodeStream stream = new(outStream, PcmFormat.Short, VoiceChannels.Stereo, OpusApplication.Audio);
 
-        async Task StartVoiceClientAsync()
-        {
-            playerState.CurrentVoiceClient = await client.JoinVoiceChannelAsync(
-                guild.Id,
-                voiceState.ChannelId.GetValueOrDefault(),
-                new VoiceClientConfiguration
+                using var scope = serviceProvider.CreateScope();
+                var youTubeService =
+                    scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
+                var radioSourceService = scope.ServiceProvider
+                    .GetRequiredService<IRadioSourceService>();
+
+                var selectedValue = _currentTrack.Context.SelectedValues[0];
+                var sourceUrl = await GetSourceUrl(selectedValue, radioSourceService, youTubeService, _currentTrack);
+
+                await StartFfmpegStream(sourceUrl, stream);
+            }
+
+            async Task StartVoiceClientAsync()
+            {
+                playerState.CurrentVoiceClient = await client.JoinVoiceChannelAsync(
+                    guild.Id,
+                    voiceState.ChannelId.GetValueOrDefault(),
+                    new VoiceClientConfiguration
+                    {
+                        Logger = new ConsoleLogger(),
+                    }, cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+
+                playerState.CurrentVoiceClient.Disconnect += HandleOnVoiceClientDisconnectedAsync;
+
+                await playerState.CurrentVoiceClient.StartAsync(playerState.StopCts?.Token ?? CancellationToken.None);
+
+                // Register the disconnect callback
+                // This will be called when the cancellation token is triggered or when the voice client is closed
+                OnDisconnectAsync(DisconnectVoiceClientAsync);
+
+                await playerState.CurrentVoiceClient.EnterSpeakingStateAsync(
+                    new SpeakingProperties(SpeakingFlags.Microphone),
+                    cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+            }
+
+            async Task DisconnectVoiceClientAsync()
+            {
+                try
                 {
-                    Logger = new ConsoleLogger(),
-                }, cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
-
-            playerState.CurrentVoiceClient.Disconnect += HandleOnVoiceClientDisconnectedAsync;
-
-            await playerState.CurrentVoiceClient.StartAsync(playerState.StopCts?.Token ?? CancellationToken.None);
-
-            // Register the disconnect callback
-            // This will be called when the cancellation token is triggered or when the voice client is closed
-            OnDisconnectAsync(DisconnectVoiceClientAsync);
-
-            await playerState.CurrentVoiceClient.EnterSpeakingStateAsync(
-                new SpeakingProperties(SpeakingFlags.Microphone),
-                cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+                    await client.UpdateVoiceStateAsync(
+                        new VoiceStateProperties(_currentTrack.Context.Guild!.Id, null),
+                        null,
+                        playerState.StopCts?.Token ?? CancellationToken.None);
+                    await playerState.CurrentVoiceClient.CloseAsync(
+                        cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+                finally
+                {
+                    _currentTrack.RetryCount = 0;
+                }
+            }
         }
-
-        async Task DisconnectVoiceClientAsync()
+        finally
         {
-            await client.UpdateVoiceStateAsync(
-                new VoiceStateProperties(currentTrack.Context.Guild!.Id, null),
-                null,
-                playerState.StopCts?.Token ?? CancellationToken.None);
-            await playerState.CurrentVoiceClient.CloseAsync(
-                cancellationToken: playerState.StopCts?.Token ?? CancellationToken.None);
-            
-            _retryCount = 0;
+            _semaphore.Release();
+            logger.LogInformation("Released semaphore after handling music playing");
         }
     }
 
@@ -120,9 +148,9 @@ public class NetCordAudioPlayerService(
         var ffmpeg =
             await ffmpegProcessService.CreateStreamAsync(sourceUrl,
                 playerState.SkipCts?.Token ?? CancellationToken.None);
-            
-        ffmpegProcessService.ErrorDataReceived += HandleFfmpegErrorAsync;
-        ffmpegProcessService.OnExitProcess += HandleOnProcessExitAsync;
+
+        ffmpegProcessService.OnForbiddenUrlRequest += OnForbiddenUrlRequest;
+        ffmpegProcessService.OnPlaySongCompleted += OnPlaySongCompleted;
 
         await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream,
             playerState.SkipCts?.Token ?? CancellationToken.None);
@@ -142,9 +170,17 @@ public class NetCordAudioPlayerService(
         }
         else
         {
-            sourceUrl = await youTubeService.GetAudioStreamUrlAsync(selectedValue,
-                playerState.SkipCts?.Token ?? CancellationToken.None);
-                
+            try
+            {
+                sourceUrl = await youTubeService.GetAudioStreamUrlAsync(selectedValue,
+                    playerState.SkipCts?.Token ?? CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error getting audio stream URL from YouTubeService for URL: {Url}", selectedValue);
+                throw;
+            }
+
             var song = new SongDtoBase
             {
                 Url = selectedValue,
@@ -164,41 +200,76 @@ public class NetCordAudioPlayerService(
         var statisticsService = scope.ServiceProvider
             .GetRequiredService<IStatisticsService>();
         await statisticsService
-            .LogSongPlayAsync(currentContext.User.Id, currentContext.User.Username, currentContext.User.GlobalName ?? string.Empty, song)
+            .LogSongPlayAsync(currentContext.User.Id, currentContext.User.Username,
+                currentContext.User.GlobalName ?? string.Empty, song)
             .ConfigureAwait(false);
 
         playerState.CurrentAction = PlayerAction.Play;
-        await Task.CompletedTask;
     }
 
-    private async Task HandleOnProcessExitAsync()
+    private async Task OnPlaySongCompleted()
     {
-        // Temporarily disable this event to avoid unexpected behavior
-        // if (queue.Count == 0)
-        // {
-        //     await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
-        // }
+        var queuePeek = queue.Peek<StringMenuInteractionContext>();
+        if(queuePeek?.Id == _currentTrack?.Id)
+        {
+            logger.LogInformation($"Dequeuing track after completion: {_currentTrack?.Id}");
+            queue.DequeueAsync(CancellationToken.None);
+        }
+        
+        if (queue.Count == 0)
+        {
+            await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+        }
     }
 
     private async ValueTask HandleOnVoiceClientDisconnectedAsync(DisconnectEventArgs args)
     {
+        ffmpegProcessService.OnForbiddenUrlRequest -= OnForbiddenUrlRequest;
+        ffmpegProcessService.OnPlaySongCompleted -= OnPlaySongCompleted;
         await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
     }
-    
-    private async Task HandleFfmpegErrorAsync()
+
+    private async Task OnForbiddenUrlRequest()
     {
-        // Retry to get new stream URL and play again
-        logger.LogWarning("Ffmpeg error received, retrying to play the stream");
-        _retryCount++;
-        if(_retryCount > 3)
+        await _semaphore.WaitAsync();
+        try
         {
-            logger.LogError("Ffmpeg error received, maximum retry count reached, stopping playback");
-            if(queue.Count == 0)
+            // Retry to get new stream URL and play again
+            if (_currentTrack is null || playerState.CurrentAction == PlayerAction.Stop)
             {
-                await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+                logger.LogError("Current track is null or player is stopping, cannot retry");
                 return;
             }
+
+            _currentTrack.RetryCount++;
+            if (_currentTrack.RetryCount > _maxRetryCount)
+            {
+                logger.LogError("Ffmpeg error received, maximum retry count reached, stopping playback");
+                _currentTrack.RetryCount = 0;
+                logger.LogInformation("Dequeuing track after max retries reached");
+                queue.DequeueAsync(CancellationToken.None);
+                if (queue.Count == 0)
+                {
+                    try
+                    {
+                        await (DisconnectedVoiceClientEvent?.Invoke() ?? Task.CompletedTask);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error during disconnect event handling");
+                        playerState.CurrentAction = PlayerAction.Stop;
+                    }
+                }
+
+                return;
+            }
+
+            logger.LogWarning(
+                $"Ffmpeg error received, retrying to play the stream: attempt {_currentTrack.RetryCount}/{_maxRetryCount}");
         }
-        await HandleMusicPlayingAsync();
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 }

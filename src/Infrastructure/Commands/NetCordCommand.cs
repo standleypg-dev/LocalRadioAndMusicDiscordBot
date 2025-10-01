@@ -1,34 +1,36 @@
 using Application.Interfaces.Services;
 using Domain.Common;
 using Domain.Eventing;
-using Microsoft.Extensions.Configuration;
+using Domain.Events;
+using Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Rest;
-using NetCord.Services;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.Commands;
+using NetCord.Services.ComponentInteractions;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 using Constants = Domain.Common.Constants;
 
 namespace Infrastructure.Commands;
 
-public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration configuration)
+public class NetCordCommand(IServiceProvider serviceProvider, IMusicQueueService queue)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
-    [SlashCommand("play", "Play a track from SoundCloud")]
+    [SlashCommand("play", "Play a track from Youtube or a radio station")]
     public async Task PingAsync([CommandParameter(Remainder = true)] string command)
     {
         if (await NotInVoiceChannel())
         {
             return;
         }
+
         // `AddApplicationCommands()` registers services as singleton,
         // so scope is needed to resolve scoped services.
         using var scope = serviceProvider.CreateScope();
         var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
         var radioSourceService = scope.ServiceProvider.GetRequiredService<IRadioSourceService>();
-        
+
         var message = CreateMessage<InteractionMessageProperties>("Select a track to play:");
 
         switch (command)
@@ -69,9 +71,8 @@ public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration con
         {
             return;
         }
-        using var scope = serviceProvider.CreateScope();
-        var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
-        eventDispatcher.Dispatch(new EventType.Stop());
+
+        DispatchEvent(new EventType.Stop());
         var message = CreateMessage<InteractionMessageProperties>("Stopping playback and clearing the queue.");
         await RespondAsync(InteractionCallback.Message(message));
     }
@@ -83,11 +84,45 @@ public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration con
         {
             return;
         }
-        using var scope = serviceProvider.CreateScope();
-        var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
-        eventDispatcher.Dispatch(new EventType.Skip());
+
+        DispatchEvent(new EventType.Skip());
         var message = CreateMessage<InteractionMessageProperties>("Skipping the current track.");
         await RespondAsync(InteractionCallback.Message(message));
+    }
+
+    [SlashCommand("playlist", "Show the current playlist")]
+    public async Task Playlist()
+    {
+        if (await NotInVoiceChannel())
+        {
+            return;
+        }
+
+
+        if (queue.Count == 0)
+            await RespondAsync(InteractionCallback.Message("No songs in queue."));
+        else
+        {
+            using var scope = serviceProvider.CreateScope();
+            var youtubeService = scope.ServiceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
+            var songs = queue.GetAllRequests().Select(async r =>
+                {
+                    var title = await youtubeService.GetVideoTitleAsync(
+                        (r.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0], CancellationToken.None);
+                    return title;
+                }
+            ).ToList();
+            
+            var titles = await Task.WhenAll(songs);
+            
+            var response = "Queues: " + Environment.NewLine + string.Join(Environment.NewLine,
+                titles.Select((title, index) =>
+                {
+                    var isPlayingNowMsg = index == 0 ? "(Playing now)" : "";
+                    return $"{index + 1}. {title} {isPlayingNowMsg}";
+                }));
+            await RespondAsync(InteractionCallback.Message(response));
+        }
     }
 
     private static T CreateMessage<T>(string message) where T : IMessageProperties, new()
@@ -113,7 +148,7 @@ public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration con
             }
         ];
     }
-    
+
     private async Task<bool> NotInVoiceChannel()
     {
         if (!Context.Guild!.VoiceStates.TryGetValue(Context.User.Id, out _))
@@ -125,6 +160,14 @@ public class NetCordCommand(IServiceProvider serviceProvider, IConfiguration con
         }
 
         return false;
+    }
+
+    private void DispatchEvent<TEvent>(TEvent @event) where TEvent : IEvent
+    {
+        using var scope = serviceProvider.CreateScope();
+        var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
+
+        eventDispatcher.Dispatch(@event);
     }
 
     private record ComponentModel(string Title, string Url, string? Description = null);

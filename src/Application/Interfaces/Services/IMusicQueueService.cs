@@ -8,4 +8,5 @@ public interface IMusicQueueService
     PlayRequest<T>? Peek<T>();
     void DequeueAsync(CancellationToken cancellationToken);
     int Count { get; }
+    PlayRequest[] GetAllRequests();
 }
