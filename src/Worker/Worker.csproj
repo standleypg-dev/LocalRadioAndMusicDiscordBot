@@ -75,7 +75,8 @@
     <Target Name="BuildFrontend" BeforeTargets="Build">
         <Message Text="Building frontend..." Importance="high" />
         <Exec Command="npm install" WorkingDirectory="../UI/App" />
-        <Exec Command="npm run build" WorkingDirectory="../UI/App" />
+        <Exec Command="npm run build" WorkingDirectory="../UI/App" Condition="'$(Configuration)' == 'Release'" />
+        <Exec Command="npm run build:dev" WorkingDirectory="../UI/App" Condition="'$(Configuration)' == 'Debug'" />
         <Message Text="Frontend build complete" Importance="high" />
     </Target>
 
