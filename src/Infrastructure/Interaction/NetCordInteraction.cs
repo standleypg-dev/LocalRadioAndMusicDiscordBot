@@ -19,7 +19,11 @@ public class NetCordInteraction(
     [ComponentInteraction(Constants.CustomIds.Play)]
     public async Task<string> Play()
     {
-        var context = Context;
+        if (!CheckMessageExpiration())
+        {
+            return "This interaction has expired. Please use the play command again.";
+        }
+        
         if (!NotInVoiceChannel())
         {
             return "You must be in a voice channel to use this command.";
@@ -33,7 +37,11 @@ public class NetCordInteraction(
         logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
             Context.Guild?.Id);
 
-        var playRequest = new PlayRequest<StringMenuInteractionContext>(Context, RespondAsyncCallback);
+        var playRequest = new PlayRequest<StringMenuInteractionContext>
+        {
+            Context = Context,
+            Callbacks = async message => await RespondAsyncCallback(message),
+        };
         queueService.Enqueue(playRequest);
         eventDispatcher.Dispatch(new EventType.Play());
         var selectedValue = Context.SelectedValues[0];
@@ -64,15 +72,12 @@ public class NetCordInteraction(
         return !(voiceState.IsDeafened || voiceState.IsSelfDeafened);
     }
     
-    private bool UserAndBotInSameVoiceChannel()
+    private bool CheckMessageExpiration()
     {
-        var voiceState = Context.Guild!.VoiceStates[Context.User.Id];
-        if (!Context.Guild.VoiceStates.TryGetValue(Context.Client.Id, out var botVoiceState))
-        {
-            return false;
-        }
-        
-        return voiceState.ChannelId == botVoiceState.ChannelId;
+        var messageCreationTime = Context.Message.CreatedAt;
+        var interactionTime = Context.Interaction.CreatedAt;
+        var timeDifference = interactionTime - messageCreationTime;
+        return timeDifference.TotalMinutes <= 15;
     }
 
     private Task<InteractionCallbackResponse> RespondAsyncCallback(string message) => RespondAsync(InteractionCallback.Message(message))!;

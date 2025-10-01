@@ -65,4 +65,12 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
             }
         }
     }
+
+    public PlayRequest[] GetAllRequests()
+    {
+        lock (_lock)
+        {
+            return _queue.OfType<PlayRequest>().ToArray();
+        }
+    }
 }
