@@ -77,7 +77,7 @@ public class NetCordInteraction(
         var messageCreationTime = Context.Message.CreatedAt;
         var interactionTime = Context.Interaction.CreatedAt;
         var timeDifference = interactionTime - messageCreationTime;
-        return timeDifference.TotalMinutes <= 15;
+        return timeDifference.TotalDays <= 2;
     }
 
     private Task<InteractionCallbackResponse> RespondAsyncCallback(string message) => RespondAsync(InteractionCallback.Message(message))!;
