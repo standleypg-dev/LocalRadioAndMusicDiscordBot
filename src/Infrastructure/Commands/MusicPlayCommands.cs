@@ -39,7 +39,7 @@ public class PlayCommand(IScopeExecutor executor) : ApplicationCommandModule<App
                         .CollectAsync(5);
 
                 message.Components =
-                    CommandUtils.CreateComponent(source.Select(s =>
+                    CommandUtils.CreateButtonComponent(source.Select(s =>
                         new CommandUtils.ComponentModel(s.Title, s.Url, s.Author.ChannelTitle)));
 
                 await RespondAsync(InteractionCallback.Message(message));
@@ -63,7 +63,7 @@ public class PlayCommand(IScopeExecutor executor) : ApplicationCommandModule<App
 
             var radiosSourceList = (await radioSourceService.GetAllRadioSourcesAsync()).Where(rs => rs.IsActive);
             message.Components =
-                CommandUtils.CreateComponent(radiosSourceList.Select(rs =>
+                CommandUtils.CreateStringMenuComponent(radiosSourceList.Select(rs =>
                     new CommandUtils.ComponentModel(rs.Name, rs.Id.ToString())));
 
             await RespondAsync(InteractionCallback.Message(message));
@@ -89,7 +89,7 @@ public class PlayCommand(IScopeExecutor executor) : ApplicationCommandModule<App
                 var videos = await youtubeClient.Playlists.GetVideosAsync(playlist.Id);
 
                 message.Components =
-                    CommandUtils.CreateComponent(videos.Select(s =>
+                    CommandUtils.CreateStringMenuComponent(videos.Select(s =>
                         new CommandUtils.ComponentModel(s.Title, s.Url, s.Author.ChannelTitle)));
 
                 await RespondAsync(InteractionCallback.Message(message));

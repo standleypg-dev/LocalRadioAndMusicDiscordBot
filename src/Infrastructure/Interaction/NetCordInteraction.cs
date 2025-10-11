@@ -14,10 +14,10 @@ public class NetCordInteraction(
     ILogger<NetCordInteraction> logger,
     IEventDispatcher eventDispatcher,
     IMusicQueueService queueService,
-    [FromKeyedServices(nameof(YoutubeService))] IStreamService youtubeService) : ComponentInteractionModule<StringMenuInteractionContext>
+    [FromKeyedServices(nameof(YoutubeService))] IStreamService youtubeService) : ComponentInteractionModule<ButtonInteractionContext>
 {
     [ComponentInteraction(Constants.CustomIds.Play)]
-    public async Task<string> Play()
+    public async Task<string> Play(string sourceUrl)
     {
         if (!CheckMessageExpiration())
         {
@@ -37,19 +37,18 @@ public class NetCordInteraction(
         logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
             Context.Guild?.Id);
 
-        var playRequest = new PlayRequest<StringMenuInteractionContext>
+        var playRequest = new PlayRequest<ButtonInteractionContext>
         {
             Context = Context,
             Callbacks = async message => await RespondAsyncCallback(message),
         };
         queueService.Enqueue(playRequest);
         eventDispatcher.Dispatch(new EventType.Play());
-        var selectedValue = Context.SelectedValues[0];
 
         string message;
-        if (!Guid.TryParse(selectedValue, out _))
+        if (!Guid.TryParse(sourceUrl, out _))
         {
-            var title = await youtubeService.GetVideoTitleAsync(Context.SelectedValues[0], CancellationToken.None);
+            var title = await youtubeService.GetVideoTitleAsync(sourceUrl, CancellationToken.None);
             message = $"Added {title} to the queue!";
         }
         else

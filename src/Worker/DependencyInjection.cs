@@ -36,7 +36,8 @@ public static class DependencyInjection
             })
             .AddGatewayHandlers(typeof(Program).Assembly)
             .AddApplicationCommands()
-            .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>();
+            .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>();
+            // .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>();
 
         // Assembly markers to locate assemblies for eventing
         // This is needed for the subscription to work correctly

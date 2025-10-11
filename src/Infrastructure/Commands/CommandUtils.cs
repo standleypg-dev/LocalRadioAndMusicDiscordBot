@@ -2,6 +2,7 @@ using Domain.Common;
 using Domain.Eventing;
 using Domain.Events;
 using Microsoft.Extensions.DependencyInjection;
+using NetCord;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 
@@ -18,7 +19,7 @@ public static class CommandUtils
         };
     }
 
-    internal static IEnumerable<IMessageComponentProperties> CreateComponent<T>(T source)
+    internal static IEnumerable<IMessageComponentProperties> CreateStringMenuComponent<T>(T source)
         where T : IEnumerable<ComponentModel>
     {
         return
@@ -33,6 +34,18 @@ public static class CommandUtils
         ];
     }
 
+    internal static IEnumerable<IMessageComponentProperties> CreateButtonComponent<T>(T source)
+        where T : IEnumerable<ComponentModel>
+    {
+        return
+        [
+            new ActionRowProperties
+            {
+                Components = source.Select(s => new ButtonProperties($"{Constants.CustomIds.Play}:{s.Url}", s.Title, ButtonStyle.Primary)).ToList()
+            }
+        ];
+    }
+    
     internal static async Task<bool> NotInVoiceChannel(ApplicationCommandContext context, Func<InteractionCallbackProperties<InteractionMessageProperties>, Task> respondAsync)
     {
         if (!context.Guild!.VoiceStates.TryGetValue(context.User.Id, out _))
