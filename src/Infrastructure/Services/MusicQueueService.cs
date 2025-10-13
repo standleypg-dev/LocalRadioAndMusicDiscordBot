@@ -74,6 +74,30 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
         }
     }
 
+    public void Rewind()
+    {
+        lock (_lock)
+        {
+            if (_queue.Count > 1)
+            {
+                var current = _queue.Peek();
+                var list = _queue.ToList();
+                list.Reverse();
+                list.Add(current);
+                list.Reverse();
+                _queue.Clear();
+                foreach (var item in list)
+                {
+                    _queue.Enqueue(item);
+                }
+            }
+            else
+            {
+                logger.LogWarning("Attempted to rewind with less than two items in the queue.");
+            }
+        }
+    }
+
     public void Clear()
     {
         lock (_lock)
