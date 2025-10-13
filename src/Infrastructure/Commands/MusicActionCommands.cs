@@ -77,6 +77,27 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
         }
     }
 
+    [SlashCommand("rewind", "Rewind the current track")]
+    public async Task Rewind()
+    {
+        if (await CommandUtils.NotInVoiceChannel(Context, (message) => RespondAsync(message)))
+        {
+            return;
+        }
+
+        InteractionMessageProperties message;
+        if(queue.Count == 0)
+        {
+            message = CommandUtils.CreateMessage<InteractionMessageProperties>("No songs in queue.");
+            await RespondAsync(InteractionCallback.Message(message));
+            return;
+        }
+        
+        queue.Rewind();
+        message = CommandUtils.CreateMessage<InteractionMessageProperties>("Rewinding the current track.");
+        await RespondAsync(InteractionCallback.Message(message));
+    }
+
     [SlashCommand("statistics", "Show some statistics")]
     public async Task Statistics()
     {
