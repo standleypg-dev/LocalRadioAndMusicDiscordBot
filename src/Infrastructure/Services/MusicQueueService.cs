@@ -93,7 +93,7 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
             }
             else
             {
-                logger.LogWarning("Attempted to rewind with less than two items in the queue.");
+                _queue.Enqueue(_queue.Peek());
             }
         }
     }
