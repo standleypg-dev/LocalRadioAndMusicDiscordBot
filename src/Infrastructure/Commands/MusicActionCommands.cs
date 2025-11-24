@@ -58,11 +58,11 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
                 var songs = queue.GetAllRequests().Select(async r =>
                     {
                         var title = await youtubeService.GetVideoTitleAsync(
-                            (r.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0],
+                            r.VideoUrl ?? (r.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0]!,
                             CancellationToken.None);
                         return title;
                     }
-                ).ToList();
+                ).Take(20).ToList();
 
                 var titles = await Task.WhenAll(songs);
 

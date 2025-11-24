@@ -49,7 +49,7 @@ public static class DependencyInjection
         services.AddSingleton<PlayerState<VoiceClient>>();
         services.AddSingleton<IHttpRequestService, HttpRequestService>();
         services.AddSingleton<INativePlaceMusicProcessorService, FfmpegProcessService>();
-        services.AddSingleton<INetCordAudioPlayerService, NetCordAudioPlayerService>();
+        services.AddSingleton<INetCordAudioPlayerService, AudioPlayerService>();
         services.AddSingleton<IMusicQueueService, MusicQueueService>();
         services.AddSingleton<IScopeExecutor, ScopeExecutor>();
 

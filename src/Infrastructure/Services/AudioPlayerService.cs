@@ -12,10 +12,10 @@ using NetCord.Services.ComponentInteractions;
 
 namespace Infrastructure.Services;
 
-public class NetCordAudioPlayerService(
+public class AudioPlayerService(
     INativePlaceMusicProcessorService ffmpegProcessService,
     IServiceProvider serviceProvider,
-    ILogger<NetCordAudioPlayerService> logger,
+    ILogger<AudioPlayerService> logger,
     PlayerState<VoiceClient> playerState,
     IMusicQueueService queue) : INetCordAudioPlayerService
 {
@@ -85,8 +85,8 @@ public class NetCordAudioPlayerService(
                 var radioSourceService = scope.ServiceProvider
                     .GetRequiredService<IRadioSourceService>();
 
-                var selectedValue = _currentTrack.Context.SelectedValues[0];
-                var sourceUrl = await GetSourceUrl(selectedValue, radioSourceService, youTubeService, _currentTrack);
+                var selectedValue = _currentTrack.VideoUrl ?? _currentTrack.Context.SelectedValues[0];
+                var sourceUrl = await GetSourceUrl(selectedValue, radioSourceService, youTubeService, _currentTrack.Context.User.Id, _currentTrack.Context.User.Username, _currentTrack.Context.User.GlobalName);
 
                 await StartFfmpegStream(sourceUrl, stream);
             }
@@ -160,7 +160,7 @@ public class NetCordAudioPlayerService(
     }
 
     private async Task<string> GetSourceUrl(string selectedValue, IRadioSourceService radioSourceService,
-        IStreamService youTubeService, PlayRequest<StringMenuInteractionContext> currentTrack)
+        IStreamService youTubeService, ulong userId, string userName, string? globalName)
     {
         string sourceUrl;
 
@@ -186,22 +186,21 @@ public class NetCordAudioPlayerService(
                 Url = selectedValue,
                 Title = await youTubeService.GetVideoTitleAsync(selectedValue,
                     playerState.SkipCts.Token),
-                UserId = currentTrack.Context.User.Id
+                UserId = userId
             };
-            ffmpegProcessService.OnProcessStart += () => HandleOnProcessStartAsync(song, currentTrack.Context);
+            ffmpegProcessService.OnProcessStart += () => HandleOnProcessStartAsync(song, userId, userName, globalName);
         }
 
         return sourceUrl;
     }
 
-    private async Task HandleOnProcessStartAsync(SongDtoBase song, StringMenuInteractionContext currentContext)
+    private async Task HandleOnProcessStartAsync(SongDtoBase song, ulong userId, string userName,string? globalName)
     {
         using var scope = serviceProvider.CreateScope();
         var statisticsService = scope.ServiceProvider
             .GetRequiredService<IStatisticsService>();
         await statisticsService
-            .LogSongPlayAsync(currentContext.User.Id, currentContext.User.Username,
-                currentContext.User.GlobalName ?? string.Empty, song)
+            .LogSongPlayAsync(userId, userName, globalName ?? string.Empty, song)
             .ConfigureAwait(false);
 
         playerState.CurrentAction = PlayerAction.Play;

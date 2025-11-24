@@ -1,4 +1,5 @@
 using Application.Interfaces.Services;
+using Domain.Common;
 using Microsoft.Extensions.DependencyInjection;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
@@ -86,11 +87,12 @@ public class PlayCommand(IScopeExecutor executor) : ApplicationCommandModule<App
             try
             {
                 var playlist = await youtubeClient.Playlists.GetAsync(playlistUrl);
-                var videos = await youtubeClient.Playlists.GetVideosAsync(playlist.Id);
-
+                
                 message.Components =
-                    CommandUtils.CreateComponent(videos.Select(s =>
-                        new CommandUtils.ComponentModel(s.Title, s.Url, s.Author.ChannelTitle)));
+                    CommandUtils.CreateComponent(new List<CommandUtils.ComponentModel>
+                    {
+                        new(playlist.Title, playlist.Id, "Playlist")
+                    }, Constants.CustomIds.PlayListPlay);
 
                 await RespondAsync(InteractionCallback.Message(message));
             }
