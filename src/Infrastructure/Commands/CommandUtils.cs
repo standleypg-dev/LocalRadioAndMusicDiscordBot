@@ -18,12 +18,12 @@ public static class CommandUtils
         };
     }
 
-    internal static IEnumerable<IMessageComponentProperties> CreateComponent<T>(T source)
+    internal static IEnumerable<IMessageComponentProperties> CreateComponent<T>(T source, string id = Constants.CustomIds.Play)
         where T : IEnumerable<ComponentModel>
     {
         return
         [
-            new StringMenuProperties(Constants.CustomIds.Play)
+            new StringMenuProperties(id)
             {
                 Options = source.Select(s => new StringMenuSelectOptionProperties(s.Title, s.Url)
                 {

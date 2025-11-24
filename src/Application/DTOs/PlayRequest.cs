@@ -8,6 +8,8 @@ public abstract class PlayRequest
     public Func<string, Task> Callbacks { get; set; } = null!;
 
     public abstract object ContextAsObject { get; }
+    public string? VideoTitle { get; set; }
+    public string? VideoUrl { get; set; }
 }
 
 public class PlayRequest<TContext> : PlayRequest

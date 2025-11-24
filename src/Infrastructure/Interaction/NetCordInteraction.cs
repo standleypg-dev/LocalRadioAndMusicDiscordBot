@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
+using YoutubeExplode;
+using YoutubeExplode.Common;
 
 namespace Infrastructure.Interaction;
 
@@ -14,24 +16,16 @@ public class NetCordInteraction(
     ILogger<NetCordInteraction> logger,
     IEventDispatcher eventDispatcher,
     IMusicQueueService queueService,
+    YoutubeClient youtubeClient,
     [FromKeyedServices(nameof(YoutubeService))] IStreamService youtubeService) : ComponentInteractionModule<StringMenuInteractionContext>
 {
     [ComponentInteraction(Constants.CustomIds.Play)]
     public async Task<string> Play()
     {
-        if (!CheckMessageExpiration())
+        var error = EvaluateChecking();
+        if (error != null)
         {
-            return "This interaction has expired. Please use the play command again.";
-        }
-        
-        if (!NotInVoiceChannel())
-        {
-            return "You must be in a voice channel to use this command.";
-        }
-        
-        if (!NotDeafened())
-        {
-            return "You must be deafened to use this command.";
+            return error;
         }
         
         logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
@@ -58,7 +52,57 @@ public class NetCordInteraction(
         }
         
         return message;
+    }
+    
+    [ComponentInteraction(Constants.CustomIds.PlayListPlay)]
+    public async Task<string> PlayPlaylist()
+    {
+        var error = EvaluateChecking();
+        if (error != null)
+        {
+            return error;
+        }
+        
+        logger.LogInformation("Play command invoked by user {UserId} in guild {GuildId}", Context.User.Id,
+            Context.Guild?.Id);
 
+        var videos = await youtubeClient.Playlists.GetVideosAsync(Context.SelectedValues[0]);
+        
+        foreach (var video in videos)
+        {
+            var playRequest = new PlayRequest<StringMenuInteractionContext>
+            {
+                Context = Context,
+                Callbacks = async message => await RespondAsyncCallback(message),
+                VideoTitle = video.Title,
+                VideoUrl = video.Url
+            };
+            queueService.Enqueue(playRequest);
+        }
+        
+        eventDispatcher.Dispatch(new EventType.Play());
+        
+        return "Playlist Added to the queue!";
+    }
+    
+    private string? EvaluateChecking()
+    {
+        if (!CheckMessageExpiration())
+        {
+            return "This interaction has expired. Please use the play command again.";
+        }
+    
+        if (!NotInVoiceChannel())
+        {
+            return "You must be in a voice channel to use this command.";
+        }
+    
+        if (!NotDeafened())
+        {
+            return "You must be deafened to use this command.";
+        }
+    
+        return null;
     }
     
     private bool NotInVoiceChannel()

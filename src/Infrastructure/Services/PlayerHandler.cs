@@ -7,9 +7,9 @@ using NetCord.Services.ComponentInteractions;
 
 namespace Infrastructure.Services;
 
-public class NetCordPlayerHandler(
+public class PlayerHandler(
     IMusicQueueService queue,
-    ILogger<NetCordPlayerHandler> logger,
+    ILogger<PlayerHandler> logger,
     INetCordAudioPlayerService playerService,
     PlayerState<VoiceClient> playerState)
     : IEventHandler<EventType.Play>, IEventHandler<EventType.Stop>, IEventHandler<EventType.Skip>
