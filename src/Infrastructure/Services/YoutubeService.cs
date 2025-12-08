@@ -97,9 +97,9 @@ public class YoutubeService: IStreamService
             }
 
             // Verify URL is accessible
-            using var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync(bestAudio.Url);
-            response.EnsureSuccessStatusCode();
+            // using var httpClient = new HttpClient();
+            // var response = await httpClient.GetAsync(bestAudio.Url);
+            // response.EnsureSuccessStatusCode();
 
             return (true, bestAudio.Url);
         }
