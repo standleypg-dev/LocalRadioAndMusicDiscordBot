@@ -1,5 +1,5 @@
 # Keep your original structure but optimize base image
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS lib-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS lib-build
 
 WORKDIR /deps
 
@@ -43,7 +43,7 @@ RUN dotnet publish "$PROJECT_PATH" \
     --self-contained false \
     --no-restore
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS final
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS final
 
 RUN apk add --no-cache \
     ffmpeg \

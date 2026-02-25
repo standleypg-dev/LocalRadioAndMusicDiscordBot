@@ -79,6 +79,7 @@ public class YoutubeService: IStreamService
         {
             var ytdl = new YoutubeDL { YoutubeDLPath = "yt-dlp" };
             var result = await ytdl.RunVideoDataFetch(url);
+            
             result.EnsureSuccess();
 
             var httpsFormats = result.Data.Formats
@@ -97,9 +98,9 @@ public class YoutubeService: IStreamService
             }
 
             // Verify URL is accessible
-            // using var httpClient = new HttpClient();
-            // var response = await httpClient.GetAsync(bestAudio.Url);
-            // response.EnsureSuccessStatusCode();
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync(bestAudio.Url);
+            response.EnsureSuccessStatusCode();
 
             return (true, bestAudio.Url);
         }
