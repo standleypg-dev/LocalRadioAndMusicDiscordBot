@@ -37,9 +37,9 @@ public class PlayerHandler(
             return;
         }
 
-        await playerState.SkipCts?.CancelAsync()!;
-        playerState.SkipCts?.Dispose();
-        playerState.SkipCts = null;
+        await playerState.SkipCts.CancelAsync()!;
+        playerState.SkipCts.Dispose();
+        playerState.SkipCts = null!;
 
         queue.DequeueAsync(CancellationToken.None);
 

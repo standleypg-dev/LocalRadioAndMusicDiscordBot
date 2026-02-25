@@ -11,11 +11,9 @@
         </None>
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3"/>
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.3" />
-        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\Application\Application.csproj" />

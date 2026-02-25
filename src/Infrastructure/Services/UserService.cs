@@ -34,7 +34,7 @@ public class UserService(DiscordBotContext context) : IUserService
                 TotalPlays = u.PlayHistories.Sum(ph => ph.TotalPlays),
                 UniqueSongs = u.PlayHistories.Select(ph => ph.Song).Distinct().Count(),
                 LastPlayed = u.PlayHistories.OrderByDescending(ph => ph.PlayedAt).FirstOrDefault()!.PlayedAt,
-                DisplayName = u.DisplayName
+                DisplayName = u.DisplayName ?? u.Username
             })
             .OrderByDescending(u => u.TotalPlays)
             .ToListAsync();

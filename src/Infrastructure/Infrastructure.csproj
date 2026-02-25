@@ -6,20 +6,21 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.3"/>
-        <PackageReference Include="NetCord" Version="1.0.0-alpha.427" />
-        <PackageReference Include="NetCord.Hosting" Version="1.0.0-alpha.427" />
-        <PackageReference Include="NetCord.Hosting.Services" Version="1.0.0-alpha.427" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0"/>
-        <PackageReference Include="NAudio" Version="2.2.1"/>
-        <PackageReference Include="SoundCloudExplode" Version="1.6.7" />
-        <PackageReference Include="SoundTouch.Net.NAudioSupport" Version="2.3.2"/>
-        <PackageReference Include="YoutubeDLSharp" Version="1.2.0"/>
-        <PackageReference Include="YoutubeExplode" Version="6.5.7" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+        <PackageReference Include="NetCord" />
+        <PackageReference Include="NetCord.Hosting" />
+        <PackageReference Include="NetCord.Hosting.Services" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+        <PackageReference Include="NAudio" />
+        <PackageReference Include="SoundCloudExplode" />
+        <PackageReference Include="SoundTouch.Net.NAudioSupport" />
+        <PackageReference Include="YoutubeDLSharp" />
+        <PackageReference Include="YoutubeExplode" />
     </ItemGroup>
 
 </Project>
