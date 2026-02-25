@@ -12,7 +12,7 @@ namespace Infrastructure.CompiledModels
     public partial class DiscordBotContextModel
     {
         private DiscordBotContextModel()
-            : base(skipDetectChanges: false, modelId: new Guid("45b6d6a4-d2e0-417d-aa8d-8364881d57ae"), entityTypeCount: 4)
+            : base(skipDetectChanges: false, modelId: new Guid("77a85d27-fb4f-48e5-a120-f0aad4b87f25"), entityTypeCount: 4)
         {
         }
 
@@ -32,7 +32,7 @@ namespace Infrastructure.CompiledModels
             UserEntityType.CreateAnnotations(user);
 
             AddAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-            AddAnnotation("ProductVersion", "9.0.6");
+            AddAnnotation("ProductVersion", "10.0.3");
             AddAnnotation("Relational:MaxIdentifierLength", 63);
         }
     }
