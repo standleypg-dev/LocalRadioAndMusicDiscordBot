@@ -1,17 +1,19 @@
 # Keep your original structure but optimize base image
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS lib-build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS lib-build
 
 WORKDIR /deps
 
-RUN apk add --no-cache \
+RUN apt update && apt install -y --no-install-recommends \
     nodejs \
     npm \
     ffmpeg \
     libsodium-dev \
-    opus-dev \
+    libopus-dev \
     yt-dlp \
     wget \
+    unzip \
     tzdata && \
+    rm -rf /var/lib/apt/lists/* && \
     ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
 
 RUN wget -O /tmp/libdave.zip \
@@ -50,14 +52,15 @@ RUN dotnet publish "$PROJECT_PATH" \
     --self-contained false \
     --no-restore
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS final
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS final
 
-RUN apk add --no-cache \
+RUN apt update && apt install -y --no-install-recommends \
     ffmpeg \
     tzdata \
     yt-dlp && \
+    rm -rf /var/lib/apt/lists/* && \
     ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
-
+    
 WORKDIR /app/run
 
 ENV ASPNETCORE_ENVIRONMENT=Production
