@@ -32,9 +32,9 @@
     </ItemGroup>
     <Target Name="CopyLibsAfterBuild" AfterTargets="Build" Condition="'$(OS)' == 'Unix'">
         <Message Text="Copying native libraries..." Importance="high"/>
-        <Copy SourceFiles="/usr/lib/libsodium.so"
+        <Copy SourceFiles="/usr/lib/x86_64-linux-gnu/libsodium.so"
               DestinationFolder="$(OutputPath)"/>
-        <Copy SourceFiles="/usr/lib/libopus.so"
+        <Copy SourceFiles="/usr/lib/x86_64-linux-gnu/libopus.so"
               DestinationFolder="$(OutputPath)"/>
         <Copy SourceFiles="/usr/bin/yt-dlp"
               DestinationFolder="$(OutputPath)"/>
@@ -45,8 +45,8 @@
     </PropertyGroup>
 
     <ItemGroup Condition="'$(IsUnix)' == 'true'">
-        <NativeLibs Include="/usr/lib/libsodium.so" />
-        <NativeLibs Include="/usr/lib/libopus.so" />
+        <NativeLibs Include="/usr/lib/x86_64-linux-gnu/libsodium.so" />
+        <NativeLibs Include="/usr/lib/x86_64-linux-gnu/libopus.so" />
         <NativeLibs Include="/usr/lib/libdave.so" />
         <NativeLibs Include="/usr/bin/yt-dlp" />
     </ItemGroup>
