@@ -36,8 +36,6 @@
               DestinationFolder="$(OutputPath)"/>
         <Copy SourceFiles="/usr/lib/x86_64-linux-gnu/libopus.so"
               DestinationFolder="$(OutputPath)"/>
-        <Copy SourceFiles="/usr/bin/yt-dlp"
-              DestinationFolder="$(OutputPath)"/>
     </Target>
 
     <PropertyGroup>
@@ -48,7 +46,6 @@
         <NativeLibs Include="/usr/lib/x86_64-linux-gnu/libsodium.so" />
         <NativeLibs Include="/usr/lib/x86_64-linux-gnu/libopus.so" />
         <NativeLibs Include="/usr/lib/libdave.so" />
-        <NativeLibs Include="/usr/bin/yt-dlp" />
     </ItemGroup>
 
     <!-- Copy after build -->
