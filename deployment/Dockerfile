@@ -6,15 +6,10 @@ WORKDIR /deps
 RUN apt update && apt install -y --no-install-recommends \
     nodejs \
     npm \
-    ffmpeg \
     libsodium-dev \
     libopus-dev \
-    yt-dlp \
     wget \
-    unzip \
-    tzdata && \
-    rm -rf /var/lib/apt/lists/* && \
-    ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
+    unzip
 
 RUN wget -O /tmp/libdave.zip \
     https://github.com/discord/libdave/releases/download/v1.1.1/cpp/libdave-Linux-X64-boringssl.zip && \
@@ -52,14 +47,18 @@ RUN dotnet publish "$PROJECT_PATH" \
     --self-contained false \
     --no-restore
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 
 RUN apt update && apt install -y --no-install-recommends \
     ffmpeg \
     tzdata \
-    yt-dlp && \
-    rm -rf /var/lib/apt/lists/* && \
-    ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
+    python3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
+
+# Install latest yt-dlp directly from GitHub releases
+ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
+RUN chmod a+rx /usr/local/bin/yt-dlp
     
 WORKDIR /app/run
 

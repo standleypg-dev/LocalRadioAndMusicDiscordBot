@@ -78,9 +78,18 @@ public class YoutubeService: IStreamService
         try
         {
             var ytdl = new YoutubeDL { YoutubeDLPath = "yt-dlp" };
-            var result = await ytdl.RunVideoDataFetch(url);
-            
-            result.EnsureSuccess();
+            var overrideOptions = new YoutubeDLSharp.Options.OptionSet
+            {
+                Format = "bestaudio/best"
+            };
+            var result = await ytdl.RunVideoDataFetch(url, overrideOptions: overrideOptions);
+
+            if (!result.Success || result.Data?.Formats == null)
+            {
+                _logger.LogWarning("YT-DLP fetch failed for: {Url}. Errors: {Errors}", url,
+                    string.Join("; ", result.ErrorOutput ?? []));
+                return (false, null);
+            }
 
             var httpsFormats = result.Data.Formats
                 .Where(f => f.Protocol != "mhtml")
@@ -96,11 +105,6 @@ public class YoutubeService: IStreamService
                 _logger.LogWarning("YT-DLP found no suitable audio format for: {Url}", url);
                 return (false, null);
             }
-
-            // Verify URL is accessible
-            using var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync(bestAudio.Url);
-            response.EnsureSuccessStatusCode();
 
             return (true, bestAudio.Url);
         }
