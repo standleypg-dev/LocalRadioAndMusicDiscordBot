@@ -75,7 +75,7 @@ public class AudioPlayerService(
 
             async Task HandleVoiceStream()
             {
-                var outStream = playerState.CurrentVoiceClient.CreateOutputStream();
+                var outStream = playerState.CurrentVoiceClient.CreateVoiceStream();
 
                 OpusEncodeStream stream = new(outStream, PcmFormat.Short, VoiceChannels.Stereo, OpusApplication.Audio);
 
