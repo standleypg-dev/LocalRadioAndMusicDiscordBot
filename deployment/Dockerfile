@@ -10,8 +10,15 @@ RUN apk add --no-cache \
     libsodium-dev \
     opus-dev \
     yt-dlp \
+    wget \
     tzdata && \
     ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
+
+RUN wget -O /tmp/libdave.zip \
+    https://github.com/discord/libdave/releases/download/v1.1.1/cpp/libdave-Linux-X64-boringssl.zip && \
+    unzip /tmp/libdave.zip -d /tmp/libdave && \
+    cp /tmp/libdave/lib/*.so /usr/lib/ && \
+    rm -rf /tmp/libdave /tmp/libdave.zip
 
 FROM lib-build AS build
 
@@ -50,7 +57,7 @@ RUN apk add --no-cache \
     tzdata \
     yt-dlp && \
     ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
-    
+
 WORKDIR /app/run
 
 ENV ASPNETCORE_ENVIRONMENT=Production

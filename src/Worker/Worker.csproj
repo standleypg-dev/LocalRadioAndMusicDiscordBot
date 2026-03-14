@@ -47,6 +47,7 @@
     <ItemGroup Condition="'$(IsUnix)' == 'true'">
         <NativeLibs Include="/usr/lib/libsodium.so" />
         <NativeLibs Include="/usr/lib/libopus.so" />
+        <NativeLibs Include="/usr/lib/libdave.so" />
         <NativeLibs Include="/usr/bin/yt-dlp" />
     </ItemGroup>
 
