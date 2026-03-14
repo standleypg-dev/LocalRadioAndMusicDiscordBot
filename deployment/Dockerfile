@@ -4,12 +4,14 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS lib-build
 WORKDIR /deps
 
 RUN apt update && apt install -y --no-install-recommends \
-    nodejs \
-    npm \
+    curl \
     libsodium-dev \
     libopus-dev \
     wget \
-    unzip
+    unzip \
+    && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN wget -O /tmp/libdave.zip \
     https://github.com/discord/libdave/releases/download/v1.1.1/cpp/libdave-Linux-X64-boringssl.zip && \
