@@ -23,6 +23,8 @@ FROM lib-build AS build
 
 ARG BUILD_CONFIGURATION=Release
 ARG PROJECT_PATH=src/Worker/Worker.csproj
+ARG VITE_API_BASE_URL=https://rytho.standleypg.com/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 WORKDIR /app
 
