@@ -9,8 +9,8 @@ RUN apt update && apt install -y --no-install-recommends \
     libopus-dev \
     wget \
     unzip \
-    && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
-    && apt install -y --no-install-recommends nodejs \
+    && curl -fsSL https://bun.sh/install | bash \
+    && ln -s /root/.bun/bin/bun /usr/local/bin/bun \
     && rm -rf /var/lib/apt/lists/*
 
 RUN wget -O /tmp/libdave.zip \

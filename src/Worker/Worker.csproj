@@ -16,26 +16,24 @@
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\Application\Application.csproj" />
-      <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
-      <ProjectReference Include="..\UI\Api\Api.csproj" />
+        <ProjectReference Include="..\Application\Application.csproj" />
+        <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+        <ProjectReference Include="..\UI\Api\Api.csproj" />
     </ItemGroup>
     <ItemGroup>
-      <_ContentIncludedByDefault Remove="wwwroot\assets\index-CceUKHhc.css" />
-      <_ContentIncludedByDefault Remove="wwwroot\assets\index-wCvp2Xat.js" />
-      <_ContentIncludedByDefault Remove="wwwroot\index.html" />
-      <_ContentIncludedByDefault Remove="wwwroot\logo.png" />
-      <_ContentIncludedByDefault Remove="wwwroot\assets\index-B5YVgdP7.css" />
-      <_ContentIncludedByDefault Remove="wwwroot\assets\index-Ch8xG_BO.js" />
-      <_ContentIncludedByDefault Remove="wwwroot\log-in.svg" />
-      <_ContentIncludedByDefault Remove="wwwroot\log-out.svg" />
+        <_ContentIncludedByDefault Remove="wwwroot\assets\index-CceUKHhc.css" />
+        <_ContentIncludedByDefault Remove="wwwroot\assets\index-wCvp2Xat.js" />
+        <_ContentIncludedByDefault Remove="wwwroot\index.html" />
+        <_ContentIncludedByDefault Remove="wwwroot\logo.png" />
+        <_ContentIncludedByDefault Remove="wwwroot\assets\index-B5YVgdP7.css" />
+        <_ContentIncludedByDefault Remove="wwwroot\assets\index-Ch8xG_BO.js" />
+        <_ContentIncludedByDefault Remove="wwwroot\log-in.svg" />
+        <_ContentIncludedByDefault Remove="wwwroot\log-out.svg" />
     </ItemGroup>
     <Target Name="CopyLibsAfterBuild" AfterTargets="Build" Condition="'$(OS)' == 'Unix'">
         <Message Text="Copying native libraries..." Importance="high"/>
-        <Copy SourceFiles="/usr/lib/x86_64-linux-gnu/libsodium.so"
-              DestinationFolder="$(OutputPath)"/>
-        <Copy SourceFiles="/usr/lib/x86_64-linux-gnu/libopus.so"
-              DestinationFolder="$(OutputPath)"/>
+        <Copy SourceFiles="/usr/lib/x86_64-linux-gnu/libsodium.so" DestinationFolder="$(OutputPath)"/>
+        <Copy SourceFiles="/usr/lib/x86_64-linux-gnu/libopus.so" DestinationFolder="$(OutputPath)"/>
     </Target>
 
     <PropertyGroup>
@@ -70,9 +68,9 @@
     <!-- Build frontend -->
     <Target Name="BuildFrontend" BeforeTargets="Build">
         <Message Text="Building frontend..." Importance="high" />
-        <Exec Command="npm install" WorkingDirectory="../UI/App" />
-        <Exec Command="npm run build" WorkingDirectory="../UI/App" Condition="'$(Configuration)' == 'Release'" />
-        <Exec Command="npm run build:dev" WorkingDirectory="../UI/App" Condition="'$(Configuration)' == 'Debug'" />
+        <Exec Command="bun install" WorkingDirectory="../UI/App" />
+        <Exec Command="bun run build" WorkingDirectory="../UI/App" Condition="'$(Configuration)' == 'Release'" />
+        <Exec Command="bun run build:dev" WorkingDirectory="../UI/App" Condition="'$(Configuration)' == 'Debug'" />
         <Message Text="Frontend build complete" Importance="high" />
     </Target>
 
@@ -81,9 +79,7 @@
         <ItemGroup>
             <FrontendFiles Include="../UI/App/dist/**/*" />
         </ItemGroup>
-        <Copy SourceFiles="@(FrontendFiles)"
-              DestinationFolder="wwwroot/%(RecursiveDir)"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="@(FrontendFiles)" DestinationFolder="wwwroot/%(RecursiveDir)" SkipUnchangedFiles="true" />
         <Message Text="Copied frontend files to wwwroot" Importance="high" />
     </Target>
 
