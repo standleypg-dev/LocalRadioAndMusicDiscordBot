@@ -1,7 +1,6 @@
 using Application.Interfaces.Services;
 using Microsoft.Extensions.Logging;
 using SoundCloudExplode;
-using SoundCloudExplode.Common;
 
 namespace Infrastructure.Services;
 
