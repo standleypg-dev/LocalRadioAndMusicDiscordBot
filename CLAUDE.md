@@ -72,6 +72,7 @@ Audio flows through: YoutubeDLSharp/YoutubeExplode -> FFmpeg processing (`Ffmpeg
 - FFmpeg
 - libsodium
 - libopus
+- libdave
 - yt-dlp
 
 ## Configuration
