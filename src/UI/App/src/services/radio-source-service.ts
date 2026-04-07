@@ -57,9 +57,7 @@ export async function addRadioSource(
 ): Promise<RadioSource> {
   const response = await fetch(`${API_BASE_URL}/radio-sources/add`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: authHeader(),
     body: JSON.stringify({
       name: name,
       sourceUrl: sourceUrl,
