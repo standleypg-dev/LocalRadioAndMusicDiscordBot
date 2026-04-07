@@ -252,6 +252,7 @@ body {
   font-size: 0.9rem;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
 }
 
 .form-input:focus,
@@ -657,8 +658,8 @@ body {
   word-break: break-all;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   white-space: wrap;
-  max-height: 30px;
-  overflow: hidden;
+  max-height: 60px;
+  overflow: auto;
 }
 
 .radio-actions {

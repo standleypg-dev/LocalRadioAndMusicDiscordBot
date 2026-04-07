@@ -18,7 +18,7 @@ public class RadioSourceService(DiscordBotContext context): IRadioSourceService
                throw new KeyNotFoundException($"Radio source with ID {id} not found.");
     }
 
-    public async Task UpdateRadioSourceUrlAsync(Guid id, string newSourceUrl, bool isActive, CancellationToken cancellationToken = default)
+    public async Task UpdateRadioSourceUrlAsync(Guid id, string name, string newSourceUrl, bool isActive, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(newSourceUrl))
         {
@@ -31,7 +31,7 @@ public class RadioSourceService(DiscordBotContext context): IRadioSourceService
             throw new KeyNotFoundException($"Radio source with ID {id} not found.");
         }
         
-        RadioSource.UpdateSourceUrl(radioSource, newSourceUrl, isActive);
+        RadioSource.Update(radioSource, name, newSourceUrl, isActive);
         
         context.RadioSources.Update(radioSource);
 

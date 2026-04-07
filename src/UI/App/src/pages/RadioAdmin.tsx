@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { RadioSource } from '../interfaces/common.interfaces';
 import {
   loadRadioSources,
@@ -28,29 +29,48 @@ export function RadioAdmin() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteRadioSource,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['radioSources'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radioSources'] });
+      toast.success('Radio station deleted successfully.');
+    },
+    onError: () => {
+      toast.error('Failed to delete radio station. Please try again.');
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({
       id,
+      name,
       sourceUrl,
       isActive,
     }: {
       id: string;
+      name: string;
       sourceUrl: string;
       isActive: boolean;
-    }) => updateRadioSource(id, sourceUrl, isActive),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['radioSources'] }),
+    }) => updateRadioSource(id, name, sourceUrl, isActive),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radioSources'] });
+      toast.success('Radio station updated successfully.');
+    },
+    onError: () => {
+      toast.error('Failed to update radio station. Please try again.');
+    },
   });
 
   const addMutation = useMutation({
     mutationFn: ({ name, sourceUrl }: { name: string; sourceUrl: string }) =>
       addRadioSource(name, sourceUrl),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['radioSources'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['radioSources'] });
+      toast.success('Radio station added successfully.');
+    },
+    onError: (e) => {
+      toast.error(
+        `Failed to add radio station: ${e instanceof Error ? e.message : 'Unknown error'}`,
+      );
+    },
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -70,13 +90,9 @@ export function RadioAdmin() {
     setShowAddForm(true);
   }
 
-  async function handleDelete(stationId: string) {
+  function handleDelete(stationId: string) {
     if (confirm('Are you sure you want to delete this radio station?')) {
-      try {
-        await deleteMutation.mutateAsync(stationId);
-      } catch {
-        alert('Failed to delete radio station. Please try again.');
-      }
+      deleteMutation.mutate(stationId);
     }
   }
 
@@ -87,28 +103,21 @@ export function RadioAdmin() {
     const sourceUrl = formData.get('url') as string;
     const isActive = formData.get('isActive') === 'on';
 
-    if (editingStation) {
-      try {
+    try {
+      if (editingStation) {
         await updateMutation.mutateAsync({
           id: editingStation.id,
+          name,
           sourceUrl,
           isActive,
         });
-      } catch {
-        alert('Failed to update radio station. Please try again.');
-        return;
-      }
-    } else {
-      try {
+      } else {
         await addMutation.mutateAsync({ name, sourceUrl });
-      } catch (e) {
-        alert(
-          `Failed to add radio station: ${e instanceof Error ? e.message : 'Unknown error'}`,
-        );
-        return;
       }
+      hideModal();
+    } catch {
+      // Error toast is handled by mutation onError callbacks
     }
-    hideModal();
   }
 
   return (
@@ -202,8 +211,7 @@ export function RadioAdmin() {
               </div>
               <div className="form-group">
                 <label className="form-label">Stream URL</label>
-                <input
-                  type="url"
+                <textarea
                   name="url"
                   className="form-input"
                   required

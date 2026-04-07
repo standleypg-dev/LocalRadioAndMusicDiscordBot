@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.SDK/1.0.5171056">
+
+    <PropertyGroup>
+        <ProjectType>web</ProjectType>
+        <JavaScriptRoot>./</JavaScriptRoot>
+    </PropertyGroup>
+
+</Project>

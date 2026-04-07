@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Discord Music Bot - A .NET 9 application that provides music playback functionality for Discord servers. Supports YouTube, SoundCloud, Spotify (for playlist fetching), and radio streams.
+Discord Music Bot - A .NET 10 application that provides music playback functionality for Discord servers. Supports various audio sources, Spotify (for playlist fetching), and radio streams.
 
 ## Build & Run Commands
 
@@ -22,13 +22,13 @@ dotnet run --project src/Worker/Worker.csproj
 dotnet run --project src/Worker/Worker.csproj -c Release
 
 # Frontend dev server (from src/UI/App)
-npm run dev
+bun run dev
 
 # Frontend production build
-npm run build
+bun run build
 
 # Frontend development build
-npm run build:dev
+bun run build:dev
 ```
 
 ## Architecture
@@ -40,7 +40,7 @@ npm run build:dev
 - **Infrastructure** (`src/Infrastructure/`) - Discord bot implementation using NetCord, audio processing with FFmpeg/NAudio, database access via EF Core, YouTube/SoundCloud integration
 - **UI** (`src/UI/`) - Contains two sub-projects:
   - `Api/` - ASP.NET Core REST API with JWT authentication
-  - `App/` - Lit-based TypeScript frontend (Vite build)
+  - `App/` - React TypeScript frontend (Vite build, Bun package manager)
 - **Worker** (`src/Worker/`) - Main entry point that composes all layers, hosts the Discord bot and web API
 
 ### Key Patterns
@@ -86,4 +86,4 @@ Environment variables (via docker-compose or appsettings.json):
 
 ## Frontend Stack
 
-TypeScript with Lit web components, Vaadin Router, Chart.js. Build output goes to `src/Worker/wwwroot/`.
+React 19 with TypeScript, TanStack Router, TanStack Query, Recharts. Uses Bun as the package manager and Vite 8 for bundling. Build output goes to `src/Worker/wwwroot/`.

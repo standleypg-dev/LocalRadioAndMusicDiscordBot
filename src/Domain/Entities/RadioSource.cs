@@ -5,7 +5,7 @@ namespace Domain.Entities;
 public class RadioSource: EntityBase
 {
     public Guid Id { get; init; }
-    public string Name { get; init; }
+    public string Name { get; set; }
     public string SourceUrl { get; private set; }
     public bool IsActive { get; set; } = true;
     
@@ -15,14 +15,15 @@ public class RadioSource: EntityBase
         SourceUrl = sourceUrl;
     }
     
-    public static RadioSource UpdateSourceUrl(RadioSource radioSource, string newSourceUrl, bool isActive)
+    public static void Update(RadioSource radioSource, string name, string newSourceUrl, bool isActive)
     {
-        ArgumentNullException.ThrowIfNull(radioSource, nameof(radioSource));
-        ArgumentNullException.ThrowIfNull(newSourceUrl, nameof(newSourceUrl));
+        ArgumentNullException.ThrowIfNull(radioSource);
+        ArgumentNullException.ThrowIfNull(radioSource);
+        ArgumentNullException.ThrowIfNull(newSourceUrl);
 
+        radioSource.Name = name;
         radioSource.SourceUrl = newSourceUrl;
         radioSource.IsActive = isActive;
-        return radioSource;
     }
     
     public static RadioSource Create(string name, string sourceUrl)
