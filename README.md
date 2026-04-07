@@ -25,7 +25,7 @@ A .NET 10 Discord bot for music playback, supporting various audio sources and r
 - [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) / [YoutubeDLSharp](https://github.com/Bluegrams/YoutubeDLSharp) + [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 - [SoundCloudExplode](https://github.com/jerry08/SoundCloudExplode)
 - [NAudio](https://github.com/naudio/NAudio) / [FFmpeg](https://ffmpeg.org) - audio processing
-- [libopus](https://opus-codec.org) / [libsodium](https://doc.libsodium.org) - voice encryption and encoding
+- [libopus](https://opus-codec.org) / [libsodium](https://doc.libsodium.org) / [libdave](https://github.com/discord/libdave) - voice encryption and encoding
 
 ### Frontend
 - [React 19](https://react.dev) with TypeScript
