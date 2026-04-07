@@ -62,7 +62,7 @@ public class PlayCommand(IScopeExecutor executor) : ApplicationCommandModule<App
             var message =
                 CommandUtils.CreateMessage<InteractionMessageProperties>("Select a radio station to play:");
 
-            var radiosSourceList = (await radioSourceService.GetAllRadioSourcesAsync()).Where(rs => rs.IsActive);
+            var radiosSourceList = (await radioSourceService.GetAllRadioSourcesAsync(CancellationToken.None)).Where(rs => rs.IsActive);
             message.Components =
                 CommandUtils.CreateComponent(radiosSourceList.Select(rs =>
                     new CommandUtils.ComponentModel(rs.Name, rs.Id.ToString())));

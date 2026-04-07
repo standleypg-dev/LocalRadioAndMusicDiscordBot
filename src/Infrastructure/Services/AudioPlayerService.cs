@@ -166,7 +166,7 @@ public class AudioPlayerService(
 
         if (Guid.TryParse(selectedValue, out var radioId))
         {
-            sourceUrl = (await radioSourceService.GetRadioSourceByIdAsync(radioId)).SourceUrl;
+            sourceUrl = (await radioSourceService.GetRadioSourceByIdAsync(radioId, CancellationToken.None)).SourceUrl;
         }
         else
         {

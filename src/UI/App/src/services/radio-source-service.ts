@@ -21,6 +21,7 @@ export async function loadRadioSources(): Promise<RadioSource[]> {
 
 export async function updateRadioSource(
   sourceId: string,
+  name: string,
   sourceUrl: string,
   isActive: boolean,
 ): Promise<void> {
@@ -28,6 +29,7 @@ export async function updateRadioSource(
     method: 'PUT',
     headers: authHeader(),
     body: JSON.stringify({
+      name: name,
       newSourceUrl: sourceUrl,
       isActive: isActive,
     }),
