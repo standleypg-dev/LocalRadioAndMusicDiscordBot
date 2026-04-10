@@ -61,6 +61,7 @@ RUN apt update && apt install -y --no-install-recommends \
     && ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
 
 # Install latest yt-dlp directly from GitHub releases
+ARG YT_DLP_CACHE_BUST=latest
 ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
     
