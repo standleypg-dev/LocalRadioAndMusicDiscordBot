@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 jobs:
   deploy:
     runs-on: [self-hosted, Linux, X64]
@@ -43,4 +44,4 @@ jobs:
 
       - name: Build and run with Docker Compose
         run: |
-          cd deployment && docker compose -f docker-compose.yml up -d --build
+          cd deployment && docker compose -f docker-compose.yml build --build-arg YT_DLP_CACHE_BUST=$(date +%Y%m%d) && docker compose -f docker-compose.yml up -d
