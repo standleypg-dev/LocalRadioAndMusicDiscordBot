@@ -1,14 +1,13 @@
 using Application.Configs;
+using Application.Eventing;
 using Application.Interfaces.Services;
 using Application.Services;
 using Application.Store;
-using Domain.Common;
 using Infrastructure.Commands;
 using Infrastructure.Interaction;
 using Infrastructure.Services;
 using NetCord;
 using NetCord.Gateway;
-using NetCord.Gateway.Voice;
 using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
@@ -45,13 +44,20 @@ public static class DependencyInjection
 
         services.AddLogging(opts => opts.AddConsole());
 
+        services.AddHttpClient();
+
         services.AddSingleton<GlobalStore>();
-        services.AddSingleton<PlayerState<VoiceClient>>();
         services.AddSingleton<IHttpRequestService, HttpRequestService>();
         services.AddSingleton<INativePlaceMusicProcessorService, FfmpegProcessService>();
         services.AddSingleton<INetCordAudioPlayerService, AudioPlayerService>();
         services.AddSingleton<IMusicQueueService, MusicQueueService>();
         services.AddSingleton<IScopeExecutor, ScopeExecutor>();
+
+        // Player background service: single consumer of the music queue.
+        // Registered once and exposed both as the hosted service and as the Skip/Stop controller.
+        services.AddSingleton<MusicPlayerBackgroundService>();
+        services.AddSingleton<IMusicPlayerController>(sp => sp.GetRequiredService<MusicPlayerBackgroundService>());
+        services.AddHostedService(sp => sp.GetRequiredService<MusicPlayerBackgroundService>());
 
         services.AddScoped<YoutubeClient>();
         services.AddScoped<SoundCloudClient>();

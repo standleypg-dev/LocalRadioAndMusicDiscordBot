@@ -7,11 +7,11 @@ using Domain.Common.Enums;
 
 namespace Application.Services;
 
-public class HttpRequestService : IHttpRequestService
+public class HttpRequestService(IHttpClientFactory httpClientFactory) : IHttpRequestService
 {
     public async Task<T> GetAsync<T>(string url, object? data = null, string? token = null)
     {
-        using var httpClient = new HttpClient();
+        var httpClient = httpClientFactory.CreateClient();
         if (!string.IsNullOrEmpty(token))
         {
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -19,7 +19,9 @@ public class HttpRequestService : IHttpRequestService
 
         if (data is not null)
         {
-            var query = string.Join("&", data.GetType().GetProperties().Select(x => $"{x.Name}={x.GetValue(data)}"));
+            var query = string.Join("&", data.GetType().GetProperties()
+                .Select(x =>
+                    $"{Uri.EscapeDataString(x.Name)}={Uri.EscapeDataString(x.GetValue(data)?.ToString() ?? string.Empty)}"));
             url += $"?{query}";
         }
 
@@ -34,7 +36,7 @@ public class HttpRequestService : IHttpRequestService
     public async Task<T> PostAsync<T>(string url, object data,
         PostRequestMediaType mediaType = PostRequestMediaType.Json)
     {
-        using var httpClient = new HttpClient();
+        var httpClient = httpClientFactory.CreateClient();
         HttpResponseMessage? response = null;
         if (mediaType == PostRequestMediaType.Json)
         {

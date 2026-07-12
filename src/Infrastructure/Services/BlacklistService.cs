@@ -7,40 +7,52 @@ namespace Infrastructure.Services;
 
 public class BlacklistService(DiscordBotContext context): IBlacklistService
 {
-    public Task AddToBlacklistAsync(string sourceUrl)
+    public async Task<bool> AddToBlacklistAsync(string sourceUrl)
     {
         if (string.IsNullOrEmpty(sourceUrl))
         {
             throw new ArgumentException("Source URL cannot be null or empty.", nameof(sourceUrl));
         }
 
-        var song = context.Songs.First(b => b.SourceUrl == sourceUrl);
-        
+        var song = await context.Songs.FirstOrDefaultAsync(b => b.SourceUrl == sourceUrl);
+        if (song is null)
+        {
+            return false;
+        }
+
         song = Song.MarkAsBlacklisted(song, true);
         context.Songs.Update(song);
 
-        return context.SaveChangesAsync();
+        await context.SaveChangesAsync();
+        return true;
     }
-    
+
     /// <summary>
     /// Removes a song from the blacklist base on title.
     /// Use contains to match the title.
     /// </summary>
     /// <param name="title"></param>
     /// <returns></returns>
-    public Task RemoveFromBlacklistAsync(string title)
+    public async Task<bool> RemoveFromBlacklistAsync(string title)
     {
         if (string.IsNullOrEmpty(title))
         {
             throw new ArgumentException("Title cannot be null or empty.", nameof(title));
         }
 
-        var song = context.Songs.First(b => EF.Functions.Like(b.Title.ToLower(), $"%{title.ToLower()}%") );
-        
+        var pattern = $"%{EscapeLikePattern(title.ToLower())}%";
+        var song = await context.Songs.FirstOrDefaultAsync(b =>
+            EF.Functions.Like(b.Title.ToLower(), pattern, "\\"));
+        if (song is null)
+        {
+            return false;
+        }
+
         song = Song.MarkAsBlacklisted(song, false);
         context.Songs.Update(song);
 
-        return context.SaveChangesAsync();
+        await context.SaveChangesAsync();
+        return true;
     }
 
     /// <summary>
@@ -58,10 +70,18 @@ public class BlacklistService(DiscordBotContext context): IBlacklistService
 
         return context.Songs.AnyAsync(b => b.SourceUrl == sourceUrl && b.IsBlacklisted);
     }
- 
+
     // Get all blacklisted songs
     public Task<List<Song>> GetBlacklistedSongsAsync()
     {
         return context.Songs.Where(b => b.IsBlacklisted).ToListAsync();
+    }
+
+    private static string EscapeLikePattern(string input)
+    {
+        return input
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
     }
 }

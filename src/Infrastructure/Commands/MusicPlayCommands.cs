@@ -22,29 +22,20 @@ public class PlayCommand(IScopeExecutor executor) : ApplicationCommandModule<App
 
         await executor.ExecuteAsync(async serviceProvider =>
         {
-            var blacklistService = serviceProvider.GetRequiredService<IBlacklistService>();
-            if (await blacklistService.IsBlacklistedAsync(command))
-            {
-                var blacklistMessage =
-                    CommandUtils.CreateMessage<InteractionMessageProperties>(
-                        "The requested song is blacklisted and cannot be played.");
-                await RespondAsync(InteractionCallback.Message(blacklistMessage));
-            }
-            else
-            {
-                var youtubeClient = serviceProvider.GetRequiredService<YoutubeClient>();
-                var message = CommandUtils.CreateMessage<InteractionMessageProperties>("Select a track to play:");
+            // Blacklist enforcement happens at selection time (NetCordInteraction.Play),
+            // where the actual video URL is known.
+            var youtubeClient = serviceProvider.GetRequiredService<YoutubeClient>();
+            var message = CommandUtils.CreateMessage<InteractionMessageProperties>("Select a track to play:");
 
-                var source =
-                    await youtubeClient.Search.GetVideosAsync(command)
-                        .CollectAsync(5);
+            var source =
+                await youtubeClient.Search.GetVideosAsync(command)
+                    .CollectAsync(5);
 
-                message.Components =
-                    CommandUtils.CreateComponent(source.Select(s =>
-                        new CommandUtils.ComponentModel(s.Title, s.Url, s.Author.ChannelTitle)));
+            message.Components =
+                CommandUtils.CreateComponent(source.Select(s =>
+                    new CommandUtils.ComponentModel(s.Title, s.Url, s.Author.ChannelTitle)));
 
-                await RespondAsync(InteractionCallback.Message(message));
-            }
+            await RespondAsync(InteractionCallback.Message(message));
         });
     }
 

@@ -1,8 +1,8 @@
 using System.Reflection;
-using Application.Eventing;
 using Domain.Eventing;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Worker;
+namespace Application.Eventing;
 
 public static class EventingServiceCollectionExtensions
 {

@@ -10,12 +10,10 @@ namespace Application.Store;
 public class GlobalStore
 {
     private readonly ConcurrentDictionary<Type, object> _store = new();
-    private readonly ReaderWriterLockSlim _lock = new();
 
     /// <summary>
     /// Set the value of the item in the store of type <typeparamref name="T"/>
     /// If the item is already set, it will be overwritten
-    /// Use this only for the first time setting the value
     /// </summary>
     /// <param name="item"></param>
     /// <typeparam name="T"></typeparam>
@@ -24,15 +22,7 @@ public class GlobalStore
     {
         ArgumentNullException.ThrowIfNull(item, nameof(item));
 
-        EnterWriteLock();
-        try
-        {
-            _store[typeof(T)] = item;
-        }
-        finally
-        {
-            ExitWriteLock();
-        }
+        _store[typeof(T)] = item;
     }
 
     /// <summary>
@@ -42,18 +32,7 @@ public class GlobalStore
     /// <returns></returns>
     public T? Get<T>()
     {
-        EnterReadLock();
-        try
-        {
-            if (_store.TryGetValue(typeof(T), out var value))
-                return (T)value;
-            else
-                return default;
-        }
-        finally
-        {
-            ExitReadLock();
-        }
+        return _store.TryGetValue(typeof(T), out var value) ? (T)value : default;
     }
 
     /// <summary>
@@ -64,24 +43,14 @@ public class GlobalStore
     /// <returns></returns>
     public bool TryGet<T>([NotNullWhen(true)] out T? item)
     {
-        EnterReadLock();
-        try
+        if (_store.TryGetValue(typeof(T), out var value))
         {
-            if (_store.TryGetValue(typeof(T), out var value))
-            {
-                item = (T)value;
-                return true;
-            }
-            else
-            {
-                item = default;
-                return false;
-            }
+            item = (T)value;
+            return true;
         }
-        finally
-        {
-            ExitReadLock();
-        }
+
+        item = default;
+        return false;
     }
 
     /// <summary>
@@ -92,19 +61,6 @@ public class GlobalStore
     /// <typeparam name="T"></typeparam>
     public void Clear<T>()
     {
-        EnterWriteLock();
-        try
-        {
-            _store.TryRemove(typeof(T), out _);
-        }
-        finally
-        {
-            ExitWriteLock();
-        }
+        _store.TryRemove(typeof(T), out _);
     }
-
-    private void EnterWriteLock() => _lock.EnterWriteLock();
-    private void ExitWriteLock() => _lock.ExitWriteLock();
-    private void EnterReadLock() => _lock.EnterReadLock();
-    private void ExitReadLock() => _lock.ExitReadLock();
 }

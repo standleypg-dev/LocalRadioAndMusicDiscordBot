@@ -35,7 +35,15 @@ public static class CommandUtils
 
     internal static async Task<bool> NotInVoiceChannel(ApplicationCommandContext context, Func<InteractionCallbackProperties<InteractionMessageProperties>, Task> respondAsync)
     {
-        if (!context.Guild!.VoiceStates.TryGetValue(context.User.Id, out _))
+        if (context.Guild is null)
+        {
+            var notInGuildMessage =
+                CreateMessage<InteractionMessageProperties>("This command can only be used in a server.");
+            await respondAsync(InteractionCallback.Message(notInGuildMessage));
+            return true;
+        }
+
+        if (!context.Guild.VoiceStates.TryGetValue(context.User.Id, out _))
         {
             var notInVoiceChannelMessage =
                 CreateMessage<InteractionMessageProperties>("You must be in a voice channel to use this command.");

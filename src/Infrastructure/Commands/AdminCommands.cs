@@ -23,7 +23,7 @@ public class AdminCommands(
     [SubSlashCommand("blacklist", "Blacklist the currently playing song")]
     public async Task BlacklistAsync()
     {
-        var song = queue.Peek<StringMenuInteractionContext>();
+        var song = queue.NowPlaying;
         if (song is null)
         {
             await RespondAsync(InteractionCallback.Message(
@@ -31,32 +31,37 @@ public class AdminCommands(
             return;
         }
 
-        var url = (song.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0];
+        var url = song.VideoUrl ?? (song.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0];
         if (url is null)
         {
             await RespondAsync(InteractionCallback.Message("No song was selected to blacklist."));
             return;
         }
 
-        var title = await youtubeService.GetAudioStreamUrlAsync(url, CancellationToken.None);
-        await RespondAsync(InteractionCallback.Message($"The song with title '{title}' has been blacklisted."));
+        if (Guid.TryParse(url, out _))
+        {
+            await RespondAsync(InteractionCallback.Message("Radio stations cannot be blacklisted."));
+            return;
+        }
+
+        var title = await youtubeService.GetVideoTitleAsync(url, CancellationToken.None);
 
         using var scope = serviceProvider.CreateScope();
         var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
 
-        await blacklistService.AddToBlacklistAsync(url);
+        var added = await blacklistService.AddToBlacklistAsync(url);
+        if (!added)
+        {
+            await RespondAsync(InteractionCallback.Message(
+                $"The song with title '{title}' was not found in the library and could not be blacklisted."));
+            return;
+        }
 
-        // if the the queue has only one song, stop it
+        await RespondAsync(InteractionCallback.Message($"The song with title '{title}' has been blacklisted."));
+
+        // Skip the blacklisted track; the player disconnects on its own when the queue is empty.
         var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
-
-        if (queue.Count == 1)
-        {
-            eventDispatcher.Dispatch(new EventType.Stop());
-        }
-        else
-        {
-            eventDispatcher.Dispatch(new EventType.Skip());
-        }
+        eventDispatcher.Dispatch(new EventType.Skip());
     }
 
     [SubSlashCommand("unblacklist", "Remove a song from the blacklist")]
@@ -65,11 +70,12 @@ public class AdminCommands(
         using var scope = serviceProvider.CreateScope();
         var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();
 
-        await blacklistService.RemoveFromBlacklistAsync(title);
+        var removed = await blacklistService.RemoveFromBlacklistAsync(title);
 
         var message =
-            CommandUtils.CreateMessage<InteractionMessageProperties>(
-                $"The song with title '{title}' has been removed from the blacklist.");
+            CommandUtils.CreateMessage<InteractionMessageProperties>(removed
+                ? $"The song with title '{title}' has been removed from the blacklist."
+                : $"No blacklisted song matching '{title}' was found.");
         await RespondAsync(InteractionCallback.Message(message));
     }
 

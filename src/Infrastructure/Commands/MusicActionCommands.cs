@@ -48,16 +48,17 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
             return;
         }
 
-        if (queue.Count == 0)
+        var requests = queue.GetAllRequests();
+        if (requests.Length == 0)
             await RespondAsync(InteractionCallback.Message("No songs in queue."));
         else
         {
             await executor.ExecuteAsync(async serviceProvider =>
             {
                 var youtubeService = serviceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
-                var songs = queue.GetAllRequests().Select(async r =>
+                var songs = requests.Select(async r =>
                     {
-                        var title = await youtubeService.GetVideoTitleAsync(
+                        var title = r.VideoTitle ?? await youtubeService.GetVideoTitleAsync(
                             r.VideoUrl ?? (r.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0]!,
                             CancellationToken.None);
                         return title;
@@ -86,13 +87,13 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
         }
 
         InteractionMessageProperties message;
-        if(queue.Count == 0)
+        if(queue.NowPlaying is null)
         {
             message = CommandUtils.CreateMessage<InteractionMessageProperties>("No songs in queue.");
             await RespondAsync(InteractionCallback.Message(message));
             return;
         }
-        
+
         queue.Rewind();
         message = CommandUtils.CreateMessage<InteractionMessageProperties>("Rewinding the current track.");
         await RespondAsync(InteractionCallback.Message(message));
@@ -112,8 +113,7 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
     {
         executor.Execute(serviceProvider =>
         {
-            using var scope = serviceProvider.CreateScope();
-            var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
+            var eventDispatcher = serviceProvider.GetRequiredService<IEventDispatcher>();
 
             eventDispatcher.Dispatch(@event);
         });

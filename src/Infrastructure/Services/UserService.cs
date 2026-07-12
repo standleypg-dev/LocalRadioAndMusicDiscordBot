@@ -33,7 +33,10 @@ public class UserService(DiscordBotContext context) : IUserService
                 MemberSince = u.CreatedAt,
                 TotalPlays = u.PlayHistories.Sum(ph => ph.TotalPlays),
                 UniqueSongs = u.PlayHistories.Select(ph => ph.Song).Distinct().Count(),
-                LastPlayed = u.PlayHistories.OrderByDescending(ph => ph.PlayedAt).FirstOrDefault()!.PlayedAt,
+                LastPlayed = u.PlayHistories
+                    .OrderByDescending(ph => ph.PlayedAt)
+                    .Select(ph => (DateTimeOffset?)ph.PlayedAt)
+                    .FirstOrDefault(),
                 DisplayName = u.DisplayName ?? u.Username
             })
             .OrderByDescending(u => u.TotalPlays)

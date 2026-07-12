@@ -25,7 +25,7 @@ public class RadioSourceService(DiscordBotContext context): IRadioSourceService
             throw new ArgumentException("Source URL cannot be null or empty.", nameof(newSourceUrl));
         }
 
-        var radioSource = context.RadioSources.FirstOrDefault(rs => rs.Id == id);
+        var radioSource = await context.RadioSources.FirstOrDefaultAsync(rs => rs.Id == id, cancellationToken);
         if (radioSource == null)
         {
             throw new KeyNotFoundException($"Radio source with ID {id} not found.");
