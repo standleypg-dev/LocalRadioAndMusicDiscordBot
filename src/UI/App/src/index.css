@@ -565,6 +565,88 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* ===== Recently Played (expanded user row) ===== */
+
+.table tr.recent-songs-row:hover {
+  background: transparent;
+}
+
+.recent-songs {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.recent-songs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.recent-songs-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.recent-song-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.recent-song-item:last-child {
+  border-bottom: none;
+}
+
+.recent-song-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.recent-song-rank {
+  flex-shrink: 0;
+  width: 1.5rem;
+  text-align: right;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.recent-song-title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.recent-song-item .play-count {
+  flex-shrink: 0;
+  min-width: 3rem;
+  text-align: center;
+}
+
+.recent-song-date {
+  flex-shrink: 0;
+  width: 6.5rem;
+  text-align: right;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* ===== Radio Admin ===== */
 
 .add-button {
