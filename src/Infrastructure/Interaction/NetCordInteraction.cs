@@ -13,7 +13,7 @@ namespace Infrastructure.Interaction;
 
 public class NetCordInteraction(
     ILogger<NetCordInteraction> logger,
-    IMusicQueueService queueService,
+    IGuildMusicService guildMusicService,
     IBlacklistService blacklistService,
     YoutubeClient youtubeClient,
     [FromKeyedServices(nameof(YoutubeService))] IStreamService youtubeService) : ComponentInteractionModule<StringMenuInteractionContext>
@@ -53,7 +53,7 @@ public class NetCordInteraction(
             Context = Context,
             Callbacks = async callbackMessage => await RespondAsyncCallback(callbackMessage),
         };
-        queueService.Enqueue(playRequest);
+        guildMusicService.Enqueue(Context.Guild!.Id, playRequest);
 
         return message;
     }
@@ -91,7 +91,7 @@ public class NetCordInteraction(
                 VideoTitle = video.Title,
                 VideoUrl = video.Url
             };
-            queueService.Enqueue(playRequest);
+            guildMusicService.Enqueue(Context.Guild!.Id, playRequest);
             added++;
         }
 

@@ -10,7 +10,7 @@ using NetCord.Services.ComponentInteractions;
 
 namespace Infrastructure.Commands;
 
-public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService queue)
+public class MusicActionCommands(IScopeExecutor executor, IGuildMusicService guildMusicService)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("stop", "Stop playing and clear the queue")]
@@ -21,7 +21,7 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
             return;
         }
 
-        DispatchEvent(new EventType.Stop());
+        DispatchEvent(new EventType.Stop(Context.Guild!.Id));
         var message =
             CommandUtils.CreateMessage<InteractionMessageProperties>("Stopping playback and clearing the queue.");
         await RespondAsync(InteractionCallback.Message(message));
@@ -35,7 +35,7 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
             return;
         }
 
-        DispatchEvent(new EventType.Skip());
+        DispatchEvent(new EventType.Skip(Context.Guild!.Id));
         var message = CommandUtils.CreateMessage<InteractionMessageProperties>("Skipping the current track.");
         await RespondAsync(InteractionCallback.Message(message));
     }
@@ -48,7 +48,7 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
             return;
         }
 
-        var requests = queue.GetAllRequests();
+        var requests = guildMusicService.GetAllRequests(Context.Guild!.Id);
         if (requests.Length == 0)
             await RespondAsync(InteractionCallback.Message("No songs in queue."));
         else
@@ -87,14 +87,14 @@ public class MusicActionCommands(IScopeExecutor executor, IMusicQueueService que
         }
 
         InteractionMessageProperties message;
-        if(queue.NowPlaying is null)
+        if (guildMusicService.GetNowPlaying(Context.Guild!.Id) is null)
         {
             message = CommandUtils.CreateMessage<InteractionMessageProperties>("No songs in queue.");
             await RespondAsync(InteractionCallback.Message(message));
             return;
         }
 
-        queue.Rewind();
+        guildMusicService.Rewind(Context.Guild.Id);
         message = CommandUtils.CreateMessage<InteractionMessageProperties>("Rewinding the current track.");
         await RespondAsync(InteractionCallback.Message(message));
     }

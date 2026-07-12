@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Discord Music Bot - A .NET 10 application that plays music in Discord voice channels from YouTube, SoundCloud, Spotify (playlist metadata only), and radio streams. Ships with a React dashboard for stats and radio-source management. Designed to run on Linux via Docker; native voice dependencies (libdave, libsodium, libopus) make local Windows runs impractical.
+Discord Music Bot - A .NET 10 application that plays music in Discord voice channels from YouTube, SoundCloud, Spotify (playlist metadata only), and radio streams. Supports multiple servers concurrently: each guild gets its own queue, player loop, voice connection, and FFmpeg process, while statistics and the blacklist are shared globally. Ships with a React dashboard for stats and radio-source management. Designed to run on Linux via Docker; native voice dependencies (libdave, libsodium, libopus) make local Windows runs impractical.
 
 ## Build & Run Commands
 
@@ -47,18 +47,18 @@ Tests live in `src/Tests/` (xUnit + NSubstitute; integration tests use Testconta
 
 - **Domain** (`src/Domain/`) - Entities (`Song`, `User`, `PlayHistory`, `RadioSource`), event handler interfaces (`IEventHandler<T>`, `IAsyncEventHandler<T>`), and enums.
 - **Application** (`src/Application/`) - Business services (`SpotifyService`, `JokeService`, `QuoteService`, `HttpRequestService`), DTOs, config binding helpers, the in-process event dispatcher plus `AddEventing` registration (`Application.Eventing`), and the `GlobalStore` singleton.
-- **Infrastructure** (`src/Infrastructure/`) - NetCord commands and interactions, audio pipeline (`MusicPlayerBackgroundService`, `AudioPlayerService`, `FfmpegProcessService`, `MusicQueueService`), `PlayerHandler` (thin Skip/Stop event adapter), YouTube/SoundCloud stream services, EF Core `DiscordBotContext` with compiled models, and radio/user/blacklist/statistics services.
-- **Tests** (`src/Tests/`) - xUnit test project: `Unit/` (queue, player background service, eventing) and `Integration/` (blacklist/statistics/user services against Testcontainers PostgreSQL).
+- **Infrastructure** (`src/Infrastructure/`) - NetCord commands and interactions, audio pipeline (`GuildPlayerManager`, `GuildPlayer`, `AudioPlayerService`, `FfmpegProcessService`, `MusicQueueService`), `PlayerHandler` (thin guild-scoped Skip/Stop event adapter), YouTube/SoundCloud stream services, EF Core `DiscordBotContext` with compiled models, and radio/user/blacklist/statistics services.
+- **Tests** (`src/Tests/`) - xUnit test project: `Unit/` (queue, guild player, guild player manager, eventing) and `Integration/` (blacklist/statistics/user services against Testcontainers PostgreSQL).
 - **UI** (`src/UI/`)
   - `Api/` - ASP.NET Core minimal-API endpoints (see `ControllerExtensions.cs`) with JWT bearer auth. Login checks against `JwtSettings:InternalPassword` (no user password hashing).
   - `App/` - React 19 + TypeScript SPA. Build output writes into `src/Worker/wwwroot/`, which is served by the Worker as static files with SPA fallback to `index.html`.
-- **Worker** (`src/Worker/`) - Composition root. Program.cs builds a `WebApplication` that hosts the NetCord Discord gateway (registered via `AddDiscordGateway`), the ASP.NET Core web API, and the `MusicPlayerBackgroundService` hosted service in one process on port 5000.
+- **Worker** (`src/Worker/`) - Composition root. Program.cs builds a `WebApplication` that hosts the NetCord Discord gateway (registered via `AddDiscordGateway`), the ASP.NET Core web API, and the `GuildPlayerManager` hosted service in one process on port 5000.
 
 ### Key Patterns
 
-**Event system**: Custom in-process dispatcher (`IEventDispatcher`, `IAsyncEventDispatcher`) plus a `HandlerRegistry`. `Application.Eventing.EventingServiceCollectionExtensions.AddEventing(assemblies...)` scans supplied assemblies for `IEventHandler<T>` / `IAsyncEventHandler<T>` implementations and registers them as scoped. When adding a new event handler, ensure its assembly is passed to `AddEventing` in `DependencyInjection.cs` (currently `Application.AssemblyMarker` and `Infrastructure.Services.AssemblyMarker`). Only `EventType.Skip` / `EventType.Stop` are dispatched today (handled by `PlayerHandler`, which forwards to `IMusicPlayerController`); `EventType.Play` is not dispatched anymore because enqueueing wakes the player's channel consumer directly.
+**Event system**: Custom in-process dispatcher (`IEventDispatcher`, `IAsyncEventDispatcher`) plus a `HandlerRegistry`. `Application.Eventing.EventingServiceCollectionExtensions.AddEventing(assemblies...)` scans supplied assemblies for `IEventHandler<T>` / `IAsyncEventHandler<T>` implementations and registers them as scoped. When adding a new event handler, ensure its assembly is passed to `AddEventing` in `DependencyInjection.cs` (currently `Application.AssemblyMarker` and `Infrastructure.Services.AssemblyMarker`). Only `EventType.Skip` / `EventType.Stop` are dispatched today; both carry a `GuildId` and are handled by `PlayerHandler`, which forwards to `IGuildMusicService`. `EventType.Play` is not dispatched anymore because enqueueing wakes the guild's channel consumer directly.
 
-**Queue service pattern**: `MusicQueueService` (singleton) pairs a lock-protected list with an unbounded `System.Threading.Channels` signal channel, following the Microsoft queue-service guidance. `MusicPlayerBackgroundService` (a `BackgroundService`, also registered as `IMusicPlayerController`) is the single consumer: it dequeues a `PlayRequest` into the `NowPlaying` slot, awaits `AudioPlayerService.PlayTrackAsync` (retrying failed tracks up to 3 times), and disconnects from voice when the queue runs empty. Skip/Stop cancel the per-track linked `CancellationTokenSource`.
+**Per-guild players**: `GuildPlayerManager` (a `BackgroundService`, registered as `IGuildMusicService`) owns one `GuildPlayer` per guild, created lazily on the first enqueue for that guild via a component factory (wired in `Worker/DependencyInjection.cs`). Each `GuildPlayer` owns its own `MusicQueueService` (a lock-protected list paired with an unbounded `System.Threading.Channels` signal channel, per the Microsoft queue-service guidance), its own `AudioPlayerService` (voice client) and `FfmpegProcessService` instance, and a consumer loop: it dequeues a `PlayRequest` into the `NowPlaying` slot, awaits `AudioPlayerService.PlayTrackAsync` (retrying failed tracks up to 3 times), and disconnects from that guild's voice channel when its queue runs empty. Skip/Stop cancel the guild's per-track linked `CancellationTokenSource`; commands address a guild through `IGuildMusicService` with `Context.Guild.Id`. None of `MusicQueueService`, `AudioPlayerService`, or `FfmpegProcessService` are DI-registered anymore - the manager constructs them per guild.
 
 **Keyed services**: Multiple implementations of `IStreamService` and `IRandomService` are registered by name and resolved with `[FromKeyedServices(nameof(...))]`:
 
@@ -70,9 +70,10 @@ services.AddKeyedScoped<IRandomService, QuoteService>(nameof(QuoteService));
 ```
 
 **Discord commands** (`src/Infrastructure/Commands/`):
+
 - `PlayCommand` (in `MusicPlayCommands.cs`) - `/play music` and radio subcommands
-- `MusicActionCommands` - pause, skip, stop, volume
-- `AdminCommands` - admin-only actions
+- `MusicActionCommands` - stop, skip, playlist, rewind, statistics
+- `AdminCommands` - admin-only actions (blacklist management)
 - `MiscCommands` - help, joke, motivate
 
 Commands and the `NetCordInteraction` component module are wired in `Worker.DependencyInjection.AddWebApplication`.
@@ -85,7 +86,7 @@ PostgreSQL + EF Core 10. Context: `Infrastructure/Data/DiscordBotContext.cs`. Us
 
 ### Audio Pipeline
 
-A play interaction enqueues a `PlayRequest` into `MusicQueueService`; the channel signal wakes `MusicPlayerBackgroundService`, which calls `AudioPlayerService.PlayTrackAsync`. That method joins the voice channel if needed, resolves the stream URL (`YoutubeExplode` / `YoutubeDLSharp` via `yt-dlp` at runtime, or a radio source URL when the selection is a Guid), logs the play via `IStatisticsService` (radio plays are logged with the station name as the title), spawns FFmpeg through `FfmpegProcessService` (`Ffmpeg:Path` config, default `/usr/bin/ffmpeg`), copies FFmpeg stdout into a NetCord `OpusEncodeStream`, then awaits process exit and maps the exit code to a `TrackPlayResult` (`Completed`/`Failed`/`Skipped`/`NotInVoiceChannel`). There are no C# events in this pipeline; user-facing messages flow through `PlayRequest.Callbacks` and failures are retried by the background service.
+A play interaction enqueues a `PlayRequest` via `IGuildMusicService` into the guild's `MusicQueueService`; the channel signal wakes that guild's `GuildPlayer` loop, which calls `AudioPlayerService.PlayTrackAsync`. That method joins the voice channel if needed, resolves the stream URL (`YoutubeExplode` / `YoutubeDLSharp` via `yt-dlp` at runtime, or a radio source URL when the selection is a Guid), logs the play via `IStatisticsService` (radio plays are logged with the station name as the title), spawns FFmpeg through `FfmpegProcessService` (`Ffmpeg:Path` config, default `/usr/bin/ffmpeg`), copies FFmpeg stdout into a NetCord `OpusEncodeStream`, then awaits process exit and maps the exit code to a `TrackPlayResult` (`Completed`/`Failed`/`Skipped`/`NotInVoiceChannel`). There are no C# events in this pipeline; user-facing messages flow through `PlayRequest.Callbacks` and failures are retried by the guild's player loop.
 
 ### Native Dependencies (installed in the Docker image)
 

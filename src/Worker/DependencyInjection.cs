@@ -48,16 +48,25 @@ public static class DependencyInjection
 
         services.AddSingleton<GlobalStore>();
         services.AddSingleton<IHttpRequestService, HttpRequestService>();
-        services.AddSingleton<INativePlaceMusicProcessorService, FfmpegProcessService>();
-        services.AddSingleton<INetCordAudioPlayerService, AudioPlayerService>();
-        services.AddSingleton<IMusicQueueService, MusicQueueService>();
         services.AddSingleton<IScopeExecutor, ScopeExecutor>();
 
-        // Player background service: single consumer of the music queue.
-        // Registered once and exposed both as the hosted service and as the Skip/Stop controller.
-        services.AddSingleton<MusicPlayerBackgroundService>();
-        services.AddSingleton<IMusicPlayerController>(sp => sp.GetRequiredService<MusicPlayerBackgroundService>());
-        services.AddHostedService(sp => sp.GetRequiredService<MusicPlayerBackgroundService>());
+        // Guild player manager: one GuildPlayer (queue + consumer loop + voice client +
+        // FFmpeg process) per guild, created lazily on the first enqueue, so multiple
+        // servers can play music concurrently. Registered once and exposed both as the
+        // hosted service and as the guild-scoped music facade used by commands.
+        services.AddSingleton<GuildPlayerManager>(sp =>
+        {
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            var config = sp.GetRequiredService<IConfiguration>();
+            return new GuildPlayerManager(loggerFactory, _ =>
+            {
+                var ffmpeg = new FfmpegProcessService(loggerFactory.CreateLogger<FfmpegProcessService>(), config);
+                var audioPlayer = new AudioPlayerService(ffmpeg, sp, loggerFactory.CreateLogger<AudioPlayerService>());
+                return new GuildPlayerComponents(new MusicQueueService(), audioPlayer, ffmpeg);
+            });
+        });
+        services.AddSingleton<IGuildMusicService>(sp => sp.GetRequiredService<GuildPlayerManager>());
+        services.AddHostedService(sp => sp.GetRequiredService<GuildPlayerManager>());
 
         services.AddScoped<YoutubeClient>();
         services.AddScoped<SoundCloudClient>();

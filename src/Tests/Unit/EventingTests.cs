@@ -1,9 +1,12 @@
 using Application.Eventing;
+using Application.Interfaces.Services;
 using Domain.Common;
 using Domain.Eventing;
 using Domain.Events;
 using Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 using Xunit;
 
 namespace Tests.Unit;
@@ -45,6 +48,19 @@ public class EventingTests
 
         var recorder = provider.GetRequiredService<EventRecorder>();
         Assert.Equal(2, recorder.Count);
+    }
+
+    [Fact]
+    public void PlayerHandler_Forwards_Guild_Scoped_Skip_And_Stop()
+    {
+        var guildMusicService = Substitute.For<IGuildMusicService>();
+        var handler = new PlayerHandler(guildMusicService, NullLogger<PlayerHandler>.Instance);
+
+        handler.Handle(new EventType.Skip(42));
+        handler.Handle(new EventType.Stop(99));
+
+        guildMusicService.Received(1).Skip(42);
+        guildMusicService.Received(1).Stop(99);
     }
 }
 

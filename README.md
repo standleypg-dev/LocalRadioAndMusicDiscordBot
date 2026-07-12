@@ -1,6 +1,6 @@
 # Discord Music Bot
 
-A .NET 10 Discord bot for music playback, supporting various audio sources and radio streams. Includes a React-based web dashboard.
+A .NET 10 Discord bot for music playback, supporting YouTube, SoundCloud, Spotify (playlist metadata), and radio streams. Supports multiple servers concurrently - each server gets its own queue, player, and voice connection. Includes a React-based web dashboard for statistics and radio-source management.
 
 **Note:** This application is designed to run on Linux via Docker. A Dockerfile and docker-compose setup are provided.
 
@@ -16,6 +16,21 @@ A .NET 10 Discord bot for music playback, supporting various audio sources and r
    docker-compose -f deployment/docker-compose.yml up --build
    ```
 
+## Development
+
+```bash
+# Build the whole solution (requires Bun for the frontend build)
+dotnet build discord-project.slnx
+
+# Run all tests (integration tests need a local Docker daemon for Testcontainers)
+dotnet test src/Tests/Tests.csproj
+
+# Unit tests only (no Docker required)
+dotnet test src/Tests/Tests.csproj --filter "FullyQualifiedName~Tests.Unit"
+```
+
+Tests run automatically in CI (`.github/workflows/ci.yml`) on pushes and pull requests to `master`; pushes to `master` are deployed via `.github/workflows/release.yml`.
+
 ## Technologies Used
 
 ### Backend
@@ -24,8 +39,10 @@ A .NET 10 Discord bot for music playback, supporting various audio sources and r
 - [Entity Framework Core](https://learn.microsoft.com/en-us/ef/core/) + [PostgreSQL](https://www.postgresql.org)
 - [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) / [YoutubeDLSharp](https://github.com/Bluegrams/YoutubeDLSharp) + [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 - [SoundCloudExplode](https://github.com/jerry08/SoundCloudExplode)
-- [NAudio](https://github.com/naudio/NAudio) / [FFmpeg](https://ffmpeg.org) - audio processing
-- [libopus](https://opus-codec.org) / [libsodium](https://doc.libsodium.org) / [libdave](https://github.com/discord/libdave) - voice encryption and encoding
+- [Spotify Web API](https://developer.spotify.com/documentation/web-api) - playlist metadata
+- [FFmpeg](https://ffmpeg.org) - audio processing
+- [libopus](https://opus-codec.org) / [libsodium](https://doc.libsodium.org) / [libdave](https://github.com/discord/libdave) - voice encoding and encryption
+- [xUnit](https://xunit.net) + [NSubstitute](https://nsubstitute.github.io) + [Testcontainers](https://dotnet.testcontainers.org) - testing
 
 ### Frontend
 - [React 19](https://react.dev) with TypeScript

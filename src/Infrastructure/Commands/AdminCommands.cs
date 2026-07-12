@@ -17,13 +17,19 @@ namespace Infrastructure.Commands;
 public class AdminCommands(
     [FromKeyedServices(nameof(YoutubeService))]
     IStreamService youtubeService,
-    IMusicQueueService queue,
+    IGuildMusicService guildMusicService,
     IServiceProvider serviceProvider) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SubSlashCommand("blacklist", "Blacklist the currently playing song")]
     public async Task BlacklistAsync()
     {
-        var song = queue.NowPlaying;
+        if (Context.Guild is null)
+        {
+            await RespondAsync(InteractionCallback.Message("This command can only be used in a server."));
+            return;
+        }
+
+        var song = guildMusicService.GetNowPlaying(Context.Guild.Id);
         if (song is null)
         {
             await RespondAsync(InteractionCallback.Message(
@@ -61,7 +67,7 @@ public class AdminCommands(
 
         // Skip the blacklisted track; the player disconnects on its own when the queue is empty.
         var eventDispatcher = scope.ServiceProvider.GetRequiredService<IEventDispatcher>();
-        eventDispatcher.Dispatch(new EventType.Skip());
+        eventDispatcher.Dispatch(new EventType.Skip(Context.Guild.Id));
     }
 
     [SubSlashCommand("unblacklist", "Remove a song from the blacklist")]
