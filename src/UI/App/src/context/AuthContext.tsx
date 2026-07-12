@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { AuthContext } from '../hooks/useAuth';
+import { API_BASE_URL } from '../services/api';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,12 +12,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
     try {
-      const response = await fetch('/api/auth/validate-token', {
+      const response = await fetch(`${API_BASE_URL}/auth/validate-token`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      if (!response.ok) {
+        // Token is expired or invalid; drop it so route guards fail closed too.
+        localStorage.removeItem('authToken');
+      }
       setIsAuthenticated(response.ok);
       return response.ok;
     } catch {

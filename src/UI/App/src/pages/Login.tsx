@@ -15,7 +15,7 @@ export function Login() {
       try {
         const { token } = await loginUser(userName, password);
         login(token);
-        navigate({ to: '/' });
+        navigate({ to: '/admin' });
       } catch {
         alert('Login failed. Please check your credentials.');
       }
@@ -25,7 +25,7 @@ export function Login() {
   }
 
   return (
-    <div className="modal" onClick={(e) => e.target === e.currentTarget}>
+    <div className="modal">
       <div className="modal-content">
         <div className="modal-header">
           <h2 className="modal-title">Login</h2>

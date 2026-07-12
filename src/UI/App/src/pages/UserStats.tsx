@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   PieChart,
@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from 'recharts';
 import { loadUsers } from '../services/user-service';
+import { cleanTitle } from '../services/song-stats-service';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { AppError } from '../components/AppError';
 
@@ -25,6 +26,7 @@ const COLORS = [
 
 export function UserStats() {
   const [viewMode, setViewMode] = useState<'table' | 'chart'>('table');
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   const {
     data: userStats,
@@ -109,32 +111,82 @@ export function UserStats() {
             </thead>
             <tbody>
               {userStats.slice(0, 10).map((user, index) => (
-                <tr key={index}>
-                  <td>{index + 1}</td>
-                  <td>
-                    <div className="user-info">
-                      <div className="user-avatar">
-                        {user.username.slice(0, 2)}
+                <Fragment key={user.username}>
+                  <tr
+                    onClick={() =>
+                      setExpandedUser(
+                        expandedUser === user.username ? null : user.username,
+                      )
+                    }
+                    style={{ cursor: 'pointer' }}
+                    title="Click to see recently played songs"
+                  >
+                    <td>{index + 1}</td>
+                    <td>
+                      <div className="user-info">
+                        <div className="user-avatar">
+                          {user.username.slice(0, 2)}
+                        </div>
+                        <div className="user-details">
+                          <div className="username">{user.username}</div>
+                          <div className="discriminator">
+                            {user.displayName}
+                          </div>
+                        </div>
                       </div>
-                      <div className="user-details">
-                        <div className="username">{user.username}</div>
-                        <div className="discriminator">#{user.displayName}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="play-count">{user.totalPlays}</span>
-                  </td>
-                  <td>
-                    <span className="unique-song">{user.uniqueSongs}</span>
-                  </td>
-                  <td>{String(user.memberSince).split('T')[0]}</td>
-                  <td>
-                    {user.lastPlayed
-                      ? String(user.lastPlayed).split('T')[0]
-                      : ''}
-                  </td>
-                </tr>
+                    </td>
+                    <td>
+                      <span className="play-count">{user.totalPlays}</span>
+                    </td>
+                    <td>
+                      <span className="unique-song">{user.uniqueSongs}</span>
+                    </td>
+                    <td>{String(user.memberSince).split('T')[0]}</td>
+                    <td>
+                      {user.lastPlayed
+                        ? String(user.lastPlayed).split('T')[0]
+                        : ''}
+                    </td>
+                  </tr>
+                  {expandedUser === user.username && (
+                    <tr>
+                      <td colSpan={6}>
+                        {user.recentSongs.length === 0 ? (
+                          <span className="song-artist">
+                            No songs played yet.
+                          </span>
+                        ) : (
+                          <table className="table">
+                            <thead>
+                              <tr>
+                                <th>Recently Played</th>
+                                <th>Plays</th>
+                                <th>Last Played</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {user.recentSongs.map((song, songIndex) => (
+                                <tr key={songIndex}>
+                                  <td>
+                                    <div className="song-title">
+                                      {cleanTitle(song.title)}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span className="play-count">
+                                      {song.totalPlays}
+                                    </span>
+                                  </td>
+                                  <td>{song.playedAt.split('T')[0]}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

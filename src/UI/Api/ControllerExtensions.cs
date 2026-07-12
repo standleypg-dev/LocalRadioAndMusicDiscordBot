@@ -31,9 +31,20 @@ public static class ControllerExtensions
                     async (IRadioSourceService radioSourceService, Guid id, [FromBody] UpdateRadioSourceRequest request,
                         CancellationToken cancellationToken) =>
                     {
-                        await radioSourceService.UpdateRadioSourceUrlAsync(id, request.Name, request.NewSourceUrl,
-                            request.IsActive, cancellationToken);
-                        return Results.NoContent();
+                        try
+                        {
+                            await radioSourceService.UpdateRadioSourceUrlAsync(id, request.Name, request.NewSourceUrl,
+                                request.IsActive, cancellationToken);
+                            return Results.NoContent();
+                        }
+                        catch (KeyNotFoundException)
+                        {
+                            return Results.NotFound();
+                        }
+                        catch (ArgumentException ex)
+                        {
+                            return Results.BadRequest(new { error = ex.Message });
+                        }
                     })
                 .RequireAuthorization()
                 .WithName("UpdateRadioSourceUrl");
@@ -41,8 +52,15 @@ public static class ControllerExtensions
             app.MapGet("/api/radio-sources/{id:guid}",
                     async (IRadioSourceService radioSourceService, Guid id, CancellationToken cancellationToken) =>
                     {
-                        var radioSource = await radioSourceService.GetRadioSourceByIdAsync(id, cancellationToken);
-                        return Results.Ok(radioSource);
+                        try
+                        {
+                            var radioSource = await radioSourceService.GetRadioSourceByIdAsync(id, cancellationToken);
+                            return Results.Ok(radioSource);
+                        }
+                        catch (KeyNotFoundException)
+                        {
+                            return Results.NotFound();
+                        }
                     })
                 .RequireAuthorization()
                 .WithName("GetRadioSourceById");
@@ -74,8 +92,15 @@ public static class ControllerExtensions
             app.MapDelete("/api/radio-sources/{id:guid}",
                     async (IRadioSourceService radioSourceService, Guid id, CancellationToken cancellationToken) =>
                     {
-                        await radioSourceService.DeleteRadioSourceAsync(id, cancellationToken);
-                        return Results.NoContent();
+                        try
+                        {
+                            await radioSourceService.DeleteRadioSourceAsync(id, cancellationToken);
+                            return Results.NoContent();
+                        }
+                        catch (KeyNotFoundException)
+                        {
+                            return Results.NotFound();
+                        }
                     })
                 .RequireAuthorization()
                 .WithName("DeleteRadioSource");
@@ -89,7 +114,8 @@ public static class ControllerExtensions
                             var user = await userService.GetUserByUsernameAsync(request.Username);
                             // Note: In a real application, you would hash the password and compare it securely.
                             var password = configuration.GetValue<string>("JwtSettings:InternalPassword");
-                            if (user == null || password != request.Password)
+                            // Fail closed if the internal password is not configured or the request omits one.
+                            if (string.IsNullOrEmpty(password) || user == null || password != request.Password)
                             {
                                 throw new UnauthorizedAccessException("Invalid username or password.");
                             }
@@ -101,9 +127,9 @@ public static class ControllerExtensions
                         {
                             return Results.Unauthorized();
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
-                            return Results.Problem(ex.Message);
+                            return Results.Problem("An unexpected error occurred.");
                         }
                     })
                 .AllowAnonymous()

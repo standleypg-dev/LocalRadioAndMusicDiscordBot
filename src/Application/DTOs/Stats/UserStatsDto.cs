@@ -8,4 +8,5 @@ public class UserStatsDto
     public int UniqueSongs { get; init; }
     public required DateTimeOffset MemberSince { get; init; }
     public DateTimeOffset? LastPlayed { get; set; } = null;
+    public IReadOnlyCollection<RecentSongDto> RecentSongs { get; init; } = [];
 }

@@ -14,7 +14,8 @@ export async function loadSongStats(): Promise<SongStat[]> {
   return await response.json();
 }
 
-export function cleanTitle(title: string): string {
+export function cleanTitle(title?: string | null): string {
+  if (!title) return '';
   const normalized = removeFancyUnicode(title);
   return normalized
     .replace(/[\s|]*[([|]?\s*(official|lirik)[^)\]|]*[)\]|]?[\s|]*/gi, '')
