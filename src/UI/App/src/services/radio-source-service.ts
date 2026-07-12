@@ -66,6 +66,12 @@ export async function addRadioSource(
   if (response.ok) {
     return await response.json();
   }
-  const errorText = await response.json();
-  throw new Error(JSON.stringify(errorText));
+  let message = `HTTP error! status: ${response.status}`;
+  try {
+    const body = await response.json();
+    message = body?.error ?? body?.detail ?? message;
+  } catch {
+    // Non-JSON error body (e.g. empty 401 response); keep the status message.
+  }
+  throw new Error(message);
 }

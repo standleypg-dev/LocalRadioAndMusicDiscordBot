@@ -29,6 +29,8 @@ public static class DependencyResolver
                                                    "JwtSettings:Secret is not configured"))),
                     ValidIssuer = configuration.GetValue<string>("JwtSettings:Issuer") ??
                                   throw new InvalidOperationException("JwtSettings:Issuer is not configured"),
+                    // The token carries the raw "name" claim; without this, Identity.Name is null.
+                    NameClaimType = "name",
                 };
                 
                 options.Events = new JwtBearerEvents

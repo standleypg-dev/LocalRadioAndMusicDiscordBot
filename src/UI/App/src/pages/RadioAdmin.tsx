@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuth } from '../hooks/useAuth';
 import type { RadioSource } from '../interfaces/common.interfaces';
 import {
   loadRadioSources,
@@ -17,6 +19,8 @@ export function RadioAdmin() {
     null,
   );
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const {
     data: radioStations,
@@ -26,6 +30,16 @@ export function RadioAdmin() {
     queryKey: ['radioSources'],
     queryFn: loadRadioSources,
   });
+
+  // The route guard only checks that a token exists; an expired one still
+  // reaches this page and fails with 401, so send the user back to login.
+  const unauthorized = error !== null && String(error).includes('401');
+  useEffect(() => {
+    if (unauthorized) {
+      logout();
+      navigate({ to: '/login' });
+    }
+  }, [unauthorized, logout, navigate]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteRadioSource,
@@ -74,6 +88,7 @@ export function RadioAdmin() {
   });
 
   if (isLoading) return <LoadingSpinner />;
+  if (unauthorized) return null;
   if (error) return <AppError message={String(error)} />;
   if (!radioStations) return null;
 

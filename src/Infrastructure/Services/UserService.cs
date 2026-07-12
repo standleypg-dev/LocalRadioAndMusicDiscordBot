@@ -37,7 +37,17 @@ public class UserService(DiscordBotContext context) : IUserService
                     .OrderByDescending(ph => ph.PlayedAt)
                     .Select(ph => (DateTimeOffset?)ph.PlayedAt)
                     .FirstOrDefault(),
-                DisplayName = u.DisplayName ?? u.Username
+                DisplayName = u.DisplayName ?? u.Username,
+                RecentSongs = u.PlayHistories
+                    .OrderByDescending(ph => ph.PlayedAt)
+                    .Take(10)
+                    .Select(ph => new RecentSongDto
+                    {
+                        Title = ph.Song.Title,
+                        TotalPlays = ph.TotalPlays,
+                        PlayedAt = ph.PlayedAt
+                    })
+                    .ToList()
             })
             .OrderByDescending(u => u.TotalPlays)
             .ToListAsync();
