@@ -149,39 +149,46 @@ export function UserStats() {
                     </td>
                   </tr>
                   {expandedUser === user.username && (
-                    <tr>
+                    <tr className="recent-songs-row">
                       <td colSpan={6}>
                         {user.recentSongs.length === 0 ? (
                           <span className="song-artist">
                             No songs played yet.
                           </span>
                         ) : (
-                          <table className="table">
-                            <thead>
-                              <tr>
-                                <th>Recently Played</th>
-                                <th>Plays</th>
-                                <th>Last Played</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {user.recentSongs.map((song, songIndex) => (
-                                <tr key={songIndex}>
-                                  <td>
-                                    <div className="song-title">
-                                      {cleanTitle(song.title)}
-                                    </div>
-                                  </td>
-                                  <td>
+                          <div className="recent-songs">
+                            <div className="recent-songs-header">
+                              <span>Recently Played</span>
+                              <span>Plays / Last Played</span>
+                            </div>
+                            <div className="recent-songs-list">
+                              {user.recentSongs.map((song, songIndex) => {
+                                const title = cleanTitle(song.title);
+                                return (
+                                  <div
+                                    className="recent-song-item"
+                                    key={songIndex}
+                                  >
+                                    <span className="recent-song-rank">
+                                      {songIndex + 1}
+                                    </span>
+                                    <span
+                                      className="recent-song-title"
+                                      title={title}
+                                    >
+                                      {title}
+                                    </span>
                                     <span className="play-count">
                                       {song.totalPlays}
                                     </span>
-                                  </td>
-                                  <td>{song.playedAt.split('T')[0]}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                                    <span className="recent-song-date">
+                                      {song.playedAt.split('T')[0]}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
                       </td>
                     </tr>

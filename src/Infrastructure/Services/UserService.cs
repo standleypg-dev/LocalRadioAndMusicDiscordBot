@@ -40,7 +40,7 @@ public class UserService(DiscordBotContext context) : IUserService
                 DisplayName = u.DisplayName ?? u.Username,
                 RecentSongs = u.PlayHistories
                     .OrderByDescending(ph => ph.PlayedAt)
-                    .Take(10)
+                    .Take(20)
                     .Select(ph => new RecentSongDto
                     {
                         Title = ph.Song.Title,
