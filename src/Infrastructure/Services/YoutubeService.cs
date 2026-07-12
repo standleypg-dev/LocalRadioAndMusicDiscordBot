@@ -11,7 +11,7 @@ public class YoutubeService: IStreamService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<YoutubeService> _logger;
-    private readonly List<Func<string, Task<(bool Success, string? Url)>>> _providerStrategy;
+    private readonly List<Func<string, CancellationToken, Task<(bool Success, string? Url)>>> _providerStrategy;
     private readonly YoutubeClient _youtubeClient;
 
     public YoutubeService(
@@ -34,10 +34,10 @@ public class YoutubeService: IStreamService
     {
         foreach (var strategy in _providerStrategy)
         {
-            var result = await ExecuteWithTimeout(strategy, url, TimeSpan.FromSeconds(15));
+            var result = await ExecuteWithTimeout(strategy, url, TimeSpan.FromSeconds(15), cancellationToken);
             if (result.Success)
             {
-                _logger.LogInformation("Successfully obtained stream URL using {Provider}", 
+                _logger.LogInformation("Successfully obtained stream URL using {Provider}",
                     strategy.Method.Name.Replace("TryGetWith", "").Replace("Async", ""));
                 return result.Url!;
             }
@@ -48,32 +48,35 @@ public class YoutubeService: IStreamService
     }
 
     private async Task<(bool Success, string? Url)> ExecuteWithTimeout(
-        Func<string, Task<(bool, string?)>> func, 
+        Func<string, CancellationToken, Task<(bool, string?)>> func,
         string url,
-        TimeSpan timeout)
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var task = func(url);
-            var completedTask = await Task.WhenAny(task, Task.Delay(timeout));
-            
-            if (completedTask == task) 
-                return await task;
-            
-            _logger.LogWarning("Provider {Provider} timed out after {Timeout} seconds", 
-                func.Method.Name.Replace("TryGetWith", "").Replace("Async", ""), 
+            return await func(url, cancellationToken).WaitAsync(timeout, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (TimeoutException)
+        {
+            _logger.LogWarning("Provider {Provider} timed out after {Timeout} seconds",
+                func.Method.Name.Replace("TryGetWith", "").Replace("Async", ""),
                 timeout.TotalSeconds);
             return (false, null);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Provider {Provider} failed", 
+            _logger.LogWarning(ex, "Provider {Provider} failed",
                 func.Method.Name.Replace("TryGetWith", "").Replace("Async", ""));
             return (false, null);
         }
     }
 
-    private async Task<(bool Success, string? Url)> TryGetWithYtDlpAsync(string url)
+    private async Task<(bool Success, string? Url)> TryGetWithYtDlpAsync(string url, CancellationToken cancellationToken)
     {
         try
         {
@@ -82,7 +85,7 @@ public class YoutubeService: IStreamService
             {
                 Format = "bestaudio/best"
             };
-            var result = await ytdl.RunVideoDataFetch(url, overrideOptions: overrideOptions);
+            var result = await ytdl.RunVideoDataFetch(url, ct: cancellationToken, overrideOptions: overrideOptions);
 
             if (!result.Success || result.Data?.Formats == null)
             {
@@ -99,7 +102,7 @@ public class YoutubeService: IStreamService
                                 .MaxBy(f => f.AudioBitrate ?? 0)
                             ?? httpsFormats
                                 .MaxBy(f => f.Bitrate ?? 0);
-            
+
             if (bestAudio?.Url == null)
             {
                 _logger.LogWarning("YT-DLP found no suitable audio format for: {Url}", url);
@@ -108,6 +111,10 @@ public class YoutubeService: IStreamService
 
             return (true, bestAudio.Url);
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "YT-DLP failed for: {Url}", url);
@@ -115,16 +122,20 @@ public class YoutubeService: IStreamService
         }
     }
 
-    private async Task<(bool Success, string? Url)> TryGetWithYoutubeExplodeAsync(string url)
+    private async Task<(bool Success, string? Url)> TryGetWithYoutubeExplodeAsync(string url, CancellationToken cancellationToken)
     {
         try
         {
             using var scope = _serviceProvider.CreateScope();
             var youtubeClient = scope.ServiceProvider.GetRequiredService<YoutubeClient>();
-            var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(url);
+            var manifest = await youtubeClient.Videos.Streams.GetManifestAsync(url, cancellationToken);
             var audioStream = manifest.GetAudioOnlyStreams().GetWithHighestBitrate();
 
             return (true, audioStream.Url);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -132,7 +143,7 @@ public class YoutubeService: IStreamService
             return (false, null);
         }
     }
-    
+
     public async Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
     {
         return (await _youtubeClient.Videos.GetAsync(url, cancellationToken)).Title;

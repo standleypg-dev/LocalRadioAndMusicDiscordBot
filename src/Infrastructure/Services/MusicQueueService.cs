@@ -1,57 +1,61 @@
+using System.Threading.Channels;
 using Application.DTOs;
 using Application.Interfaces.Services;
-using Microsoft.Extensions.Logging;
 using NetCord.Services.ComponentInteractions;
 
 namespace Infrastructure.Services;
 
-public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueService
+/// <summary>
+/// In-memory music queue following the channel-backed queue service pattern:
+/// a lock-protected list is the source of truth and an unbounded channel is the
+/// async signal consumed by the single player background service.
+/// Every enqueue writes exactly one signal; a dequeue consumes one signal per
+/// returned item, so stale signals left behind by <see cref="Clear"/> are
+/// absorbed harmlessly (the consumer finds the list empty and waits again).
+/// </summary>
+public class MusicQueueService : IMusicQueueService
 {
-    private readonly Queue<PlayRequest<StringMenuInteractionContext>> _queue = new();
-    private readonly SemaphoreSlim _signal = new(0);
+    private readonly Channel<bool> _signal = Channel.CreateUnbounded<bool>();
+    private readonly List<PlayRequest<StringMenuInteractionContext>> _items = [];
     private readonly Lock _lock = new();
+    private PlayRequest? _nowPlaying;
 
     public void Enqueue<T>(PlayRequest<T> request)
     {
         if (request is not PlayRequest<StringMenuInteractionContext> playRequest)
         {
-            throw new ArgumentException($"Invalid request type. Expected {typeof(PlayRequest<StringMenuInteractionContext>)}", nameof(request));
+            throw new ArgumentException(
+                $"Invalid request type. Expected {typeof(PlayRequest<StringMenuInteractionContext>)}",
+                nameof(request));
         }
+
         lock (_lock)
         {
-            _queue.Enqueue(playRequest);
-            _signal.Release();
+            _items.Add(playRequest);
         }
+
+        _signal.Writer.TryWrite(true);
     }
 
-    public  PlayRequest<T>? Peek<T>()
+    public async ValueTask<PlayRequest<T>> DequeueAsync<T>(CancellationToken cancellationToken)
     {
-
-        lock (_lock)
+        while (true)
         {
-            if (!_queue.TryPeek(out var result) || result is not PlayRequest<T> currentRequest)
-            {
-                logger.LogWarning("Peeked request is not of the expected type {ExpectedType}", typeof(PlayRequest<T>));
-                return null;
-            }
-            
-            return _queue.Count > 0 ? currentRequest : null;
-        }
-    }
+            await _signal.Reader.ReadAsync(cancellationToken);
 
-    public async void DequeueAsync(CancellationToken cancellationToken)
-    {
-        await _signal.WaitAsync(cancellationToken);
-        lock (_lock)
-        {
-            if (_queue.Count > 0)
+            lock (_lock)
             {
-                _queue.Dequeue();
+                if (_items.Count > 0)
+                {
+                    var item = _items[0];
+                    _items.RemoveAt(0);
+                    return item as PlayRequest<T>
+                           ?? throw new InvalidOperationException(
+                               $"Queued request is not of the expected type {typeof(PlayRequest<T>)}.");
+                }
             }
-            else
-            {
-                logger.LogWarning("Attempted to dequeue from an empty queue.");
-            }
+
+            // Stale signal (the queue was cleared since the signal was written); wait for the next enqueue.
         }
     }
 
@@ -61,8 +65,27 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
         {
             lock (_lock)
             {
-                return _queue.Count;
+                return _items.Count;
             }
+        }
+    }
+
+    public PlayRequest? NowPlaying
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _nowPlaying;
+            }
+        }
+    }
+
+    public void SetNowPlaying(PlayRequest? request)
+    {
+        lock (_lock)
+        {
+            _nowPlaying = request;
         }
     }
 
@@ -70,7 +93,9 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
     {
         lock (_lock)
         {
-            return _queue.OfType<PlayRequest>().ToArray();
+            return _nowPlaying is null
+                ? _items.ToArray<PlayRequest>()
+                : [_nowPlaying, .. _items];
         }
     }
 
@@ -78,35 +103,23 @@ public class MusicQueueService(ILogger<MusicQueueService> logger) : IMusicQueueS
     {
         lock (_lock)
         {
-            if (_queue.Count > 1)
+            if (_nowPlaying is not PlayRequest<StringMenuInteractionContext> current)
             {
-                var current = _queue.Peek();
-                var list = _queue.ToList();
-                list.Reverse();
-                list.Add(current);
-                list.Reverse();
-                _queue.Clear();
-                foreach (var item in list)
-                {
-                    _queue.Enqueue(item);
-                }
+                return;
             }
-            else
-            {
-                _queue.Enqueue(_queue.Peek());
-            }
+
+            current.RetryCount = 0;
+            _items.Insert(0, current);
         }
+
+        _signal.Writer.TryWrite(true);
     }
 
     public void Clear()
     {
         lock (_lock)
         {
-            _queue.Clear();
-            while (_signal.CurrentCount > 0)
-            {
-                _signal.Wait();
-            }
+            _items.Clear();
         }
     }
 }

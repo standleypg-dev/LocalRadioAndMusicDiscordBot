@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Only the test project is built: it covers Domain/Application/Infrastructure.
+      # The full .slnx is not built here because the Worker frontend build requires Bun.
+      - name: Run tests
+        run: dotnet test src/Tests/Tests.csproj -c Release --logger "console;verbosity=normal"

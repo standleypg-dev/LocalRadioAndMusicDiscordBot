@@ -5,11 +5,15 @@ using Domain.Entities;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Song = Domain.Entities.Song;
 
 namespace Infrastructure.Services;
 
-public class StatisticsService(DiscordBotContext context, [FromKeyedServices(nameof(YoutubeService))] IStreamService streamService)
+public class StatisticsService(
+    DiscordBotContext context,
+    [FromKeyedServices(nameof(YoutubeService))] IStreamService streamService,
+    ILogger<StatisticsService> logger)
     : IStatisticsService
 {
     // Log when a user plays a song
@@ -31,13 +35,17 @@ public class StatisticsService(DiscordBotContext context, [FromKeyedServices(nam
             // Find or create song
 
             var song = await context.Songs
-                           .FirstOrDefaultAsync(s => EF.Functions.Like(s.Title, songDto.Title)) ??
-                       await context.Songs
-                           .FirstOrDefaultAsync(s => s.SourceUrl == songDto.Url);
+                           .FirstOrDefaultAsync(s => s.SourceUrl == songDto.Url) ??
+                       (string.IsNullOrEmpty(songDto.Title)
+                           ? null
+                           : await context.Songs
+                               .FirstOrDefaultAsync(s => s.Title.ToLower() == songDto.Title.ToLower()));
 
             if (song == null)
             {
-                var songTitle = await streamService.GetVideoTitleAsync(songDto.Url, CancellationToken.None);
+                var songTitle = string.IsNullOrEmpty(songDto.Title)
+                    ? await streamService.GetVideoTitleAsync(songDto.Url, CancellationToken.None)
+                    : songDto.Title;
                 song = Song.Create(songDto.Url, songTitle);
                 context.Songs.Add(song);
             }
@@ -69,7 +77,7 @@ public class StatisticsService(DiscordBotContext context, [FromKeyedServices(nam
         catch (Exception ex)
         {
             // Log error but don't break the music bot
-            Console.WriteLine($"Error logging song play: {ex.Message}");
+            logger.LogError(ex, "Error logging song play for user {UserId} and URL {Url}", id, songDto.Url);
         }
     }
 

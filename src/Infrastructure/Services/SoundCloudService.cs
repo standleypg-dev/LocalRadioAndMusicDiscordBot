@@ -10,20 +10,23 @@ public class SoundCloudService(ILogger<SoundCloudService> logger, SoundCloudClie
     {
         try
         {
-            await soundCloudClient.InitializeAsync();
-            var audioStream = await soundCloudClient.Tracks.GetDownloadUrlAsync(url) ?? throw new InvalidOperationException("No suitable audio format found.");
+            await soundCloudClient.InitializeAsync(cancellationToken);
+            var audioStream = await soundCloudClient.Tracks.GetDownloadUrlAsync(url, cancellationToken)
+                              ?? throw new InvalidOperationException("No suitable audio format found.");
 
             return audioStream;
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "SoundCloudClient failed for: {Url}", url);
-            return null!;
+            throw;
         }
     }
 
-    public Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
+    public async Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await soundCloudClient.InitializeAsync(cancellationToken);
+        var track = await soundCloudClient.Tracks.GetAsync(url, cancellationToken);
+        return track?.Title ?? throw new InvalidOperationException($"Could not resolve track title for: {url}");
     }
 }
