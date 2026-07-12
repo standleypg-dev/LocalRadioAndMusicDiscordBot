@@ -1,31 +1,32 @@
 using Application.DTOs;
 using Application.Interfaces.Services;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetCord.Services.ComponentInteractions;
 
 namespace Infrastructure.Services;
 
 /// <summary>
-/// Single consumer of the music queue (queue service pattern from
+/// Owns playback for a single guild: the single consumer of that guild's music queue
+/// (queue service pattern from
 /// https://learn.microsoft.com/en-us/dotnet/core/extensions/queue-service).
 /// Dequeues one request at a time, plays it to completion via
-/// <see cref="INetCordAudioPlayerService"/>, retries failed tracks, and
-/// disconnects from the voice channel when the queue runs empty.
-/// Skip/Stop are signalled through <see cref="IMusicPlayerController"/>.
+/// <see cref="INetCordAudioPlayerService"/>, retries failed tracks, and disconnects
+/// from the guild's voice channel when the queue runs empty.
+/// Created and driven by <see cref="GuildPlayerManager"/>.
 /// </summary>
-public sealed class MusicPlayerBackgroundService(
+public sealed class GuildPlayer(
     IMusicQueueService queue,
     INetCordAudioPlayerService audioPlayer,
-    ILogger<MusicPlayerBackgroundService> logger)
-    : BackgroundService, IMusicPlayerController
+    ILogger logger)
 {
     private const int MaxRetryCount = 3;
 
     private readonly Lock _ctsLock = new();
     private CancellationTokenSource? _trackCts;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public IMusicQueueService Queue => queue;
+
+    public async Task RunAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {

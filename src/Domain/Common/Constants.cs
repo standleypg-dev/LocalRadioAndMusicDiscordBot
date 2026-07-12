@@ -17,8 +17,8 @@ public class EventType
 {
     public record Play : IEvent;
     public record PlayListPlay : IEvent;
-    public record Stop : IEvent;
-    public record Skip : IEvent;
+    public record Stop(ulong GuildId) : IEvent;
+    public record Skip(ulong GuildId) : IEvent;
 }
 
 public enum AudioSource

@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Tests.Unit;
 
-public class MusicPlayerBackgroundServiceTests
+public class GuildPlayerTests
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
@@ -31,11 +31,9 @@ public class MusicPlayerBackgroundServiceTests
         };
     }
 
-    private static MusicPlayerBackgroundService CreateService(
-        IMusicQueueService queue, INetCordAudioPlayerService audioPlayer)
+    private static GuildPlayer CreatePlayer(IMusicQueueService queue, INetCordAudioPlayerService audioPlayer)
     {
-        return new MusicPlayerBackgroundService(queue, audioPlayer,
-            NullLogger<MusicPlayerBackgroundService>.Instance);
+        return new GuildPlayer(queue, audioPlayer, NullLogger.Instance);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition, string description)
@@ -74,8 +72,9 @@ public class MusicPlayerBackgroundServiceTests
         queue.Enqueue(first);
         queue.Enqueue(second);
 
-        var service = CreateService(queue, audioPlayer);
-        await service.StartAsync(CancellationToken.None);
+        var player = CreatePlayer(queue, audioPlayer);
+        using var cts = new CancellationTokenSource();
+        var runTask = player.RunAsync(cts.Token);
         try
         {
             await WaitUntilAsync(() =>
@@ -91,7 +90,8 @@ public class MusicPlayerBackgroundServiceTests
         }
         finally
         {
-            await service.StopAsync(CancellationToken.None);
+            await cts.CancelAsync();
+            await runTask;
         }
     }
 
@@ -110,8 +110,9 @@ public class MusicPlayerBackgroundServiceTests
 
         queue.Enqueue(CreateRequest());
 
-        var service = CreateService(queue, audioPlayer);
-        await service.StartAsync(CancellationToken.None);
+        var player = CreatePlayer(queue, audioPlayer);
+        using var cts = new CancellationTokenSource();
+        var runTask = player.RunAsync(cts.Token);
         try
         {
             await WaitUntilAsync(() => Volatile.Read(ref attempts) == 3, "three play attempts");
@@ -123,7 +124,8 @@ public class MusicPlayerBackgroundServiceTests
         }
         finally
         {
-            await service.StopAsync(CancellationToken.None);
+            await cts.CancelAsync();
+            await runTask;
         }
     }
 
@@ -159,19 +161,21 @@ public class MusicPlayerBackgroundServiceTests
         queue.Enqueue(first);
         queue.Enqueue(second);
 
-        var service = CreateService(queue, audioPlayer);
-        await service.StartAsync(CancellationToken.None);
+        var player = CreatePlayer(queue, audioPlayer);
+        using var cts = new CancellationTokenSource();
+        var runTask = player.RunAsync(cts.Token);
         try
         {
             await firstStarted.Task.WaitAsync(Timeout);
 
-            service.Skip();
+            player.Skip();
 
             await playedSecond.Task.WaitAsync(Timeout);
         }
         finally
         {
-            await service.StopAsync(CancellationToken.None);
+            await cts.CancelAsync();
+            await runTask;
         }
     }
 
@@ -204,13 +208,14 @@ public class MusicPlayerBackgroundServiceTests
         queue.Enqueue(first);
         queue.Enqueue(second);
 
-        var service = CreateService(queue, audioPlayer);
-        await service.StartAsync(CancellationToken.None);
+        var player = CreatePlayer(queue, audioPlayer);
+        using var cts = new CancellationTokenSource();
+        var runTask = player.RunAsync(cts.Token);
         try
         {
             await firstStarted.Task.WaitAsync(Timeout);
 
-            service.Stop();
+            player.Stop();
 
             await disconnected.Task.WaitAsync(Timeout);
             Assert.Equal(0, queue.Count);
@@ -220,7 +225,8 @@ public class MusicPlayerBackgroundServiceTests
         }
         finally
         {
-            await service.StopAsync(CancellationToken.None);
+            await cts.CancelAsync();
+            await runTask;
         }
     }
 
@@ -241,8 +247,9 @@ public class MusicPlayerBackgroundServiceTests
         var messages = new List<string>();
         queue.Enqueue(CreateRequest(messages));
 
-        var service = CreateService(queue, audioPlayer);
-        await service.StartAsync(CancellationToken.None);
+        var player = CreatePlayer(queue, audioPlayer);
+        using var cts = new CancellationTokenSource();
+        var runTask = player.RunAsync(cts.Token);
         try
         {
             await disconnected.Task.WaitAsync(Timeout);
@@ -258,7 +265,8 @@ public class MusicPlayerBackgroundServiceTests
         }
         finally
         {
-            await service.StopAsync(CancellationToken.None);
+            await cts.CancelAsync();
+            await runTask;
         }
     }
 
@@ -273,8 +281,9 @@ public class MusicPlayerBackgroundServiceTests
         var messages = new List<string>();
         queue.Enqueue(CreateRequest(messages));
 
-        var service = CreateService(queue, audioPlayer);
-        await service.StartAsync(CancellationToken.None);
+        var player = CreatePlayer(queue, audioPlayer);
+        using var cts = new CancellationTokenSource();
+        var runTask = player.RunAsync(cts.Token);
         try
         {
             await WaitUntilAsync(() =>
@@ -289,7 +298,8 @@ public class MusicPlayerBackgroundServiceTests
         }
         finally
         {
-            await service.StopAsync(CancellationToken.None);
+            await cts.CancelAsync();
+            await runTask;
         }
     }
 }
