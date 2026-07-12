@@ -31,6 +31,57 @@ dotnet test src/Tests/Tests.csproj --filter "FullyQualifiedName~Tests.Unit"
 
 Tests run automatically in CI (`.github/workflows/ci.yml`) on pushes and pull requests to `master`; pushes to `master` are deployed via `.github/workflows/release.yml`.
 
+## Architecture
+
+One bot process serves many servers. Commands address a guild through `IGuildMusicService`; `GuildPlayerManager` lazily creates one `GuildPlayer` per guild, each with its own queue, consumer loop, voice client, and FFmpeg process, so playback in one server never affects another. Statistics and the blacklist are shared across all servers.
+
+```mermaid
+flowchart TD
+    UA["User in Server A"] -->|"/play /skip /stop"| CMD
+    UB["User in Server B"] -->|"/play /skip /stop"| CMD
+
+    subgraph Worker["Worker process"]
+        CMD["Slash commands + NetCordInteraction"]
+        CMD -->|"Enqueue(guildId, PlayRequest)"| MGR
+        CMD -->|"EventType.Skip / Stop (GuildId)"| PH["EventDispatcher -> PlayerHandler"]
+        PH -->|"Skip(guildId) / Stop(guildId)"| MGR
+        MGR["GuildPlayerManager<br/>(IGuildMusicService)<br/>one GuildPlayer per guild"]
+
+        subgraph PA["GuildPlayer - Server A"]
+            QA["MusicQueueService<br/>(list + channel signal)"]
+            LA["Consumer loop<br/>(retry x3, per-track cancellation)"]
+            AA["AudioPlayerService<br/>(voice client A)"]
+            FA["FfmpegProcessService<br/>(ffmpeg process A)"]
+            QA -->|"signal wakes"| LA
+            LA -->|"PlayTrackAsync"| AA
+            AA -->|"spawn"| FA
+        end
+
+        subgraph PB["GuildPlayer - Server B"]
+            QB["MusicQueueService"]
+            LB["Consumer loop"]
+            AB["AudioPlayerService<br/>(voice client B)"]
+            FB["FfmpegProcessService"]
+            QB -->|"signal wakes"| LB
+            LB -->|"PlayTrackAsync"| AB
+            AB -->|"spawn"| FB
+        end
+
+        MGR -->|"guild A ops"| QA
+        MGR -->|"guild B ops"| QB
+
+        SS["Stream resolvers<br/>yt-dlp / YoutubeExplode /<br/>SoundCloud / radio URL"]
+        DB[("PostgreSQL<br/>stats + blacklist<br/>shared by all servers")]
+        AA -.->|"resolve stream URL"| SS
+        AB -.-> SS
+        AA -.->|"log play"| DB
+        AB -.-> DB
+    end
+
+    FA -->|"PCM to Opus stream"| VA(("Voice channel<br/>Server A"))
+    FB -->|"PCM to Opus stream"| VB(("Voice channel<br/>Server B"))
+```
+
 ## Technologies Used
 
 ### Backend
