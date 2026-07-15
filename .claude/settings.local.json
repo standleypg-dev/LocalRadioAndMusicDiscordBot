@@ -3,7 +3,12 @@
     "allow": [
       "WebFetch(domain:github.com)",
       "WebSearch",
-      "WebFetch(domain:support.discord.com)"
+      "WebFetch(domain:support.discord.com)",
+      "Skill(dataviz)",
+      "Bash(node scripts/validate_palette.js \"#ff6b6b,#4ecdc4,#45b7d1,#f9ca24,#f0932b,#eb4d4b,#6ab04c,#9c88ff\" --mode dark)",
+      "PowerShell(node \"C:\\\\Users\\\\stand\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\bundled-skills\\\\2.1.206\\\\086a8e9e37ae6507cf6e474311e79744\\\\dataviz\\\\scripts\\\\validate_palette.js\" \"#ff6b6b,#4ecdc4,#45b7d1,#f9ca24,#f0932b,#eb4d4b,#6ab04c,#9c88ff\" --mode dark)",
+      "PowerShell(node \"C:\\\\Users\\\\stand\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\bundled-skills\\\\2.1.206\\\\086a8e9e37ae6507cf6e474311e79744\\\\dataviz\\\\scripts\\\\validate_palette.js\" \"#3987e5,#199e70,#c98500,#008300,#9085e9,#e66767,#d55181,#d95926\" --mode dark --surface \"#366472\")",
+      "PowerShell(node \"C:\\\\Users\\\\stand\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\G--personal-Discord-Music-Bot\\\\42ca7a0b-f5a7-4a2e-a708-2f026c81c580\\\\scratchpad\\\\mock-api.js\")"
     ]
   }
 }

@@ -30,16 +30,16 @@ export function DashboardLayout() {
           </div>
           <nav className="nav">
             <button
-              className={`nav-button glass-button ${isActive('/songs')}`}
-              onClick={() => handleNavigation('/songs')}
-            >
-              Song Statistics
-            </button>
-            <button
               className={`nav-button glass-button ${isActive('/users')}`}
               onClick={() => handleNavigation('/users')}
             >
               User Statistics
+            </button>
+            <button
+              className={`nav-button glass-button ${isActive('/songs')}`}
+              onClick={() => handleNavigation('/songs')}
+            >
+              Song Statistics
             </button>
             {isAuthenticated && (
               <button
@@ -49,6 +49,8 @@ export function DashboardLayout() {
                 Radio Admin
               </button>
             )}
+          </nav>
+          <div className="header-actions">
             {!isAuthenticated ? (
               <div
                 className={`login-icon ${isActive('/login')}`}
@@ -61,7 +63,7 @@ export function DashboardLayout() {
                 <img src="/log-out.svg" alt="Logout" title="Logout" />
               </div>
             )}
-          </nav>
+          </div>
         </div>
       </div>
 

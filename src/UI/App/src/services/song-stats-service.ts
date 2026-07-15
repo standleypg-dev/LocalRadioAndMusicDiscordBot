@@ -14,6 +14,19 @@ export async function loadSongStats(): Promise<SongStat[]> {
   return await response.json();
 }
 
+export async function loadTopSongsToday(): Promise<SongStat[]> {
+  const response = await fetch(`${API_BASE_URL}/statistics-today`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+}
+
 export function cleanTitle(title?: string | null): string {
   if (!title) return '';
   const normalized = removeFancyUnicode(title);

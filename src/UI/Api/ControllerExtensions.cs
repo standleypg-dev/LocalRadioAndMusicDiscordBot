@@ -17,6 +17,11 @@ public static class ControllerExtensions
                         await statisticsService.GetAllSongsAsync())
                 .WithName("GetStatisticsAll");
 
+            app.MapGet("/api/statistics-today",
+                    async (IStatisticsService statisticsService, int? limit) =>
+                        await statisticsService.GetTopSongsAsync(true, limit ?? 100))
+                .WithName("GetStatisticsToday");
+
             app.MapGet("/api/users",
                     async (IUserService userService) => await userService.GetAllUsersAsync())
                 .WithName("GetAllUsers");
