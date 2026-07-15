@@ -147,10 +147,7 @@ export function RadioAdmin() {
         </button>
       </div>
 
-      <div
-        className="stats-grid"
-        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
-      >
+      <div className="stats-grid">
         <div className="stat-card glass-card">
           <h2 className="stat-value">{totalStations}</h2>
           <p className="stat-label">Total Stations</p>
