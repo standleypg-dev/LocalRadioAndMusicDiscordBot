@@ -1,13 +1,6 @@
 import { Fragment, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from 'recharts';
+import { PieChart, Pie, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { loadUsers } from '../services/user-service';
 import { cleanTitle } from '../services/song-stats-service';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -15,7 +8,7 @@ import { AppError } from '../components/AppError';
 import { Pagination } from '../components/Pagination';
 import { SortableTh } from '../components/SortableTh';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { exportCsv } from '../utils/csv';
+import { formatDate, formatRelative } from '../utils/time';
 
 const PAGE_SIZE = 10;
 
@@ -34,10 +27,6 @@ const COLORS = [
 ];
 
 type SortKey = 'totalPlays' | 'uniqueSongs' | 'lastPlayed' | 'memberSince';
-
-function formatDate(value?: Date | string | null): string {
-  return value ? String(value).split('T')[0] : '';
-}
 
 function toTime(value?: Date | string | null): number {
   return value ? new Date(value).getTime() : 0;
@@ -59,6 +48,7 @@ export function UserStats() {
   } = useQuery({
     queryKey: ['userStats'],
     queryFn: loadUsers,
+    refetchInterval: 60_000,
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -111,9 +101,10 @@ export function UserStats() {
   const chartData = [...filtered]
     .sort((a, b) => b.totalPlays - a.totalPlays)
     .slice(0, 8)
-    .map((user) => ({
+    .map((user, index) => ({
       name: user.username,
       value: user.totalPlays,
+      fill: COLORS[index % COLORS.length],
     }));
 
   function handleSort(key: SortKey) {
@@ -124,28 +115,6 @@ export function UserStats() {
       setSortDir('desc');
     }
     setPage(1);
-  }
-
-  function handleExport() {
-    exportCsv(
-      'user-stats.csv',
-      [
-        'Username',
-        'Display Name',
-        'Total Plays',
-        'Unique Songs',
-        'Member Since',
-        'Last Played',
-      ],
-      sorted.map((user) => [
-        user.username,
-        user.displayName ?? '',
-        user.totalPlays,
-        user.uniqueSongs,
-        formatDate(user.memberSince),
-        formatDate(user.lastPlayed),
-      ]),
-    );
   }
 
   return (
@@ -198,9 +167,6 @@ export function UserStats() {
             setPage(1);
           }}
         />
-        <button className="glass-button export-button" onClick={handleExport}>
-          Export CSV
-        </button>
       </div>
 
       <div className="content-card glass-card">
@@ -280,8 +246,11 @@ export function UserStats() {
                         <td className="hide-md">
                           {formatDate(user.memberSince)}
                         </td>
-                        <td className="hide-sm">
-                          {formatDate(user.lastPlayed)}
+                        <td
+                          className="hide-sm"
+                          title={formatDate(user.lastPlayed)}
+                        >
+                          {formatRelative(user.lastPlayed)}
                         </td>
                       </tr>
                       {expandedUser === user.username && (
@@ -361,15 +330,8 @@ export function UserStats() {
                   outerRadius={isMobile ? 85 : 120}
                   dataKey="value"
                   paddingAngle={2}
-                >
-                  {chartData.map((_entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                      stroke="none"
-                    />
-                  ))}
-                </Pie>
+                  stroke="none"
+                />
                 <Tooltip
                   contentStyle={{
                     background: 'rgba(0, 0, 0, 0.8)',

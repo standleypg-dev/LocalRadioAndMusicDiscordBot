@@ -23,8 +23,9 @@ FROM lib-build AS build
 
 ARG BUILD_CONFIGURATION=Release
 ARG PROJECT_PATH=src/Worker/Worker.csproj
-ARG VITE_API_BASE_URL=https://rytho.standleypg.com/api
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# The frontend calls the API via a relative /api path (see src/UI/App/.env.production),
+# so the same image works locally and in deployment without a baked-in URL.
 
 WORKDIR /app
 

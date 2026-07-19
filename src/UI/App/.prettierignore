@@ -1,4 +1,5 @@
 dist
 node_modules
+obj
 package-lock.json
 *.min.css
