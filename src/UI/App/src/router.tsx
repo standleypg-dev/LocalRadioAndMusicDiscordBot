@@ -5,6 +5,7 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import { DashboardLayout } from './layouts/DashboardLayout';
+import { Overview } from './pages/Overview';
 import { SongStats } from './pages/SongStats';
 import { UserStats } from './pages/UserStats';
 import { RadioAdmin } from './pages/RadioAdmin';
@@ -17,9 +18,7 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/users' });
-  },
+  component: Overview,
 });
 
 const songsRoute = createRoute({
@@ -56,7 +55,7 @@ const catchAllRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '$',
   beforeLoad: () => {
-    throw redirect({ to: '/songs' });
+    throw redirect({ to: '/' });
   },
 });
 

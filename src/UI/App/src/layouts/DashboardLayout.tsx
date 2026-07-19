@@ -30,6 +30,12 @@ export function DashboardLayout() {
           </div>
           <nav className="nav">
             <button
+              className={`nav-button glass-button ${isActive('/')}`}
+              onClick={() => handleNavigation('/')}
+            >
+              Overview
+            </button>
+            <button
               className={`nav-button glass-button ${isActive('/users')}`}
               onClick={() => handleNavigation('/users')}
             >

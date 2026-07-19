@@ -19,7 +19,7 @@ import { AppError } from '../components/AppError';
 import { Pagination } from '../components/Pagination';
 import { SortableTh } from '../components/SortableTh';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { exportCsv } from '../utils/csv';
+import { formatDate, formatRelative } from '../utils/time';
 
 const PAGE_SIZE = 10;
 // Validated single-hue mark color: 3.09:1 contrast on the dashboard surface.
@@ -30,10 +30,6 @@ type TimeRange = 'all' | 'today';
 
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 3)}...` : text;
-}
-
-function formatDate(value?: Date | string | null): string {
-  return value ? String(value).split('T')[0] : '';
 }
 
 export function SongStats() {
@@ -53,6 +49,7 @@ export function SongStats() {
     queryKey: ['songStats', timeRange],
     queryFn: () =>
       timeRange === 'today' ? loadTopSongsToday() : loadSongStats(),
+    refetchInterval: 60_000,
   });
 
   if (isLoading) return <LoadingSpinner />;
@@ -109,19 +106,6 @@ export function SongStats() {
       setSortDir('desc');
     }
     setPage(1);
-  }
-
-  function handleExport() {
-    exportCsv(
-      `song-stats-${timeRange}.csv`,
-      ['Title', 'Artist', 'Play Count', 'Last Played'],
-      sorted.map((song) => [
-        cleanTitle(song.title),
-        song.artist ?? '',
-        song.playCount,
-        formatDate(song.lastPlayed),
-      ]),
-    );
   }
 
   return (
@@ -198,9 +182,6 @@ export function SongStats() {
             Today
           </button>
         </div>
-        <button className="glass-button export-button" onClick={handleExport}>
-          Export CSV
-        </button>
       </div>
 
       <div className="content-card glass-card">
@@ -244,7 +225,12 @@ export function SongStats() {
                           {song.playCount.toLocaleString()}
                         </span>
                       </td>
-                      <td className="hide-sm">{formatDate(song.lastPlayed)}</td>
+                      <td
+                        className="hide-sm"
+                        title={formatDate(song.lastPlayed)}
+                      >
+                        {formatRelative(song.lastPlayed)}
+                      </td>
                     </tr>
                   ))}
                   {pageRows.length === 0 && (
