@@ -40,7 +40,17 @@ public class NetCordInteraction(
                 return "The requested song is blacklisted and cannot be played.";
             }
 
-            var title = await youtubeService.GetVideoTitleAsync(selectedValue, CancellationToken.None);
+            string title;
+            try
+            {
+                title = await youtubeService.GetVideoTitleAsync(selectedValue, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to fetch title for {Url}, enqueueing without a title", selectedValue);
+                title = "the requested track";
+            }
+
             message = $"Added {title} to the queue!";
         }
         else
