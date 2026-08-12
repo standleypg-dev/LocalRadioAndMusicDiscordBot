@@ -732,20 +732,31 @@ body {
 
 /* ===== Song Stats ===== */
 
+.table td.song-cell {
+  max-width: 0;
+}
+
 .song-info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .song-title {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .song-artist {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ===== User Stats ===== */

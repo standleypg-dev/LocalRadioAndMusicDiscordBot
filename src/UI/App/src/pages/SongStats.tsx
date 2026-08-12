@@ -212,12 +212,20 @@ export function SongStats() {
                   {pageRows.map((song, index) => (
                     <tr key={`${song.title}-${index}`}>
                       <td>{(safePage - 1) * PAGE_SIZE + index + 1}</td>
-                      <td>
+                      <td className="song-cell">
                         <div className="song-info">
-                          <div className="song-title">
+                          <div
+                            className="song-title"
+                            title={cleanTitle(song.title)}
+                          >
                             {cleanTitle(song.title)}
                           </div>
-                          <div className="song-artist">{song.artist}</div>
+                          <div
+                            className="song-artist"
+                            title={song.artist ?? undefined}
+                          >
+                            {song.artist}
+                          </div>
                         </div>
                       </td>
                       <td>
