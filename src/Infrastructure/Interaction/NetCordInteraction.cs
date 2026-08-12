@@ -34,12 +34,12 @@ public class NetCordInteraction(
             return "The requested song is blacklisted and cannot be played.";
         }
 
-        const string message = "Added radio source to the queue!";
+        const string message = "Added requested track to the queue!";
 
         var playRequest = new PlayRequest<StringMenuInteractionContext>
         {
             Context = Context,
-            Callbacks = async callbackMessage => await RespondAsyncCallback(callbackMessage),
+            Callbacks = RespondAsyncCallback,
         };
         guildMusicService.Enqueue(Context.Guild!.Id, playRequest);
 
@@ -75,7 +75,7 @@ public class NetCordInteraction(
             var playRequest = new PlayRequest<StringMenuInteractionContext>
             {
                 Context = Context,
-                Callbacks = async message => await RespondAsyncCallback(message),
+                Callbacks = RespondAsyncCallback,
                 VideoTitle = video.Title,
                 VideoUrl = video.Url
             };
