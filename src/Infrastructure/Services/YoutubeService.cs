@@ -146,6 +146,39 @@ public class YoutubeService: IStreamService
 
     public async Task<string> GetVideoTitleAsync(string url, CancellationToken cancellationToken)
     {
+        var (success, title) = await ExecuteWithTimeout(TryGetTitleWithYtDlpAsync, url, TimeSpan.FromSeconds(15), cancellationToken);
+        if (success)
+        {
+            return title!;
+        }
+
         return (await _youtubeClient.Videos.GetAsync(url, cancellationToken)).Title;
+    }
+
+    private async Task<(bool Success, string? Url)> TryGetTitleWithYtDlpAsync(string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var ytdl = new YoutubeDL { YoutubeDLPath = "yt-dlp" };
+            var result = await ytdl.RunVideoDataFetch(url, ct: cancellationToken);
+
+            if (!result.Success || string.IsNullOrWhiteSpace(result.Data?.Title))
+            {
+                _logger.LogWarning("YT-DLP title fetch failed for: {Url}. Errors: {Errors}", url,
+                    string.Join("; ", result.ErrorOutput ?? []));
+                return (false, null);
+            }
+
+            return (true, result.Data.Title);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "YT-DLP title fetch failed for: {Url}", url);
+            return (false, null);
+        }
     }
 }
