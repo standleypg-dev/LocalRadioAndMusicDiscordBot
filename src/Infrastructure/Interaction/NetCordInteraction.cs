@@ -1,8 +1,6 @@
 using Application.DTOs;
 using Application.Interfaces.Services;
 using Domain.Common;
-using Infrastructure.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetCord.Rest;
 using NetCord.Services.ComponentInteractions;
@@ -15,8 +13,7 @@ public class NetCordInteraction(
     ILogger<NetCordInteraction> logger,
     IGuildMusicService guildMusicService,
     IBlacklistService blacklistService,
-    YoutubeClient youtubeClient,
-    [FromKeyedServices(nameof(YoutubeService))] IStreamService youtubeService) : ComponentInteractionModule<StringMenuInteractionContext>
+    YoutubeClient youtubeClient) : ComponentInteractionModule<StringMenuInteractionContext>
 {
     [ComponentInteraction(Constants.CustomIds.Play)]
     public async Task<string> Play()
@@ -32,31 +29,12 @@ public class NetCordInteraction(
 
         var selectedValue = Context.SelectedValues[0];
 
-        string message;
-        if (!Guid.TryParse(selectedValue, out _))
+        if (!Guid.TryParse(selectedValue, out _) && await blacklistService.IsBlacklistedAsync(selectedValue))
         {
-            if (await blacklistService.IsBlacklistedAsync(selectedValue))
-            {
-                return "The requested song is blacklisted and cannot be played.";
-            }
-
-            string title;
-            try
-            {
-                title = await youtubeService.GetVideoTitleAsync(selectedValue, CancellationToken.None);
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Failed to fetch title for {Url}, enqueueing without a title", selectedValue);
-                title = "the requested track";
-            }
-
-            message = $"Added {title} to the queue!";
+            return "The requested song is blacklisted and cannot be played.";
         }
-        else
-        {
-            message = "Added radio source to the queue!";
-        }
+
+        const string message = "Added radio source to the queue!";
 
         var playRequest = new PlayRequest<StringMenuInteractionContext>
         {
