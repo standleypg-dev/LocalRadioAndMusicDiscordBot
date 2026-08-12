@@ -1,0 +1,28 @@
+{
+  "name": "Discord Music Bot",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "features": {
+    // Mounts the host's Docker socket so Testcontainers-based integration
+    // tests (dotnet test src/Tests/Tests.csproj) can spin up Postgres.
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "forwardPorts": [5000, 5432],
+  "postCreateCommand": "dotnet restore discord-project.slnx",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "discord-project.slnx"
+      }
+    }
+  },
+  "remoteUser": "root"
+}

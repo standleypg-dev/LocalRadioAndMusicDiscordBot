@@ -110,6 +110,15 @@ A play interaction enqueues a `PlayRequest` via `IGuildMusicService` into the gu
 
 For local Docker runs, populate `deployment/.env` (see `.github/workflows/release.yml` for the exact key list).
 
+## Dev Container
+
+`.devcontainer/` provides a full-stack VS Code devcontainer, separate from `deployment/` and not used in production: a single-stage `linux/amd64` image based on `mcr.microsoft.com/dotnet/sdk:10.0` carrying the same native deps as `deployment/Dockerfile` (bun, libsodium-dev, libopus-dev, libdave, ffmpeg, yt-dlp, python3), composed with a `postgres` service. The `docker-outside-of-docker` devcontainer feature plus a bind-mounted `/var/run/docker.sock` give the container access to the host's Docker daemon for Testcontainers.
+
+- Copy `.devcontainer/.env.example` to `.devcontainer/.env` and set a dev/test Discord bot token (do not reuse the production token) before reopening in container.
+- `dotnet build discord-project.slnx`, `dotnet run --project src/Worker/Worker.csproj`, and `dotnet test src/Tests/Tests.csproj` (including Testcontainers integration tests) all work inside the container, unlike CI which skips the full `.slnx` build.
+- Native dependency versions (libdave, yt-dlp, apt packages) are duplicated between `deployment/Dockerfile` and `.devcontainer/Dockerfile` - bump both together.
+- Pinned to `linux/amd64`: native lib paths are Debian amd64 multiarch (`/usr/lib/x86_64-linux-gnu/...`), hardcoded in `Worker.csproj`. On arm64 hosts (e.g. Apple Silicon), Docker Desktop must emulate via Rosetta/QEMU or the paths silently resolve to nothing and the audio pipeline breaks at runtime.
+
 ## Toolchain
 
 - .NET SDK: `global.json` pins 9.0.3 with `rollForward: latestMajor`, so SDK 10+ satisfies it. All projects target `net10.0` via `src/Directory.Build.props` (nullable + implicit usings enabled).

@@ -22,6 +22,9 @@ A .NET 10 Discord bot for music playback, supporting YouTube, SoundCloud, Spotif
 # Build the whole solution (requires Bun for the frontend build)
 dotnet build discord-project.slnx
 
+# Run the Worker (Discord bot + web API on :5000)
+dotnet run --project src/Worker/Worker.csproj
+
 # Run all tests (integration tests need a local Docker daemon for Testcontainers)
 dotnet test src/Tests/Tests.csproj
 
@@ -30,6 +33,29 @@ dotnet test src/Tests/Tests.csproj --filter "FullyQualifiedName~Tests.Unit"
 ```
 
 Tests run automatically in CI (`.github/workflows/ci.yml`) on pushes and pull requests to `master`; pushes to `master` are deployed via `.github/workflows/release.yml`.
+
+### Frontend
+
+Run from `src/UI/App/` (Bun is the package manager):
+
+```bash
+bun run dev           # Vite dev server
+bun run build         # Type-check + production build (output: src/Worker/wwwroot/)
+bun run lint          # ESLint
+bun run format        # Prettier write
+```
+
+### Dev Container
+
+`.devcontainer/` provides a full-stack VS Code Dev Container (separate from `deployment/`, not used in production) with the SDK, Bun, and all native audio dependencies (libsodium, libopus, libdave, ffmpeg, yt-dlp) preinstalled, plus its own Postgres service.
+
+1. `cp .devcontainer/.env.example .devcontainer/.env` and fill in a dev/test Discord bot token (do not reuse your production token).
+2. Reopen the folder in the container (VS Code: "Dev Containers: Reopen in Container").
+3. Inside the container, `dotnet build discord-project.slnx`, `dotnet run --project src/Worker/Worker.csproj`, and `dotnet test src/Tests/Tests.csproj` (including Testcontainers integration tests, via the bind-mounted Docker socket) all work out of the box.
+
+Pinned to `linux/amd64` — on Apple Silicon/arm64 hosts, Docker Desktop must emulate via Rosetta/QEMU or the native library paths resolve to nothing at runtime.
+
+> If you ever change `POSTGRES_USER`/`PASSWORD`/`DB` in `.devcontainer/.env` or `deployment/.env` after Postgres has already started once, the existing volume keeps the old credentials — Postgres only applies those env vars on first init of an empty data directory. Fix with `docker-compose down -v` on the relevant stack to force a clean re-init.
 
 ## Architecture
 
