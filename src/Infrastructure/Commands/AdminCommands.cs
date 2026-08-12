@@ -3,6 +3,7 @@ using Domain.Common;
 using Domain.Eventing;
 using Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NetCord;
 using NetCord.Rest;
 using NetCord.Services;
@@ -18,7 +19,8 @@ public class AdminCommands(
     [FromKeyedServices(nameof(YoutubeService))]
     IStreamService youtubeService,
     IGuildMusicService guildMusicService,
-    IServiceProvider serviceProvider) : ApplicationCommandModule<ApplicationCommandContext>
+    IServiceProvider serviceProvider,
+    ILogger<AdminCommands> logger) : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SubSlashCommand("blacklist", "Blacklist the currently playing song")]
     public async Task BlacklistAsync()
@@ -50,7 +52,16 @@ public class AdminCommands(
             return;
         }
 
-        var title = await youtubeService.GetVideoTitleAsync(url, CancellationToken.None);
+        string title;
+        try
+        {
+            title = await youtubeService.GetVideoTitleAsync(url, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to fetch title for {Url}, using fallback title", url);
+            title = "Unknown Title";
+        }
 
         using var scope = serviceProvider.CreateScope();
         var blacklistService = scope.ServiceProvider.GetRequiredService<IBlacklistService>();

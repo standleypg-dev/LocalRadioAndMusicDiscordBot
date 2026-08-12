@@ -4,13 +4,17 @@ using Domain.Eventing;
 using Domain.Events;
 using Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 
 namespace Infrastructure.Commands;
 
-public class MusicActionCommands(IScopeExecutor executor, IGuildMusicService guildMusicService)
+public class MusicActionCommands(
+    IScopeExecutor executor,
+    IGuildMusicService guildMusicService,
+    ILogger<MusicActionCommands> logger)
     : ApplicationCommandModule<ApplicationCommandContext>
 {
     [SlashCommand("stop", "Stop playing and clear the queue")]
@@ -58,10 +62,21 @@ public class MusicActionCommands(IScopeExecutor executor, IGuildMusicService gui
                 var youtubeService = serviceProvider.GetRequiredKeyedService<IStreamService>(nameof(YoutubeService));
                 var songs = requests.Select(async r =>
                     {
-                        var title = r.VideoTitle ?? await youtubeService.GetVideoTitleAsync(
-                            r.VideoUrl ?? (r.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0]!,
-                            CancellationToken.None);
-                        return title;
+                        if (r.VideoTitle != null)
+                        {
+                            return r.VideoTitle;
+                        }
+
+                        var url = r.VideoUrl ?? (r.ContextAsObject as StringMenuInteractionContext)?.SelectedValues[0]!;
+                        try
+                        {
+                            return await youtubeService.GetVideoTitleAsync(url, CancellationToken.None);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Failed to fetch title for {Url}, using fallback title", url);
+                            return "Unknown Title";
+                        }
                     }
                 ).Take(20).ToList();
 

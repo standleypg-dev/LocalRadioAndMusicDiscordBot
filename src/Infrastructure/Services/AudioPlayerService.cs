@@ -50,7 +50,7 @@ public class AudioPlayerService(
 
             var selectedValue = track.VideoUrl ?? context.SelectedValues[0];
             var (sourceUrl, song) = await ResolveSourceAsync(selectedValue, track, context.User.Id,
-                streamService, radioSourceService, cancellationToken);
+                streamService, radioSourceService, logger, cancellationToken);
 
             var process = await ffmpegProcessService.CreateStreamAsync(sourceUrl, cancellationToken);
             try
@@ -149,6 +149,7 @@ public class AudioPlayerService(
         ulong userId,
         IStreamService streamService,
         IRadioSourceService radioSourceService,
+        ILogger logger,
         CancellationToken cancellationToken)
     {
         if (Guid.TryParse(selectedValue, out var radioId))
@@ -163,7 +164,25 @@ public class AudioPlayerService(
         }
 
         var sourceUrl = await streamService.GetAudioStreamUrlAsync(selectedValue, cancellationToken);
-        var title = track.VideoTitle ?? await streamService.GetVideoTitleAsync(selectedValue, cancellationToken);
+
+        string title;
+        if (track.VideoTitle != null)
+        {
+            title = track.VideoTitle;
+        }
+        else
+        {
+            try
+            {
+                title = await streamService.GetVideoTitleAsync(selectedValue, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to fetch title for {Url}, using fallback title", selectedValue);
+                title = "Unknown Title";
+            }
+        }
+
         return (sourceUrl, new SongDtoBase
         {
             Url = selectedValue,
