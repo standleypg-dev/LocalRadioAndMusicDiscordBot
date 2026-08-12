@@ -1,4 +1,4 @@
 {
   "eslint.useFlatConfig": true,
-  "eslint.workingDirectories": ["src/UI/App_v2"]
+  "eslint.workingDirectories": ["src/UI/App"]
 }
