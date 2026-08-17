@@ -88,12 +88,15 @@ PostgreSQL + EF Core 10. Context: `Infrastructure/Data/DiscordBotContext.cs`. Us
 
 A play interaction enqueues a `PlayRequest` via `IGuildMusicService` into the guild's `MusicQueueService`; the channel signal wakes that guild's `GuildPlayer` loop, which calls `AudioPlayerService.PlayTrackAsync`. That method joins the voice channel if needed, resolves the stream URL (`YoutubeExplode` / `YoutubeDLSharp` via `yt-dlp` at runtime, or a radio source URL when the selection is a Guid), logs the play via `IStatisticsService` (radio plays are logged with the station name as the title), spawns FFmpeg through `FfmpegProcessService` (`Ffmpeg:Path` config, default `/usr/bin/ffmpeg`), copies FFmpeg stdout into a NetCord `OpusEncodeStream`, then awaits process exit and maps the exit code to a `TrackPlayResult` (`Completed`/`Failed`/`Skipped`/`NotInVoiceChannel`). There are no C# events in this pipeline; user-facing messages flow through `PlayRequest.Callbacks` and failures are retried by the guild's player loop.
 
+`YoutubeService` (`src/Infrastructure/Services/YoutubeService.cs`) tries yt-dlp then falls back to YoutubeExplode for both stream-URL and title resolution. YouTube throttles/blocks requests from datacenter IPs (common for self-hosted bots), which surfaces as both providers failing with a misleading "video unavailable" error even for valid videos. yt-dlp's calls pass `--extractor-args youtubepot-bgutilhttp:base_url=...` (`YtDlp:PotProviderBaseUrl` config, default `http://bgutil-provider:4416`) so it fetches a proof-of-origin token from the `bgutil-provider` sidecar (see Native Dependencies) instead of looking like anonymous bot traffic.
+
 ### Native Dependencies (installed in the Docker image)
 
 - FFmpeg
 - libsodium, libopus
 - libdave (fetched from the Discord libdave releases zip in the Dockerfile)
 - yt-dlp (pulled from the yt-dlp `latest` release at image build time; `YT_DLP_CACHE_BUST` build arg forces a re-download)
+- bgutil-ytdlp-pot-provider plugin zip, pulled from its `latest` release at image build time and installed into `/root/.yt-dlp/plugins/` so yt-dlp picks it up automatically. No version is pinned anywhere (the `bgutil-provider` compose service also tracks `:latest` with `pull_policy: always`) - to pick up a new release on either side, just re-run `.github/workflows/release.yml`, no code change needed
 - python3 (required by yt-dlp)
 
 ## Configuration
@@ -107,16 +110,17 @@ A play interaction enqueues a `PlayRequest` via `IGuildMusicService` into the gu
 - `WebsiteSettings:Url`
 - `Cors:AllowedOrigins` (JSON array in env var form: `[origin1,origin2]`)
 - `Ffmpeg:Path` (optional, defaults to `/usr/bin/ffmpeg`)
+- `YtDlp:PotProviderBaseUrl` (optional, defaults to `http://bgutil-provider:4416` - the `bgutil-provider` compose service; see Audio Pipeline)
 
 For local Docker runs, populate `deployment/.env` (see `.github/workflows/release.yml` for the exact key list).
 
 ## Dev Container
 
-`.devcontainer/` provides a full-stack VS Code devcontainer, separate from `deployment/` and not used in production: a single-stage `linux/amd64` image based on `mcr.microsoft.com/dotnet/sdk:10.0` carrying the same native deps as `deployment/Dockerfile` (bun, libsodium-dev, libopus-dev, libdave, ffmpeg, yt-dlp, python3), composed with a `postgres` service. The `docker-outside-of-docker` devcontainer feature plus a bind-mounted `/var/run/docker.sock` give the container access to the host's Docker daemon for Testcontainers.
+`.devcontainer/` provides a full-stack VS Code devcontainer, separate from `deployment/` and not used in production: a single-stage `linux/amd64` image based on `mcr.microsoft.com/dotnet/sdk:10.0` carrying the same native deps as `deployment/Dockerfile` (bun, libsodium-dev, libopus-dev, libdave, ffmpeg, yt-dlp, bgutil-ytdlp-pot-provider plugin, python3), composed with `postgres` and `bgutil-provider` services. The `docker-outside-of-docker` devcontainer feature plus a bind-mounted `/var/run/docker.sock` give the container access to the host's Docker daemon for Testcontainers.
 
 - Copy `.devcontainer/.env.example` to `.devcontainer/.env` and set a dev/test Discord bot token (do not reuse the production token) before reopening in container.
 - `dotnet build discord-project.slnx`, `dotnet run --project src/Worker/Worker.csproj`, and `dotnet test src/Tests/Tests.csproj` (including Testcontainers integration tests) all work inside the container, unlike CI which skips the full `.slnx` build.
-- Native dependency versions (libdave, yt-dlp, apt packages) are duplicated between `deployment/Dockerfile` and `.devcontainer/Dockerfile` - bump both together.
+- Native dependency versions (libdave, yt-dlp, bgutil-ytdlp-pot-provider, apt packages) are duplicated between `deployment/Dockerfile` and `.devcontainer/Dockerfile` - bump both together.
 - Pinned to `linux/amd64`: native lib paths are Debian amd64 multiarch (`/usr/lib/x86_64-linux-gnu/...`), hardcoded in `Worker.csproj`. On arm64 hosts (e.g. Apple Silicon), Docker Desktop must emulate via Rosetta/QEMU or the paths silently resolve to nothing and the audio pipeline breaks at runtime.
 
 ## Toolchain

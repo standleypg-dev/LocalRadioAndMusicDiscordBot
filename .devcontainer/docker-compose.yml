@@ -34,6 +34,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      bgutil-provider:
+        condition: service_started
+
+  bgutil-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    container_name: discord-bot-devcontainer-bgutil-provider
+    restart: unless-stopped
+    pull_policy: always
 
   postgres:
     image: postgres:latest

@@ -39,7 +39,7 @@ public class NetCordInteraction(
         var playRequest = new PlayRequest<StringMenuInteractionContext>
         {
             Context = Context,
-            Callbacks = RespondAsyncCallback,
+            Callbacks = FollowupAsyncCallback,
         };
         guildMusicService.Enqueue(Context.Guild!.Id, playRequest);
 
@@ -75,7 +75,7 @@ public class NetCordInteraction(
             var playRequest = new PlayRequest<StringMenuInteractionContext>
             {
                 Context = Context,
-                Callbacks = RespondAsyncCallback,
+                Callbacks = FollowupAsyncCallback,
                 VideoTitle = video.Title,
                 VideoUrl = video.Url
             };
@@ -132,5 +132,8 @@ public class NetCordInteraction(
         return timeDifference.TotalDays <= 2;
     }
 
-    private Task<InteractionCallbackResponse> RespondAsyncCallback(string message) => RespondAsync(InteractionCallback.Message(message))!;
+    // The initial interaction response is already consumed by the string returned from
+    // Play()/PlayPlaylist(); later notifications (e.g. retry failures, disconnects) must
+    // go through a follow-up message or Discord rejects them as "already acknowledged".
+    private Task FollowupAsyncCallback(string message) => FollowupAsync(new InteractionMessageProperties { Content = message });
 }

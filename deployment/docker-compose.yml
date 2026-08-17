@@ -17,6 +17,12 @@ services:
       timeout: 5s
       retries: 5
 
+  bgutil-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:latest
+    container_name: bgutil-provider
+    restart: unless-stopped
+    pull_policy: always
+
   radio-discord-bot:
     ports:
       - "5000:5000"
@@ -29,6 +35,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      bgutil-provider:
+        condition: service_started
     environment:
       - SpotifySettings__ClientId=${SPOTIFY_CLIENT_ID}
       - SpotifySettings__ClientSecret=${SPOTIFY_CLIENT_SECRET}

@@ -1,7 +1,9 @@
 using Application.Interfaces.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using YoutubeDLSharp;
+using YoutubeDLSharp.Options;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 
@@ -14,14 +16,24 @@ public class YoutubeService: IStreamService
     private readonly List<Func<string, CancellationToken, Task<(bool Success, string? Url)>>> _providerStrategy;
     private readonly YoutubeClient _youtubeClient;
 
+    // YouTube blocks/throttles requests from datacenter IPs (common for self-hosted bots),
+    // often surfacing as false "video unavailable" errors from both yt-dlp and YoutubeExplode.
+    // bgutil-ytdlp-pot-provider (deployment/docker-compose.yml) mints proof-of-origin tokens so
+    // yt-dlp's requests look like a real browser session; see https://github.com/Brainicism/bgutil-ytdlp-pot-provider.
+    private readonly string _potProviderExtractorArg;
+
     public YoutubeService(
         IServiceProvider serviceProvider,
         ILogger<YoutubeService> logger,
-        YoutubeClient youtubeClient)
+        YoutubeClient youtubeClient,
+        IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _youtubeClient = youtubeClient;
+
+        var potProviderBaseUrl = configuration["YtDlp:PotProviderBaseUrl"] ?? "http://bgutil-provider:4416";
+        _potProviderExtractorArg = $"youtubepot-bgutilhttp:base_url={potProviderBaseUrl}";
 
         _providerStrategy =
         [
@@ -81,9 +93,10 @@ public class YoutubeService: IStreamService
         try
         {
             var ytdl = new YoutubeDL { YoutubeDLPath = "yt-dlp" };
-            var overrideOptions = new YoutubeDLSharp.Options.OptionSet
+            var overrideOptions = new OptionSet
             {
-                Format = "bestaudio/best"
+                Format = "bestaudio/best",
+                ExtractorArgs = new MultiValue<string>(_potProviderExtractorArg)
             };
             var result = await ytdl.RunVideoDataFetch(url, ct: cancellationToken, overrideOptions: overrideOptions);
 
@@ -160,7 +173,11 @@ public class YoutubeService: IStreamService
         try
         {
             var ytdl = new YoutubeDL { YoutubeDLPath = "yt-dlp" };
-            var result = await ytdl.RunVideoDataFetch(url, ct: cancellationToken);
+            var overrideOptions = new OptionSet
+            {
+                ExtractorArgs = new MultiValue<string>(_potProviderExtractorArg)
+            };
+            var result = await ytdl.RunVideoDataFetch(url, ct: cancellationToken, overrideOptions: overrideOptions);
 
             if (!result.Success || string.IsNullOrWhiteSpace(result.Data?.Title))
             {
