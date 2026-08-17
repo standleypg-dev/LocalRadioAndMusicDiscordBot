@@ -115,12 +115,12 @@ public class GuildPlayerTests
         var runTask = player.RunAsync(cts.Token);
         try
         {
-            await WaitUntilAsync(() => Volatile.Read(ref attempts) == 3, "three play attempts");
+            await WaitUntilAsync(() => Volatile.Read(ref attempts) == 6, "three play attempts");
             await WaitUntilAsync(() => queue.NowPlaying is null, "track dropped");
 
             // Give the loop a moment to prove it does not retry a fourth time.
             await Task.Delay(200);
-            Assert.Equal(3, Volatile.Read(ref attempts));
+            Assert.Equal(6, Volatile.Read(ref attempts));
         }
         finally
         {

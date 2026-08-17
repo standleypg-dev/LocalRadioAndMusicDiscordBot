@@ -19,7 +19,7 @@ public sealed class GuildPlayer(
     INetCordAudioPlayerService audioPlayer,
     ILogger logger)
 {
-    private const int MaxRetryCount = 3;
+    private const int MaxRetryCount = 6;
 
     private readonly Lock _ctsLock = new();
     private CancellationTokenSource? _trackCts;
