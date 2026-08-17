@@ -33,6 +33,9 @@ RUN wget -O /tmp/libdave.zip \
 ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
 
+# bgutil-ytdlp-pot-provider plugin - same fetch method as deployment/Dockerfile, tracks latest.
+ADD https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/latest/download/bgutil-ytdlp-pot-provider.zip /root/.yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip
+
 ENV TZ=Asia/Singapore
 RUN ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
 

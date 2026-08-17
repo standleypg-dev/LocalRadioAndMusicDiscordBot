@@ -65,7 +65,13 @@ RUN apt update && apt install -y --no-install-recommends \
 ARG YT_DLP_CACHE_BUST=latest
 ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
-    
+
+# bgutil-ytdlp-pot-provider plugin - mints PO tokens so yt-dlp's requests look like a real
+# browser session, working around YouTube blocking/throttling datacenter IPs. Tracks latest
+# like yt-dlp above; the bgutil-provider server image in docker-compose.yml also tracks
+# :latest, so a plain workflow re-run picks up new releases on both sides without a code change.
+ADD https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/latest/download/bgutil-ytdlp-pot-provider.zip /root/.yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip
+
 WORKDIR /app/run
 
 ENV ASPNETCORE_ENVIRONMENT=Production
