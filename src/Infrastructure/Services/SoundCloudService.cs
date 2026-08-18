@@ -6,7 +6,7 @@ namespace Infrastructure.Services;
 
 public class SoundCloudService(ILogger<SoundCloudService> logger, SoundCloudClient soundCloudClient): IStreamService
 {
-    public async Task<string> GetAudioStreamUrlAsync(string url, CancellationToken cancellationToken)
+    public async Task<string> GetAudioStreamUrlAsync(string url, int attempt, CancellationToken cancellationToken)
     {
         try
         {

@@ -19,7 +19,7 @@ public class AudioPlayerService(
     private GatewayClient? _gatewayClient;
     private ulong? _guildId;
 
-    public async Task<TrackPlayResult> PlayTrackAsync(PlayRequest request, CancellationToken cancellationToken)
+    public async Task<TrackPlayResult> PlayTrackAsync(PlayRequest request, int attempt, CancellationToken cancellationToken)
     {
         if (request is not PlayRequest<StringMenuInteractionContext> track)
         {
@@ -49,7 +49,7 @@ public class AudioPlayerService(
             var statisticsService = scope.ServiceProvider.GetRequiredService<IStatisticsService>();
 
             var selectedValue = track.VideoUrl ?? context.SelectedValues[0];
-            var (sourceUrl, song) = await ResolveSourceAsync(selectedValue, track, context.User.Id,
+            var (sourceUrl, song) = await ResolveSourceAsync(selectedValue, track, context.User.Id, attempt,
                 streamService, radioSourceService, logger, cancellationToken);
 
             var process = await ffmpegProcessService.CreateStreamAsync(sourceUrl, cancellationToken);
@@ -147,6 +147,7 @@ public class AudioPlayerService(
         string selectedValue,
         PlayRequest track,
         ulong userId,
+        int attempt,
         IStreamService streamService,
         IRadioSourceService radioSourceService,
         ILogger logger,
@@ -163,7 +164,7 @@ public class AudioPlayerService(
             });
         }
 
-        var sourceUrl = await streamService.GetAudioStreamUrlAsync(selectedValue, cancellationToken);
+        var sourceUrl = await streamService.GetAudioStreamUrlAsync(selectedValue, attempt, cancellationToken);
 
         string title;
         if (track.VideoTitle != null)

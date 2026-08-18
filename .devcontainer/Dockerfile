@@ -33,6 +33,10 @@ RUN wget -O /tmp/libdave.zip \
 ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
 
+# Deno - JS runtime for yt-dlp's bundled EJS challenge solver, same reasoning as deployment/Dockerfile.
+RUN curl -fsSL https://deno.land/install.sh | sh -s -- -y \
+    && ln -s /root/.deno/bin/deno /usr/local/bin/deno
+
 # bgutil-ytdlp-pot-provider plugin - same fetch method as deployment/Dockerfile, tracks latest.
 ADD https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/latest/download/bgutil-ytdlp-pot-provider.zip /root/.yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip
 

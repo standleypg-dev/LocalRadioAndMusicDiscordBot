@@ -56,7 +56,7 @@ public class GuildPlayerTests
         var queue = new MusicQueueService();
         var audioPlayer = Substitute.For<INetCordAudioPlayerService>();
         var played = new List<Guid>();
-        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>())
+        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(callInfo =>
             {
                 lock (played)
@@ -101,7 +101,7 @@ public class GuildPlayerTests
         var queue = new MusicQueueService();
         var audioPlayer = Substitute.For<INetCordAudioPlayerService>();
         var attempts = 0;
-        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>())
+        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
                 Interlocked.Increment(ref attempts);
@@ -139,7 +139,7 @@ public class GuildPlayerTests
         var first = CreateRequest();
         var second = CreateRequest();
 
-        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>())
+        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(async callInfo =>
             {
                 var request = callInfo.Arg<PlayRequest>();
@@ -189,7 +189,7 @@ public class GuildPlayerTests
         var first = CreateRequest();
         var second = CreateRequest();
 
-        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>())
+        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(async callInfo =>
             {
                 var token = callInfo.Arg<CancellationToken>();
@@ -221,7 +221,7 @@ public class GuildPlayerTests
             Assert.Equal(0, queue.Count);
 
             // Only the first track was ever played; the second was cleared.
-            await audioPlayer.Received(1).PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>());
+            await audioPlayer.Received(1).PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
         }
         finally
         {
@@ -236,7 +236,7 @@ public class GuildPlayerTests
         var queue = new MusicQueueService();
         var audioPlayer = Substitute.For<INetCordAudioPlayerService>();
         var disconnected = new TaskCompletionSource();
-        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>())
+        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(TrackPlayResult.Completed);
         audioPlayer.DisconnectAsync().Returns(_ =>
         {
@@ -275,7 +275,7 @@ public class GuildPlayerTests
     {
         var queue = new MusicQueueService();
         var audioPlayer = Substitute.For<INetCordAudioPlayerService>();
-        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>())
+        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(TrackPlayResult.NotInVoiceChannel);
 
         var messages = new List<string>();
@@ -294,7 +294,7 @@ public class GuildPlayerTests
                 }
             }, "not-in-voice-channel message sent");
 
-            await audioPlayer.Received(1).PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>());
+            await audioPlayer.Received(1).PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
         }
         finally
         {

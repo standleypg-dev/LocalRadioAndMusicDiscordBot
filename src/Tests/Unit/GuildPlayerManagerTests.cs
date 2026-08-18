@@ -42,7 +42,7 @@ public class GuildPlayerManagerTests
         TaskCompletionSource started, TaskCompletionSource release)
     {
         var audioPlayer = Substitute.For<INetCordAudioPlayerService>();
-        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<CancellationToken>())
+        audioPlayer.PlayTrackAsync(Arg.Any<PlayRequest>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(async callInfo =>
             {
                 var token = callInfo.Arg<CancellationToken>();
