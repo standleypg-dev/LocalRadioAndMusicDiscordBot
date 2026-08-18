@@ -26,7 +26,12 @@ public class YoutubeService: IStreamService
     // from other clients (e.g. android_vr) as available whenever any PO token provider is
     // registered, but android_vr's playback URLs need a separate DroidGuard-based token bgutil
     // can't supply, so picking one 403s. Pin player_client so only bgutil-covered clients are used.
-    private const string PlayerClientExtractorArg = "youtube:player_client=web,mweb";
+    // visionos is listed first as it currently needs no PO token at all (unlike web/mweb, which
+    // started 403ing in late July 2026 because YouTube binds the BotGuard attestation challenge to
+    // the webpage session and bgutil's token minting hasn't been updated for it yet - see
+    // https://github.com/Brainicism/bgutil-ytdlp-pot-provider/issues/242, fix pending in PR #243).
+    // Once that PR ships in a bgutil release, revisit whether visionos is still needed here.
+    private const string PlayerClientExtractorArg = "youtube:player_client=visionos,web,mweb";
 
     public YoutubeService(
         IServiceProvider serviceProvider,
