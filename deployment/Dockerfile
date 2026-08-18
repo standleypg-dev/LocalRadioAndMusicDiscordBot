@@ -58,6 +58,8 @@ RUN apt update && apt install -y --no-install-recommends \
     ffmpeg \
     tzdata \
     python3 \
+    curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
 
@@ -65,6 +67,13 @@ RUN apt update && apt install -y --no-install-recommends \
 ARG YT_DLP_CACHE_BUST=latest
 ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
+
+# Deno - JS runtime for yt-dlp's bundled EJS challenge solver, which handles YouTube's
+# signature/n-parameter challenges on web-flavored clients (see
+# https://github.com/yt-dlp/yt-dlp/wiki/EJS). Without it, yt-dlp silently drops formats
+# and can fail with "Requested format is not available".
+RUN curl -fsSL https://deno.land/install.sh | sh -s -- -y \
+    && ln -s /root/.deno/bin/deno /usr/local/bin/deno
 
 # bgutil-ytdlp-pot-provider plugin - mints PO tokens so yt-dlp's requests look like a real
 # browser session, working around YouTube blocking/throttling datacenter IPs. Tracks latest

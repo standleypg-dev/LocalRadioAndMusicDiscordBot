@@ -87,7 +87,7 @@ public sealed class GuildPlayer(
             TrackPlayResult result;
             try
             {
-                result = await audioPlayer.PlayTrackAsync(request, trackToken);
+                result = await audioPlayer.PlayTrackAsync(request, attempt, trackToken);
             }
             catch (OperationCanceledException) when (trackToken.IsCancellationRequested)
             {

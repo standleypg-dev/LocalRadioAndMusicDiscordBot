@@ -22,6 +22,12 @@ public class YoutubeService: IStreamService
     // yt-dlp's requests look like a real browser session; see https://github.com/Brainicism/bgutil-ytdlp-pot-provider.
     private readonly string _potProviderExtractorArg;
 
+    // bgutil only mints web-flavored PO tokens (web/mweb/web_safari). yt-dlp still lists formats
+    // from other clients (e.g. android_vr) as available whenever any PO token provider is
+    // registered, but android_vr's playback URLs need a separate DroidGuard-based token bgutil
+    // can't supply, so picking one 403s. Pin player_client so only bgutil-covered clients are used.
+    private const string PlayerClientExtractorArg = "youtube:player_client=web,mweb";
+
     public YoutubeService(
         IServiceProvider serviceProvider,
         ILogger<YoutubeService> logger,
@@ -42,9 +48,17 @@ public class YoutubeService: IStreamService
         ];
     }
 
-    public async Task<string> GetAudioStreamUrlAsync(string url, CancellationToken cancellationToken)
+    public async Task<string> GetAudioStreamUrlAsync(string url, int attempt, CancellationToken cancellationToken)
     {
-        foreach (var strategy in _providerStrategy)
+        // yt-dlp can report a successful fetch but hand back a URL that still 403s once FFmpeg
+        // opens it (e.g. YouTube binding the GVS PO token to a specific video ID) - a failure this
+        // class can't see, since it only surfaces later in FfmpegProcessService. This class is
+        // re-created per attempt (scoped DI, fresh scope per PlayTrackAsync call), so it has no
+        // memory of prior attempts - GuildPlayer's retry loop passes the attempt number in instead.
+        // Alternate which provider goes first each retry so a bad yt-dlp URL isn't re-picked
+        // attempt after attempt.
+        var providers = attempt % 2 == 0 ? _providerStrategy : Enumerable.Reverse(_providerStrategy);
+        foreach (var strategy in providers)
         {
             var result = await ExecuteWithTimeout(strategy, url, TimeSpan.FromSeconds(15), cancellationToken);
             if (result.Success)
@@ -96,7 +110,7 @@ public class YoutubeService: IStreamService
             var overrideOptions = new OptionSet
             {
                 Format = "bestaudio/best",
-                ExtractorArgs = new MultiValue<string>(_potProviderExtractorArg)
+                ExtractorArgs = new MultiValue<string>(_potProviderExtractorArg, PlayerClientExtractorArg)
             };
             var result = await ytdl.RunVideoDataFetch(url, ct: cancellationToken, overrideOptions: overrideOptions);
 
@@ -175,7 +189,7 @@ public class YoutubeService: IStreamService
             var ytdl = new YoutubeDL { YoutubeDLPath = "yt-dlp" };
             var overrideOptions = new OptionSet
             {
-                ExtractorArgs = new MultiValue<string>(_potProviderExtractorArg)
+                ExtractorArgs = new MultiValue<string>(_potProviderExtractorArg, PlayerClientExtractorArg)
             };
             var result = await ytdl.RunVideoDataFetch(url, ct: cancellationToken, overrideOptions: overrideOptions);
 
