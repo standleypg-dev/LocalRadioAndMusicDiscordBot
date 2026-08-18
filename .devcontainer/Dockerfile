@@ -29,8 +29,8 @@ RUN wget -O /tmp/libdave.zip \
     && cp /tmp/libdave/lib/*.so /usr/lib/ \
     && rm -rf /tmp/libdave /tmp/libdave.zip
 
-# yt-dlp - same fetch method as deployment/Dockerfile.
-ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
+# yt-dlp - same fetch method as deployment/Dockerfile, tracks the nightly release channel.
+ADD https://github.com/yt-dlp/yt-dlp/releases/download/nightly/yt-dlp /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
 
 # Deno - JS runtime for yt-dlp's bundled EJS challenge solver, same reasoning as deployment/Dockerfile.
