@@ -63,10 +63,10 @@ RUN apt update && apt install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/share/zoneinfo/Asia/Singapore /etc/localtime
 
-# Install nightly yt-dlp directly from GitHub releases (more frequent extractor fixes than
-# the "latest" stable tag, at the cost of being less battle-tested)
+# Install yt-dlp from the yt-dlp-nightly-builds repo (more frequent extractor fixes than
+# the main repo's "latest" stable release, at the cost of being less battle-tested)
 ARG YT_DLP_CACHE_BUST=latest
-ADD https://github.com/yt-dlp/yt-dlp/releases/download/nightly/yt-dlp /usr/local/bin/yt-dlp
+ADD https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
 RUN chmod a+rx /usr/local/bin/yt-dlp
 
 # Deno - JS runtime for yt-dlp's bundled EJS challenge solver, which handles YouTube's
