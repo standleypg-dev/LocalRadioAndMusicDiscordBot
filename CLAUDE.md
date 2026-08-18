@@ -95,7 +95,7 @@ A play interaction enqueues a `PlayRequest` via `IGuildMusicService` into the gu
 - FFmpeg
 - libsodium, libopus
 - libdave (fetched from the Discord libdave releases zip in the Dockerfile)
-- yt-dlp (pulled from the yt-dlp `nightly` release at image build time - more frequent extractor fixes than the `latest` stable tag, at the cost of being less battle-tested; `YT_DLP_CACHE_BUST` build arg forces a re-download)
+- yt-dlp (pulled from the `yt-dlp/yt-dlp-nightly-builds` repo's `latest` release at image build time - more frequent extractor fixes than the main repo's `latest` stable release, at the cost of being less battle-tested; `YT_DLP_CACHE_BUST` build arg forces a re-download)
 - bgutil-ytdlp-pot-provider plugin zip, pulled from its `latest` release at image build time and installed into `/root/.yt-dlp/plugins/` so yt-dlp picks it up automatically. No version is pinned anywhere (the `bgutil-provider` compose service also tracks `:latest` with `pull_policy: always`) - to pick up a new release on either side, just re-run `.github/workflows/release.yml`, no code change needed
 - python3 (required by yt-dlp)
 - Deno (installed via the official `deno.land/install.sh` script, not apt - Debian has no official package), the JS runtime yt-dlp's bundled EJS solver uses to solve YouTube's signature/n-parameter challenges on `web`/`mweb` clients. Without it, yt-dlp silently drops formats and can fail with "Requested format is not available"
